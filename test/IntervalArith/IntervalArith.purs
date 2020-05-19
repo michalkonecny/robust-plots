@@ -8,4 +8,4 @@ import Test.IntervalArith.Approx (approxTests)
 
 intervalArithTests :: TestSuite
 intervalArithTests = do
-    approxTests
+  approxTests
