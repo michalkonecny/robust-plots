@@ -1,0 +1,31 @@
+name: Build and Test
+
+on: 
+  pull_request:
+    # Sequence of patterns matched against refs/heads
+    branches:    
+      - master         # Pull request events on master branch
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup Node.js 10
+      uses: actions/setup-node@v1
+      with:
+        node-version: 10
+
+    - name: Install spago and load dependencies
+      run: |
+        npm install spago -g
+        cd /home/runner/work/robust-plots/robust-plots
+        npm run install
+
+    - name: Test
+      run: | 
+        cd /home/runner/work/robust-plots/robust-plots
+#        npm run test

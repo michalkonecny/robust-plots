@@ -1,11 +1,11 @@
 module Test.Main where
 
 import Prelude
-
 import Effect (Effect)
-import Effect.Class.Console (log)
+import Test.Unit.Main (runTest)
+import Test.IntervalArith (intervalArithTests)
 
 main :: Effect Unit
 main = do
-  log "🍝"
-  log "You should add some tests."
+  runTest do
+    intervalArithTests
