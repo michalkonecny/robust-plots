@@ -13,7 +13,7 @@
   "scripts": {
     "install": "spago install",
     "build": "spago build",
-    "start": "spago run",
+    "robust-plots": "spago run",
     "test": "spago test --main Test.Main"
   },
   "dependencies": {
