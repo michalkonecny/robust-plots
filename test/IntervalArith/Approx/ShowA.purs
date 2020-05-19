@@ -9,7 +9,7 @@ import IntervalArith.Approx (Approx(..), showA, big)
 showATests :: TestSuite
 showATests =
   suite "IntervalArith.Approx - showA" do
-    test "SHOULD show '1.~' WHEN Approx 1 1 0 0" do
+    test "SHOULD show '1' WHEN Approx 1 1 0 0" do
       let
         -- given
         input = Approx 1 (big 1) (big 0) 0
