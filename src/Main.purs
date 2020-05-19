@@ -1,7 +1,6 @@
 module Main where
 
 import Prelude
-
 import Affjax as AX
 import Affjax.ResponseFormat as AXRF
 import Control.Monad.Reader (ReaderT, ask, runReaderT)
@@ -16,11 +15,14 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 
-type Config = { githubToken :: Maybe String }
+type Config
+  = { githubToken :: Maybe String }
 
-type State = { userData :: Maybe String }
+type State
+  = { userData :: Maybe String }
 
-data Action = FetchData
+data Action
+  = FetchData
 
 ui :: forall f i o. H.Component HH.HTML f i o (ReaderT Config Aff)
 ui =
@@ -30,7 +32,6 @@ ui =
     , eval: H.mkEval (H.defaultEval { handleAction = handleAction })
     }
   where
-
   initialState :: State
   initialState = { userData: Nothing }
 
@@ -50,10 +51,8 @@ searchUser :: String -> ReaderT Config Aff String
 searchUser q = do
   { githubToken } <- ask
   result <- case githubToken of
-    Nothing ->
-      lift (AX.get AXRF.string ("https://api.github.com/users/" <> q))
-    Just token ->
-      lift (AX.get AXRF.string ("https://api.github.com/users/" <> q <> "?access_token=" <> token))
+    Nothing -> lift (AX.get AXRF.string ("https://api.github.com/users/" <> q))
+    Just token -> lift (AX.get AXRF.string ("https://api.github.com/users/" <> q <> "?access_token=" <> token))
   pure (either (const "") _.body result)
 
 handleAction :: forall o. Action -> H.HalogenM State Action () o (ReaderT Config Aff) Unit
@@ -66,6 +65,7 @@ ui' :: forall f i o. H.Component HH.HTML f i o Aff
 ui' = H.hoist (\app -> runReaderT app { githubToken: Nothing }) ui
 
 main :: Effect Unit
-main = HA.runHalogenAff do
-  body <- HA.awaitBody
-  runUI ui' unit body
+main =
+  HA.runHalogenAff do
+    body <- HA.awaitBody
+    runUI ui' unit body
