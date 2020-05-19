@@ -1,9 +1,35 @@
-{-
-Welcome to a Spago project!
-You can edit this file as you like.
--}
 { name = "robust-plots"
-, dependencies = [ "bigints", "canvas", "console", "effect", "lists", "psci-support", "test-unit" ]
+, dependencies = 
+  [ "halogen"
+  , "bigints"
+  , "canvas"
+  , "console"
+  , "effect"
+  , "lists"
+  , "psci-support"
+  , "test-unit" 
+  , "aff"
+  , "avar"
+  , "const"
+  , "coroutines"
+  , "dom-indexed"
+  , "foreign"
+  , "fork"
+  , "free"
+  , "freeap"
+  , "halogen-vdom"
+  , "media-types"
+  , "nullable"
+  , "ordered-collections"
+  , "parallel"
+  , "profunctor"
+  , "transformers"
+  , "unsafe-coerce"
+  , "unsafe-reference"
+  , "web-file"
+  , "web-uievents"
+  , "affjax"
+  ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]
 }

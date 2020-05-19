@@ -9,3 +9,5 @@ output
 .purs-repl
 .spago
 .psc-ide-port
+# bundle file
+/dist/example.js

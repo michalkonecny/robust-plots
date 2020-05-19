@@ -12,8 +12,7 @@
   "version": "0.0.1",
   "scripts": {
     "install": "spago install",
-    "build": "spago build",
-    "robust-plots": "spago run",
+    "build": "spago bundle-app --to dist/app.js",
     "test": "spago test --main Test.Main"
   },
   "dependencies": {
