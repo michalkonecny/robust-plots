@@ -1,9 +1,8 @@
-module Test.IntervalArith ( 
-    intervalArithTests 
-) where
+module Test.IntervalArith
+  ( intervalArithTests
+  ) where
 
 import Test.Unit (TestSuite)
-
 import Test.IntervalArith.Approx (approxTests)
 
 intervalArithTests :: TestSuite
