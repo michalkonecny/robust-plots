@@ -14,14 +14,13 @@
     "install": "spago install",
     "build": "spago build",
     "robust-plots": "spago run",
-    "test": "pulp test"
+    "test": "spago test --main Test.Main"
   },
   "dependencies": {
     "big-integer": "^1.6.48"
   },
   "devDependencies": {
-    "spago": "^0.15.2",
-    "pulp": "^12.2.0"
+    "spago": "^0.15.2"
   },
   "license": "BSD-3-Clause"
 }
