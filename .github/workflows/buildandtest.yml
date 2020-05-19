@@ -19,17 +19,11 @@ jobs:
       with:
         node-version: 10
 
-    - name: Install spago and load dependencies
+    - name: Install pulp and load dependencies
       run: |
-        npm install spago -g
         npm install pulp -g
         cd /home/runner/work/robust-plots/robust-plots
-        npm run install
-
-#    - name: Build
-#      run: | 
-#        cd /home/runner/work/robust-plots/robust-plots
-#        npm run build
+        npm install
 
     - name: Test
       run: | 
