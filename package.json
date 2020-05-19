@@ -20,7 +20,8 @@
     "big-integer": "^1.6.48"
   },
   "devDependencies": {
-    "spago": "^0.15.2"
+    "spago": "^0.15.2",
+    "purescript": "^0.13.6"
   },
   "license": "BSD-3-Clause"
 }
