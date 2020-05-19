@@ -18,7 +18,6 @@
   },
   "dependencies": {
     "big-integer": "^1.6.48",
-    "purescript-lists": "^5.4.1",
     "purescript-effect": "^2.0.1",
     "purescript-bigints": "^4.0.0",
     "purescript-canvas": "^4.0.0",
