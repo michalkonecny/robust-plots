@@ -14,11 +14,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Setup .NET Core
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 2.2.108
-
     - name: Setup Node.js 10
       uses: actions/setup-node@v1
       with:
@@ -27,13 +22,14 @@ jobs:
     - name: Install spago and load dependencies
       run: |
         npm install spago -g
+        npm install pulp -g
         cd /home/runner/work/robust-plots/robust-plots
         npm run install
 
-    #- name: Build
-    #  run: | 
-    #    cd /home/runner/work/robust-plots/robust-plots
-    #    npm run build
+#    - name: Build
+#      run: | 
+#        cd /home/runner/work/robust-plots/robust-plots
+#        npm run build
 
     - name: Test
       run: | 
