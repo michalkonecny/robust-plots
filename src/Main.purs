@@ -1,11 +1,9 @@
 module Main where
 
 import Prelude
-
 import Affjax as AX
 import Affjax.ResponseFormat as AXRF
 import Components.Canvas (Input, Slot, canvasComponent)
-import Components.Canvas.Renderer (Renderer)
 import Data.Symbol (SProxy(..))
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT, ask, runReaderT)
@@ -14,14 +12,13 @@ import Data.Either (either)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Effect (Effect)
 import Effect.Aff (Aff)
-import Graphics.Canvas (Context2D)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
-import Types (Size)
 import Components.Canvas.Context (renderer)
+import Effect.Class (class MonadEffect)
 
 type Config
   = { githubToken :: Maybe String }
@@ -32,7 +29,8 @@ type State
 data Action
   = FetchData
 
-type ChildSlots = ( canvas :: Slot Int )
+type ChildSlots
+  = ( canvas :: Slot Int )
 
 _canvas = SProxy :: SProxy "canvas"
 
@@ -47,7 +45,7 @@ ui =
   initialState :: State
   initialState = { userData: Nothing }
 
-  render :: forall m. State -> H.ComponentHTML Action ChildSlots m
+  render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
   render state =
     HH.div_
       [ HH.h1_
@@ -57,7 +55,7 @@ ui =
           [ HH.text "Fetch" ]
       , HH.p_
           [ HH.text (fromMaybe "No user data" state.userData) ]
-      , HH.slot _canvas 1 (canvasComponent { renderer }) input absurd
+      , HH.slot _canvas 1 (canvasComponent renderer) input absurd
       ]
 
 searchUser :: String -> ReaderT Config Aff String

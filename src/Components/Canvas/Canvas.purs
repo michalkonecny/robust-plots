@@ -15,9 +15,8 @@ import Types (Size, Domain)
 import Graphics.Canvas (Context2D)
 
 -- COMPONENT
-type Slot p = forall q. H.Slot q Void p
-
-type Config operations = { renderer :: Renderer operations }
+type Slot p
+  = forall q. H.Slot q Void p
 
 type State operations
   = { input :: Input operations
@@ -34,7 +33,7 @@ data Action operations
   = Init
   | HandleInput (Input operations)
 
-canvasComponent :: forall operations query output m. MonadEffect m => Config operations -> H.Component HH.HTML query (Input operations) output m
+canvasComponent :: forall operations query output m. MonadEffect m => Renderer operations -> H.Component HH.HTML query (Input operations) output m
 canvasComponent cfg =
   H.mkComponent
     { initialState
@@ -65,15 +64,15 @@ render { input: { size, canvasId } } =
     ]
 
 -- COMPONENT ACTION
-handleAction :: forall operations output m. MonadEffect m => Config operations -> Action operations -> H.HalogenM (State operations) (Action operations) () output m Unit
-handleAction cfg@{ renderer } = case _ of
+handleAction :: forall operations output m. MonadEffect m => Renderer operations -> Action operations -> H.HalogenM (State operations) (Action operations) () output m Unit
+handleAction renderer = case _ of
   Init ->
     map (const unit)
       $ runMaybeT do
           { input } <- H.get
           context <- MaybeT $ H.liftEffect $ renderer.init input.size
           H.modify_ _ { context = Just context }
-          MaybeT.lift $ handleAction cfg (HandleInput input)
+          MaybeT.lift $ handleAction renderer (HandleInput input)
           pure unit
   HandleInput input -> do
     state <- H.get
