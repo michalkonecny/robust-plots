@@ -2,6 +2,7 @@ module Components.Canvas.Renderer where
 
 import Prelude
 import Components.Canvas.Context (DrawContext)
+import Components.Canvas.Draw (drawText)
 import Effect (Effect)
 import Types (Size)
 import Constants (canvasId)
@@ -10,16 +11,16 @@ import Data.Maybe (Maybe(..))
 import Effect.Exception (throw)
 import Graphics.Canvas (getCanvasElementById, getContext2D)
 
-type Renderer operations
+type Renderer commands
   = { init :: Size -> Effect (Maybe DrawContext)
-    , render :: DrawContext -> operations -> Effect Unit
+    , render :: DrawContext -> commands -> Effect Unit
     , onResize :: Size -> DrawContext -> Effect DrawContext
     }
 
-type DrawOperations
+type DrawCommands
   = Array String
 
-renderer :: Renderer DrawOperations
+renderer :: Renderer DrawCommands
 renderer = { init, render, onResize }
   where
   init :: Size -> Effect (Maybe DrawContext)
@@ -34,8 +35,8 @@ renderer = { init, render, onResize }
         _ <- throw $ "canvas id: " <> canvasId <> " was not found."
         pure Nothing
 
-  render :: DrawContext -> DrawOperations -> Effect Unit
-  render ctx operations = traverse_ (\_ -> pure unit) operations
+  render :: DrawContext -> DrawCommands -> Effect Unit
+  render ctx commands = drawText "The canvas works" 20.0 { x: 10.0, y: 30.0 } ctx
 
   onResize :: Size -> DrawContext -> Effect DrawContext
   onResize size ctx = pure ctx
