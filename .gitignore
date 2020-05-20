@@ -10,4 +10,5 @@ output
 .spago
 .psc-ide-port
 # bundle file
-/dist/example.js
+dist/app.js
+dist/debug.log
