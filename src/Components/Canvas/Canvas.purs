@@ -1,7 +1,4 @@
-module Components.Canvas
-  ( mkComponent
-  , Input
-  ) where
+module Components.Canvas where
 
 import Prelude
 import Components.Canvas.Renderer (Renderer)
@@ -15,14 +12,16 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Types (Size, Domain)
+import Graphics.Canvas (Context2D)
 
 -- COMPONENT
-type Config context operations
-  = { renderer :: Renderer context operations }
+type Slot p = forall q. H.Slot q Void p
 
-type State context operations
+type Config operations = { renderer :: Renderer operations }
+
+type State operations
   = { input :: Input operations
-    , context :: Maybe context
+    , context :: Maybe Context2D
     }
 
 type Input operations
@@ -35,8 +34,8 @@ data Action operations
   = Init
   | HandleInput (Input operations)
 
-mkComponent :: forall context operations query output m. MonadEffect m => Config context operations -> H.Component HH.HTML query (Input operations) output m
-mkComponent cfg =
+canvasComponent :: forall operations query output m. MonadEffect m => Config operations -> H.Component HH.HTML query (Input operations) output m
+canvasComponent cfg =
   H.mkComponent
     { initialState
     , render
@@ -50,14 +49,14 @@ mkComponent cfg =
     }
 
 -- COMPONENT INIT
-initialState :: forall context operations. Input operations -> State context operations
+initialState :: forall operations. Input operations -> State operations
 initialState input =
   { input
   , context: Nothing
   }
 
 -- COMPONENT RENDER
-render :: forall context operations action slots. State context operations -> HH.HTML action slots
+render :: forall operations action slots. State operations -> HH.HTML action slots
 render { input: { size, canvasId } } =
   HH.canvas
     [ HP.id_ canvasId
@@ -66,13 +65,13 @@ render { input: { size, canvasId } } =
     ]
 
 -- COMPONENT ACTION
-handleAction :: forall context operations output m. MonadEffect m => Config context operations -> Action operations -> H.HalogenM (State context operations) (Action operations) () output m Unit
+handleAction :: forall operations output m. MonadEffect m => Config operations -> Action operations -> H.HalogenM (State operations) (Action operations) () output m Unit
 handleAction cfg@{ renderer } = case _ of
   Init ->
     map (const unit)
       $ runMaybeT do
           { input } <- H.get
-          context :: context <- MaybeT $ H.liftEffect $ renderer.init input.size
+          context <- MaybeT $ H.liftEffect $ renderer.init input.size
           H.modify_ _ { context = Just context }
           MaybeT.lift $ handleAction cfg (HandleInput input)
           pure unit

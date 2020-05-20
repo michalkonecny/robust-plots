@@ -4,9 +4,10 @@ import Prelude
 import Data.Maybe (Maybe)
 import Types (Size)
 import Effect (Effect)
+import Graphics.Canvas (Context2D)
 
-type Renderer context operations
-  = { init :: Size -> Effect (Maybe context)
-    , render :: context -> operations -> Effect Unit
-    , onResize :: Size -> context -> Effect context
+type Renderer operations
+  = { init :: Size -> Effect (Maybe Context2D)
+    , render :: Context2D -> operations -> Effect Unit
+    , onResize :: Size -> Context2D -> Effect Context2D
     }

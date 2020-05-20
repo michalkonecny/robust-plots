@@ -5,7 +5,7 @@ import Prelude
 import Affjax as AX
 import Affjax.ResponseFormat as AXRF
 import Components.Canvas (Input, Slot, canvasComponent)
-import Components.Canvas.Class (class Renderer, class ContextHandler)
+import Components.Canvas.Renderer (Renderer)
 import Data.Symbol (SProxy(..))
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT, ask, runReaderT)
@@ -21,6 +21,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import Types (Size)
+import Components.Canvas.Context (renderer)
 
 type Config
   = { githubToken :: Maybe String }
@@ -56,7 +57,7 @@ ui =
           [ HH.text "Fetch" ]
       , HH.p_
           [ HH.text (fromMaybe "No user data" state.userData) ]
-      , HH.slot _canvas 1 (canvasComponent) input absurd
+      , HH.slot _canvas 1 (canvasComponent { renderer }) input absurd
       ]
 
 searchUser :: String -> ReaderT Config Aff String
@@ -76,7 +77,7 @@ handleAction = case _ of
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
 ui' = H.hoist (\app -> runReaderT app { githubToken: Nothing }) ui
 
-input :: Input (Array Int)
+input :: Input (Array String)
 input =
   { operations: []
   , canvasId: canvasId
