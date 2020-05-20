@@ -1,12 +1,16 @@
 module Types where
 
 type Domain
-  = { xBounds :: Bounds, yBounds :: Bounds }
+  = { xBounds :: RangeBounds, yBounds :: RangeBounds }
 
-type Bounds
+type RangeBounds
   = { upper :: Number, lower :: Number }
 
 type Position
   = { x :: Number, y :: Number }
 
-type Polygon = Array Position
+type Size
+  = { width :: Number, height :: Number }
+
+type Polygon
+  = Array Position
