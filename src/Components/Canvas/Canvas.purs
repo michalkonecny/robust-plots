@@ -1,6 +1,8 @@
 module Components.Canvas where
 
 import Prelude
+
+import Components.Canvas.Context (DrawContext)
 import Components.Canvas.Renderer (Renderer)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Control.Monad.Maybe.Trans as MaybeT
@@ -12,7 +14,6 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Types (Size, Domain)
-import Graphics.Canvas (Context2D)
 
 -- COMPONENT
 type Slot p
@@ -20,7 +21,7 @@ type Slot p
 
 type State operations
   = { input :: Input operations
-    , context :: Maybe Context2D
+    , context :: Maybe DrawContext
     }
 
 type Input operations

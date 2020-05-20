@@ -17,7 +17,7 @@ import Halogen.Aff as HA
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
-import Components.Canvas.Context (renderer)
+import Components.Canvas.Renderer (renderer)
 import Effect.Class (class MonadEffect)
 
 type Config
