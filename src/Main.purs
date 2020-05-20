@@ -4,17 +4,23 @@ import Prelude
 
 import Affjax as AX
 import Affjax.ResponseFormat as AXRF
+import Components.Canvas (Input, Slot, canvasComponent)
+import Components.Canvas.Class (class Renderer, class ContextHandler)
+import Data.Symbol (SProxy(..))
+import Constants (canvasId)
 import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Control.Monad.Trans.Class (lift)
 import Data.Either (either)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Effect (Effect)
 import Effect.Aff (Aff)
+import Graphics.Canvas (Context2D)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
+import Types (Size)
 
 type Config
   = { githubToken :: Maybe String }
@@ -24,6 +30,10 @@ type State
 
 data Action
   = FetchData
+
+type ChildSlots = ( canvas :: Slot Int )
+
+_canvas = SProxy :: SProxy "canvas"
 
 ui :: forall f i o. H.Component HH.HTML f i o (ReaderT Config Aff)
 ui =
@@ -36,7 +46,7 @@ ui =
   initialState :: State
   initialState = { userData: Nothing }
 
-  render :: forall m. State -> H.ComponentHTML Action () m
+  render :: forall m. State -> H.ComponentHTML Action ChildSlots m
   render state =
     HH.div_
       [ HH.h1_
@@ -46,6 +56,7 @@ ui =
           [ HH.text "Fetch" ]
       , HH.p_
           [ HH.text (fromMaybe "No user data" state.userData) ]
+      , HH.slot _canvas 1 (canvasComponent) input absurd
       ]
 
 searchUser :: String -> ReaderT Config Aff String
@@ -56,7 +67,7 @@ searchUser q = do
     Just token -> lift (AX.get AXRF.string ("https://api.github.com/users/" <> q <> "?access_token=" <> token))
   pure (either (const "") _.body result)
 
-handleAction :: forall o. Action -> H.HalogenM State Action () o (ReaderT Config Aff) Unit
+handleAction :: forall o. Action -> H.HalogenM State Action ChildSlots o (ReaderT Config Aff) Unit
 handleAction = case _ of
   FetchData -> do
     userData <- lift (searchUser "kRITZCREEK")
@@ -64,6 +75,16 @@ handleAction = case _ of
 
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
 ui' = H.hoist (\app -> runReaderT app { githubToken: Nothing }) ui
+
+input :: Input (Array Int)
+input =
+  { operations: []
+  , canvasId: canvasId
+  , size:
+      { width: 800.0
+      , height: 500.0
+      }
+  }
 
 main :: Effect Unit
 main =
