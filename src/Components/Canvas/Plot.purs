@@ -3,10 +3,10 @@ module Components.Canvas.Plot where
 import Types (Polygon)
 
 data Plot
-  = Ploygon Polygon
+  = Polygon Polygon
 
 basicPolygon :: Plot
-basicPolygon = Ploygon polygon
+basicPolygon = Polygon polygon
   where
   p1 = { x: 0.0, y: 0.0 }
 
