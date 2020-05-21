@@ -1,9 +1,9 @@
 module Types where
 
-type Domain
-  = { xBounds :: RangeBounds, yBounds :: RangeBounds }
+type XYBounds
+  = { xBounds :: Bounds, yBounds :: Bounds }
 
-type RangeBounds
+type Bounds
   = { upper :: Number, lower :: Number }
 
 type Position

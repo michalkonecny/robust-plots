@@ -13,7 +13,7 @@ import Effect.Class (class MonadEffect)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
-import Types (Size, Domain)
+import Types (Size, XYBounds)
 
 type Slot p
   = forall q. H.Slot q Void p
@@ -82,5 +82,5 @@ handleAction controller = case _ of
         H.liftEffect $ controller.render context input.operations
     pure unit
 
-domain :: Number -> Number -> Number -> Number -> Domain
-domain xLower xUpper yLower yUpper = { xBounds: { upper: xUpper, lower: xLower }, yBounds: { upper: yUpper, lower: yLower } }
+xyBounds :: Number -> Number -> Number -> Number -> XYBounds
+xyBounds xLower xUpper yLower yUpper = { xBounds: { upper: xUpper, lower: xLower }, yBounds: { upper: yUpper, lower: yLower } }
