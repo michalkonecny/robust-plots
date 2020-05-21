@@ -15,7 +15,6 @@ import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Types (Size, Domain)
 
--- COMPONENT
 type Slot p
   = forall q. H.Slot q Void p
 
@@ -48,14 +47,12 @@ canvasComponent cfg =
               }
     }
 
--- COMPONENT INIT
 initialState :: forall operations. Input operations -> State operations
 initialState input =
   { input
   , context: Nothing
   }
 
--- COMPONENT RENDER
 render :: forall operations action slots. State operations -> HH.HTML action slots
 render { input: { size, canvasId } } =
   HH.canvas
@@ -64,7 +61,6 @@ render { input: { size, canvasId } } =
     , HP.height $ Int.floor size.height
     ]
 
--- COMPONENT ACTION
 handleAction :: forall operations output m. MonadEffect m => CanvasController operations -> Action operations -> H.HalogenM (State operations) (Action operations) () output m Unit
 handleAction controller = case _ of
   Init ->
