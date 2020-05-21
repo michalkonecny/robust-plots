@@ -1,24 +1,26 @@
 module Main where
 
 import Prelude
+
 import Affjax as AX
 import Affjax.ResponseFormat as AXRF
 import Components.Canvas (Input, Slot, canvasComponent)
-import Data.Symbol (SProxy(..))
+import Components.Canvas.Commands (DrawCommand)
+import Components.Canvas.Renderer (renderer)
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Control.Monad.Trans.Class (lift)
 import Data.Either (either)
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Symbol (SProxy(..))
 import Effect (Effect)
 import Effect.Aff (Aff)
+import Effect.Class (class MonadEffect)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
-import Components.Canvas.Renderer (renderer)
-import Effect.Class (class MonadEffect)
 
 type Config
   = { githubToken :: Maybe String }
@@ -75,9 +77,9 @@ handleAction = case _ of
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
 ui' = H.hoist (\app -> runReaderT app { githubToken: Nothing }) ui
 
-input :: Input (Array String)
+input :: Input (DrawCommand Unit)
 input =
-  { operations: []
+  { operations: pure unit
   , canvasId: canvasId
   , size:
       { width: 800.0
