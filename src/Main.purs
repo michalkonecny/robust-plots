@@ -1,7 +1,6 @@
 module Main where
 
 import Prelude
-
 import Components.Canvas (Input, Slot, canvasComponent)
 import Components.Canvas.CanvasController (canvasController)
 import Components.Canvas.Commands (DrawCommand)
@@ -44,13 +43,16 @@ ui =
     }
   where
   initialState :: State
-  initialState = { input: { operations: pure unit
-  , canvasId: canvasId
-  , size:
-      { width: 800.0
-      , height: 500.0
-      }
-  } }
+  initialState =
+    { input:
+        { operations: pure unit
+        , canvasId: canvasId
+        , size:
+            { width: 800.0
+            , height: 500.0
+            }
+        }
+    }
 
   render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
   render state =
@@ -73,14 +75,14 @@ handleAction :: forall o. Action -> H.HalogenM State Action ChildSlots o (Reader
 handleAction = case _ of
   BasicPlot -> do
     state <- H.get
-    plotCommands <- lift (computePlot basicPolygon)
+    plotCommands <- lift $ computePlot basicPolygon
     H.put state { input { operations = plotCommands } }
 
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
-ui' = H.hoist (\app -> runReaderT app initialConfig) ui  
+ui' = H.hoist (\app -> runReaderT app initialConfig) ui
 
 initialConfig :: Config
-initialConfig = { someData : ""}
+initialConfig = { someData: "" }
 
 main :: Effect Unit
 main =
