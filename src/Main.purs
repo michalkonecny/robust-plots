@@ -1,16 +1,16 @@
 module Main where
 
 import Prelude
-import Affjax as AX
-import Affjax.ResponseFormat as AXRF
+
 import Components.Canvas (Input, Slot, canvasComponent)
-import Components.Canvas.Commands (DrawCommand)
 import Components.Canvas.CanvasController (canvasController)
+import Components.Canvas.Commands (DrawCommand)
+import Components.Canvas.Plot (Plot, basicPolygon)
+import Components.Canvas.PlotController (computePlotAsync)
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Control.Monad.Trans.Class (lift)
-import Data.Either (either)
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Effect (Effect)
 import Effect.Aff (Aff)
@@ -22,7 +22,7 @@ import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 
 type Config
-  = { }
+  = { someData :: String }
 
 type State
   = { input :: Input (DrawCommand Unit) }
@@ -63,24 +63,24 @@ ui =
       , HH.slot _canvas 1 (canvasComponent canvasController) state.input absurd
       ]
 
-computePlot :: String -> ReaderT Config Aff (DrawCommand Unit)
-computePlot q = do
-  -- { } <- ask
-  -- result <- lift (AX.get AXRF.string ("https://api.github.com/users/" <> q))
-  pure $ pure unit
+computePlot :: Plot -> ReaderT Config Aff (DrawCommand Unit)
+computePlot plot = do
+  config <- ask
+  result <- lift $ computePlotAsync plot
+  pure $ result
 
 handleAction :: forall o. Action -> H.HalogenM State Action ChildSlots o (ReaderT Config Aff) Unit
 handleAction = case _ of
   BasicPlot -> do
     state <- H.get
-    plotCommands <- lift (computePlot "kRITZCREEK")
+    plotCommands <- lift (computePlot basicPolygon)
     H.put state { input { operations = plotCommands } }
 
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
 ui' = H.hoist (\app -> runReaderT app initialConfig) ui  
 
 initialConfig :: Config
-initialConfig = {}
+initialConfig = { someData : ""}
 
 main :: Effect Unit
 main =
