@@ -6,7 +6,7 @@ import Affjax as AX
 import Affjax.ResponseFormat as AXRF
 import Components.Canvas (Input, Slot, canvasComponent)
 import Components.Canvas.Commands (DrawCommand)
-import Components.Canvas.Renderer (renderer)
+import Components.Canvas.CanvasController (canvasController)
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Control.Monad.Trans.Class (lift)
@@ -57,7 +57,7 @@ ui =
           [ HH.text "Fetch" ]
       , HH.p_
           [ HH.text (fromMaybe "No user data" state.userData) ]
-      , HH.slot _canvas 1 (canvasComponent renderer) input absurd
+      , HH.slot _canvas 1 (canvasComponent canvasController) input absurd
       ]
 
 searchUser :: String -> ReaderT Config Aff String

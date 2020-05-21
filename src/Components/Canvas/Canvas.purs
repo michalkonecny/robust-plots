@@ -3,7 +3,7 @@ module Components.Canvas where
 import Prelude
 
 import Components.Canvas.Context (DrawContext)
-import Components.Canvas.Renderer (Renderer)
+import Components.Canvas.CanvasController (CanvasController)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Control.Monad.Maybe.Trans as MaybeT
 import Data.Int as Int
@@ -34,7 +34,7 @@ data Action operations
   = Init
   | HandleInput (Input operations)
 
-canvasComponent :: forall operations query output m. MonadEffect m => Renderer operations -> H.Component HH.HTML query (Input operations) output m
+canvasComponent :: forall operations query output m. MonadEffect m => CanvasController operations -> H.Component HH.HTML query (Input operations) output m
 canvasComponent cfg =
   H.mkComponent
     { initialState
@@ -65,15 +65,15 @@ render { input: { size, canvasId } } =
     ]
 
 -- COMPONENT ACTION
-handleAction :: forall operations output m. MonadEffect m => Renderer operations -> Action operations -> H.HalogenM (State operations) (Action operations) () output m Unit
-handleAction renderer = case _ of
+handleAction :: forall operations output m. MonadEffect m => CanvasController operations -> Action operations -> H.HalogenM (State operations) (Action operations) () output m Unit
+handleAction controller = case _ of
   Init ->
     map (const unit)
       $ runMaybeT do
           { input } <- H.get
-          context <- MaybeT $ H.liftEffect $ renderer.init input.size
+          context <- MaybeT $ H.liftEffect $ controller.init input.size
           H.modify_ _ { context = Just context }
-          MaybeT.lift $ handleAction renderer (HandleInput input)
+          MaybeT.lift $ handleAction controller (HandleInput input)
           pure unit
   HandleInput input -> do
     state <- H.get
@@ -81,9 +81,9 @@ handleAction renderer = case _ of
     _ <-
       for state.context \context -> do
         when (state.input.size /= input.size) do
-          context' <- H.liftEffect $ renderer.onResize input.size context
+          context' <- H.liftEffect $ controller.onResize input.size context
           H.modify_ _ { context = Just context' }
-        H.liftEffect $ renderer.render context input.operations
+        H.liftEffect $ controller.render context input.operations
     pure unit
 
 domain :: Number -> Number -> Number -> Number -> Domain

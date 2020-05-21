@@ -1,4 +1,4 @@
-module Components.Canvas.Renderer where
+module Components.Canvas.CanvasController where
 
 import Prelude
 import Components.Canvas.Commands (DrawCommand)
@@ -11,14 +11,14 @@ import Effect.Exception (throw)
 import Graphics.Canvas (getCanvasElementById, getContext2D)
 import Types (Size)
 
-type Renderer commands
+type CanvasController commands
   = { init :: Size -> Effect (Maybe DrawContext)
     , render :: DrawContext -> commands -> Effect Unit
     , onResize :: Size -> DrawContext -> Effect DrawContext
     }
 
-renderer :: Renderer (DrawCommand Unit)
-renderer = { init, render, onResize }
+canvasController :: CanvasController (DrawCommand Unit)
+canvasController = { init, render, onResize }
   where
   init :: Size -> Effect (Maybe DrawContext)
   init size = do
