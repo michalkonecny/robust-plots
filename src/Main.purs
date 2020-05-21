@@ -1,6 +1,7 @@
 module Main where
 
 import Prelude
+
 import Components.Canvas (Input, Slot, canvasComponent)
 import Components.Canvas.CanvasController (canvasController)
 import Components.Canvas.Commands (DrawCommand)
@@ -12,7 +13,7 @@ import Control.Monad.Trans.Class (lift)
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Effect (Effect)
-import Effect.Aff (Aff)
+import Effect.Aff (Aff, Milliseconds(..), delay)
 import Effect.Class (class MonadEffect)
 import Halogen as H
 import Halogen.Aff as HA
@@ -75,7 +76,9 @@ handleAction :: forall o. Action -> H.HalogenM State Action ChildSlots o (Reader
 handleAction = case _ of
   BasicPlot -> do
     state <- H.get
-    plotCommands <- lift $ computePlot basicPolygon
+    plotCommands <- lift $ do 
+      lift $ delay $ Milliseconds 5000.0
+      computePlot basicPolygon
     H.put state { input { operations = plotCommands } }
 
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
