@@ -1,7 +1,6 @@
 module Main where
 
 import Prelude
-
 import Affjax as AX
 import Affjax.ResponseFormat as AXRF
 import Components.Canvas (Input, Slot, canvasComponent)
@@ -23,13 +22,13 @@ import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 
 type Config
-  = { githubToken :: Maybe String }
+  = { }
 
 type State
-  = { userData :: Maybe String }
+  = { input :: Input (DrawCommand Unit) }
 
 data Action
-  = FetchData
+  = BasicPlot
 
 type ChildSlots
   = ( canvas :: Slot Int )
@@ -45,47 +44,43 @@ ui =
     }
   where
   initialState :: State
-  initialState = { userData: Nothing }
-
-  render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
-  render state =
-    HH.div_
-      [ HH.h1_
-          [ HH.text "Fetch user data" ]
-      , HH.button
-          [ HE.onClick \_ -> Just FetchData ]
-          [ HH.text "Fetch" ]
-      , HH.p_
-          [ HH.text (fromMaybe "No user data" state.userData) ]
-      , HH.slot _canvas 1 (canvasComponent canvasController) input absurd
-      ]
-
-searchUser :: String -> ReaderT Config Aff String
-searchUser q = do
-  { githubToken } <- ask
-  result <- case githubToken of
-    Nothing -> lift (AX.get AXRF.string ("https://api.github.com/users/" <> q))
-    Just token -> lift (AX.get AXRF.string ("https://api.github.com/users/" <> q <> "?access_token=" <> token))
-  pure (either (const "") _.body result)
-
-handleAction :: forall o. Action -> H.HalogenM State Action ChildSlots o (ReaderT Config Aff) Unit
-handleAction = case _ of
-  FetchData -> do
-    userData <- lift (searchUser "kRITZCREEK")
-    H.put { userData: Just userData }
-
-ui' :: forall f i o. H.Component HH.HTML f i o Aff
-ui' = H.hoist (\app -> runReaderT app { githubToken: Nothing }) ui
-
-input :: Input (DrawCommand Unit)
-input =
-  { operations: pure unit
+  initialState = { input: { operations: pure unit
   , canvasId: canvasId
   , size:
       { width: 800.0
       , height: 500.0
       }
-  }
+  } }
+
+  render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
+  render state =
+    HH.div_
+      [ HH.h1_
+          [ HH.text "Robust plot" ]
+      , HH.button
+          [ HE.onClick \_ -> Just BasicPlot ]
+          [ HH.text "Plot polygon async" ]
+      , HH.slot _canvas 1 (canvasComponent canvasController) state.input absurd
+      ]
+
+computePlot :: String -> ReaderT Config Aff (DrawCommand Unit)
+computePlot q = do
+  -- { } <- ask
+  -- result <- lift (AX.get AXRF.string ("https://api.github.com/users/" <> q))
+  pure $ pure unit
+
+handleAction :: forall o. Action -> H.HalogenM State Action ChildSlots o (ReaderT Config Aff) Unit
+handleAction = case _ of
+  BasicPlot -> do
+    state <- H.get
+    plotCommands <- lift (computePlot "kRITZCREEK")
+    H.put state { input { operations = plotCommands } }
+
+ui' :: forall f i o. H.Component HH.HTML f i o Aff
+ui' = H.hoist (\app -> runReaderT app initialConfig) ui  
+
+initialConfig :: Config
+initialConfig = {}
 
 main :: Effect Unit
 main =
