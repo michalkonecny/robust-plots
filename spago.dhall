@@ -8,6 +8,7 @@
   , "lists"
   , "psci-support"
   , "test-unit" 
+  , "decimals"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

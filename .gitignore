@@ -9,6 +9,6 @@ output
 .purs-repl
 .spago
 .psc-ide-port
+.parcel-cache
 # bundle file
-dist/app.js
-dist/debug.log
+dist
