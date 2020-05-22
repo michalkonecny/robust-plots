@@ -1,34 +1,62 @@
 module Components.Canvas.PlotController where
 
 import Prelude
+
 import Components.Canvas.Commands (DrawCommand)
-import Components.Canvas.Commands.Actions (drawXGridLine, drawYGridLine, drawPolygon)
+import Components.Canvas.Commands.Actions (clearCanvas, drawPlotLine, drawXGridLine, drawYGridLine)
 import Components.Canvas.Plot (Plot(..))
-import Data.Array ((..))
+import Data.Traversable (for_)
+import Data.Array ((..), zipWith, tail)
 import Data.Decimal as D
 import Data.Either (Either(..))
-import Data.Foldable (for_)
 import Data.Int (floor, toNumber)
+import Data.Maybe (fromMaybe)
 import Effect (Effect)
 import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
-import Types (XYBounds)
+import Math (ceil, pow)
+import Types (Size, XYBounds, Position)
 
-computePlotAsync :: Plot -> Aff (DrawCommand Unit)
-computePlotAsync plot = makeAff $ runComputation plot
+computePlotAsync :: Size -> Plot -> Aff (DrawCommand Unit)
+computePlotAsync canvasSize plot = makeAff $ runComputation canvasSize plot
 
-runComputation :: Plot -> (Either Error (DrawCommand Unit) -> Effect Unit) -> Effect Canceler
-runComputation (Polygon bounds polygon) callback = do
+runComputation :: Size -> Plot -> (Either Error (DrawCommand Unit) -> Effect Unit) -> Effect Canceler
+runComputation canvasSize (Plot1 shouldClear bounds) callback = do
   callback $ Right
     $ do
         -- Computation for drawing plot here
-        drawGridlines bounds
-        drawPolygon polygon
+        if shouldClear 
+          then clearAndDrawGridLines bounds
+          else pure unit
+
+        plotSimpleLine canvasSize bounds (plot1 canvasSize)
   pure nonCanceler
 
-drawGridlines :: XYBounds -> DrawCommand Unit
-drawGridlines bounds = do
+runComputation canvasSize (Empty bounds) callback = do
+  callback $ Right $ clearAndDrawGridLines bounds
+  pure nonCanceler
+
+plotSimpleLine :: Size -> XYBounds -> (Number -> Position) -> DrawCommand Unit
+plotSimpleLine canvasSize bounds func = do
+  let 
+    range = bounds.xBounds.upper - bounds.xBounds.lower
+    interval = ceil (range / canvasSize.width)
+    xValues = map (\p -> (toNumber p) * interval) $ 0 .. (floor canvasSize.width)
+    points = map func xValues
+    lines = zipWith (\a b -> { a, b }) points (fromMaybe [] (tail points))
+  
+  for_ lines (\l -> drawPlotLine l.a l.b)
+
+plot1 :: Size -> Number -> Position 
+plot1 canvasSize x = { x, y }
+  where
+    functY = 1.0 / (1.0 + (100.0 * pow x 2.0))
+    y = canvasSize.height - functY
+
+clearAndDrawGridLines :: XYBounds -> DrawCommand Unit
+clearAndDrawGridLines bounds = do
+  clearCanvas
   drawXGridLines bounds
-  drawYGridLines bounds
+  drawYGridLines bounds  
 
 drawXGridLines :: XYBounds -> DrawCommand Unit
 drawXGridLines bounds = for_ xGuidePoints draw

@@ -5,7 +5,7 @@ import Prelude
 import Components.Canvas (Input, Slot, canvasComponent, xyBounds)
 import Components.Canvas.CanvasController (canvasController)
 import Components.Canvas.Commands (DrawCommand)
-import Components.Canvas.Plot (Plot, basicPolygon)
+import Components.Canvas.Plot (Plot, basicPlot, clear)
 import Components.Canvas.PlotController (computePlotAsync)
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT, runReaderT)
@@ -20,15 +20,21 @@ import Halogen.Aff as HA
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
+import Types (XYBounds, Size)
 
 type Config
   = { someData :: String }
 
 type State
-  = { input :: Input (DrawCommand Unit) }
+  = { input :: Input (DrawCommand Unit)
+    , bounds :: XYBounds
+    , plotExists :: Boolean
+    }
 
 data Action
   = BasicPlot
+  | Clear
+  | Init
 
 type ChildSlots
   = ( canvas :: Slot Int )
@@ -40,7 +46,12 @@ ui =
   H.mkComponent
     { initialState: const initialState
     , render
-    , eval: H.mkEval (H.defaultEval { handleAction = handleAction })
+    , eval:
+        H.mkEval
+          $ H.defaultEval
+              { handleAction = handleAction
+              , initialize = Just Init
+              }
     }
   where
   initialState :: State
@@ -53,6 +64,8 @@ ui =
             , height: 500.0
             }
         }
+    , bounds: xyBounds (-1.0) (1.0) (-1.0) (1.0)
+    , plotExists: false
     }
 
   render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
@@ -66,15 +79,24 @@ ui =
       , HH.slot _canvas 1 (canvasComponent canvasController) state.input absurd
       ]
 
-computePlot :: Plot -> ReaderT Config Aff (DrawCommand Unit)
-computePlot plot = lift $ computePlotAsync plot
+computePlot :: Size -> Plot -> ReaderT Config Aff (DrawCommand Unit)
+computePlot canvasSize plot = lift $ computePlotAsync canvasSize plot 
 
 handleAction :: forall o. Action -> H.HalogenM State Action ChildSlots o (ReaderT Config Aff) Unit
-handleAction = case _ of
-  BasicPlot -> do
-    state <- H.get
-    plotCommands <- lift $ computePlot $ basicPolygon $ xyBounds (-1.0) (1.0) (-1.0) (1.0)
-    H.put state { input { operations = plotCommands } }
+handleAction action = do
+  state <- H.get
+  case action of
+    Init -> do
+      plotCommands <- lift $ computePlot state.input.size $ clear $ state.bounds
+      H.put state { input { operations = plotCommands } }
+    Clear -> do
+      plotCommands <- if state.plotExists 
+        then lift $ computePlot state.input.size $ clear $ state.bounds
+        else pure $ pure unit
+      H.put state { input { operations = plotCommands }, plotExists = false }
+    BasicPlot -> do
+      plotCommands <- lift $ computePlot state.input.size $ basicPlot state.plotExists state.bounds
+      H.put state { input { operations = plotCommands }, plotExists = true }
 
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
 ui' = H.hoist (\app -> runReaderT app initialConfig) ui

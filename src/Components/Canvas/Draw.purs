@@ -37,6 +37,14 @@ drawLine { x: x1, y: y1 } { x: x2, y: y2 } =
     setStrokeStyle drawContext.context $ toRGBA 0.0 0.0 0.0 0.3
     stroke drawContext.context
 
+drawPlotLine :: Position -> Position -> DrawOperation
+drawPlotLine { x: x1, y: y1 } { x: x2, y: y2 } =
+  withLocalDrawContext \drawContext -> do
+    beginPath drawContext.context
+    moveTo drawContext.context x1 y1
+    lineTo drawContext.context x2 y2
+    stroke drawContext.context
+
 drawXGridLine :: Number -> Number -> Number -> DrawOperation
 drawXGridLine x value range drawContext = do
   drawLine { x: relativeX, y: 0.0 } { x: relativeX, y: drawContext.canvasHeight } drawContext

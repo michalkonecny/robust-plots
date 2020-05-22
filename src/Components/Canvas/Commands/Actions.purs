@@ -17,6 +17,9 @@ drawXGridLine x value range = liftF $ DrawXGridLine x value range unit
 drawYGridLine :: Number -> Number -> Number -> DrawCommand Unit
 drawYGridLine y value range = liftF $ DrawYGridLine y value range unit
 
+drawPlotLine :: Position -> Position -> DrawCommand Unit
+drawPlotLine a b = liftF $ DrawPlotLine a b unit
+
 drawPolygon :: Polygon -> DrawCommand Unit
 drawPolygon polygon = liftF $ DrawPolygon polygon unit
 
