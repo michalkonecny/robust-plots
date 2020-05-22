@@ -1,12 +1,12 @@
 module Components.Canvas.Plot where
 
-import Types (Polygon)
+import Types (Polygon, XYBounds)
 
 data Plot
-  = Polygon Polygon
+  = Polygon XYBounds Polygon
 
-basicPolygon :: Plot
-basicPolygon = Polygon polygon
+basicPolygon :: XYBounds -> Plot
+basicPolygon bounds = Polygon bounds polygon
   where
   p1 = { x: 0.0, y: 0.0 }
 

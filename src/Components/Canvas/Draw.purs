@@ -27,8 +27,8 @@ clearCanvas =
   withLocalDrawContext \drawContext -> do
     clearRect drawContext.context { height: drawContext.canvasHeight, width: drawContext.canvasWidth, x: 0.0, y: 0.0 }
 
-drawGridLine :: Position -> Position -> DrawOperation
-drawGridLine { x: x1, y: y1 } { x: x2, y: y2 } =
+drawLine :: Position -> Position -> DrawOperation
+drawLine { x: x1, y: y1 } { x: x2, y: y2 } =
   withLocalDrawContext \drawContext -> do
     beginPath drawContext.context
     moveTo drawContext.context x1 y1
@@ -36,6 +36,20 @@ drawGridLine { x: x1, y: y1 } { x: x2, y: y2 } =
     setLineDash drawContext.context [ 1.0, 3.0 ]
     setStrokeStyle drawContext.context $ toRGBA 0.0 0.0 0.0 0.3
     stroke drawContext.context
+
+drawXGridLine :: Number -> Number -> Number -> DrawOperation
+drawXGridLine x value range drawContext = do
+  drawLine { x: relativeX, y: 0.0 } { x: relativeX, y: drawContext.canvasHeight } drawContext
+  drawText (show value) 10.0 { x: relativeX, y: drawContext.canvasHeight - 12.0 } drawContext
+  where
+  relativeX = (x * drawContext.canvasWidth) / range
+
+drawYGridLine :: Number -> Number -> Number -> DrawOperation
+drawYGridLine y value range drawContext = do
+  drawLine { x: 0.0, y: relativeY } { x: drawContext.canvasWidth, y: relativeY } drawContext
+  drawText (show value) 10.0 { x: drawContext.canvasWidth - 40.0, y: relativeY } drawContext
+  where
+  relativeY = drawContext.canvasHeight - ((y * drawContext.canvasHeight) / range)
 
 drawPolygon :: Polygon -> DrawOperation
 drawPolygon [] drawContext = pure unit
@@ -45,12 +59,12 @@ drawPolygon points drawContext = do
     { x: x1, y: y1 } = fromMaybe origin $ head points
   beginPath drawContext.context
   moveTo drawContext.context x1 y1
-  for_ (fromMaybe [] (tail points)) drawLine
+  for_ (fromMaybe [] (tail points)) drawPolygonLine
   fill drawContext.context
   stroke drawContext.context
   where
-  drawLine :: Position -> Effect Unit
-  drawLine { x: xi, y: yi } = lineTo drawContext.context xi yi
+  drawPolygonLine :: Position -> Effect Unit
+  drawPolygonLine { x: xi, y: yi } = lineTo drawContext.context xi yi
 
 drawEnclosure :: Boolean -> Array Polygon -> DrawOperation
 drawEnclosure isSelected polygons =

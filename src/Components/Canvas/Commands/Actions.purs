@@ -11,8 +11,11 @@ clearCanvas = liftF $ ClearCanvas unit
 drawText :: String -> Number -> Position -> DrawCommand Unit
 drawText text height pos = liftF $ DrawText text height pos unit
 
-drawGridLine :: Position -> Position -> DrawCommand Unit
-drawGridLine pos1 pos2 = liftF $ DrawGridLine pos1 pos2 unit
+drawXGridLine :: Number -> Number -> Number -> DrawCommand Unit
+drawXGridLine x value range = liftF $ DrawXGridLine x value range unit
+
+drawYGridLine :: Number -> Number -> Number -> DrawCommand Unit
+drawYGridLine y value range = liftF $ DrawYGridLine y value range unit
 
 drawPolygon :: Polygon -> DrawCommand Unit
 drawPolygon polygon = liftF $ DrawPolygon polygon unit
