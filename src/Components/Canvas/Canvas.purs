@@ -34,14 +34,14 @@ data Action operations
   | HandleInput (Input operations)
 
 canvasComponent :: forall operations query output m. MonadEffect m => CanvasController operations -> H.Component HH.HTML query (Input operations) output m
-canvasComponent cfg =
+canvasComponent controller =
   H.mkComponent
     { initialState
     , render
     , eval:
         H.mkEval
           $ H.defaultEval
-              { handleAction = handleAction cfg
+              { handleAction = handleAction controller
               , receive = Just <<< HandleInput
               , initialize = Just Init
               }

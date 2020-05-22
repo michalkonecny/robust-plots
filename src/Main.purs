@@ -8,7 +8,7 @@ import Components.Canvas.Commands (DrawCommand)
 import Components.Canvas.Plot (Plot, basicPolygon)
 import Components.Canvas.PlotController (computePlotAsync)
 import Constants (canvasId)
-import Control.Monad.Reader (ReaderT, ask, runReaderT)
+import Control.Monad.Reader (ReaderT, runReaderT)
 import Control.Monad.Trans.Class (lift)
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
@@ -67,10 +67,7 @@ ui =
       ]
 
 computePlot :: Plot -> ReaderT Config Aff (DrawCommand Unit)
-computePlot plot = do
-  config <- ask
-  result <- lift $ computePlotAsync plot
-  pure $ result
+computePlot plot = lift $ computePlotAsync plot
 
 handleAction :: forall o. Action -> H.HalogenM State Action ChildSlots o (ReaderT Config Aff) Unit
 handleAction = case _ of
