@@ -2,7 +2,7 @@
 Web app to plot robust enclosures of function graphs and fractals
 
 ## Adding external JS dependencies
-Adding external JS libraries as dependencies requires a different pipeline that PS dependencies. For library `x` a `x = require(x);` must be must be added to `app.js` and the version of the JS library must be added via the `package.json` file. The JS library `decimal.js` is an example of this.
+Adding external JS libraries as dependencies requires a different pipeline than PS dependencies. For library `x` a `x = require(x);` must be must be added to `app.js` and the version of the JS library must be added via the `package.json` file. The JS library `decimal.js` is an example of this.
 
 ## Install project
 ```sh

@@ -37,8 +37,6 @@ drawXGridLines bounds = for_ xGuidePoints draw
 
   lineCount = 20.0
 
-  interval = range / lineCount
-
   x1 = bounds.xBounds.lower
 
   xGuidePoints = map (toGuidePoints x1 range lineCount) $ 0 .. (floor lineCount)
@@ -52,8 +50,6 @@ drawYGridLines bounds = for_ yGuidePoints draw
   range = bounds.yBounds.upper - bounds.yBounds.lower
 
   lineCount = 20.0
-
-  interval = range / lineCount
 
   y1 = bounds.yBounds.lower
 
