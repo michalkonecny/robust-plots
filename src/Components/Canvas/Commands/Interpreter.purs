@@ -5,7 +5,7 @@ import Components.Canvas.Commands (DrawCommand, DrawCommandF(..))
 import Components.Canvas.Context (DrawContext)
 import Control.Monad.Free (foldFree)
 import Effect (Effect)
-import Components.Canvas.Draw (clearCanvas, drawText, drawGridLine, drawPolygon, drawEnclosure, drawRootEnclosure)
+import Components.Canvas.Draw (clearCanvas, drawText, drawYGridLine, drawXGridLine, drawPolygon, drawEnclosure, drawRootEnclosure)
 
 runDrawCommands :: forall a. DrawContext -> DrawCommand a -> Effect a
 runDrawCommands drawContext = foldFree interpret
@@ -15,7 +15,9 @@ runDrawCommands drawContext = foldFree interpret
 
   interpret (DrawText text size pos n) = const n <$> drawText text size pos drawContext
 
-  interpret (DrawGridLine pos1 pos2 n) = const n <$> drawGridLine pos1 pos2 drawContext
+  interpret (DrawXGridLine x value range n) = const n <$> drawXGridLine x value range drawContext
+
+  interpret (DrawYGridLine y value range n) = const n <$> drawYGridLine y value range drawContext
 
   interpret (DrawPolygon polygon n) = const n <$> drawPolygon polygon drawContext
 

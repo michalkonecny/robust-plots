@@ -12,14 +12,17 @@
   "version": "0.0.1",
   "scripts": {
     "install": "spago install",
-    "build": "spago bundle-app --to dist/app.js",
+    "build": "npm run build-purescript && parcel build index.html",
+    "build-purescript": "spago build",
     "test": "spago test --main Test.Main"
   },
   "dependencies": {
-    "big-integer": "^1.6.48"
+    "big-integer": "^1.6.48",
+    "decimal.js": "7.1.1"
   },
   "devDependencies": {
-    "spago": "^0.15.2"
+    "spago": "^0.15.2",
+    "parcel": "^2.0.0-nightly.259"
   },
   "license": "BSD-3-Clause"
 }
