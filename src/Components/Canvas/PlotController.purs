@@ -4,11 +4,11 @@ import Prelude
 import Components.Canvas.Commands (DrawCommand)
 import Components.Canvas.Commands.Actions (drawXGridLine, drawYGridLine, drawPolygon)
 import Components.Canvas.Plot (Plot(..))
-import Data.Decimal as D
 import Data.Array ((..))
+import Data.Decimal as D
 import Data.Either (Either(..))
 import Data.Foldable (for_)
-import Data.Int (ceil, toNumber)
+import Data.Int (ceil, floor, toNumber)
 import Effect (Effect)
 import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
 import Math (log, pow)
@@ -32,11 +32,13 @@ drawXGridLines bounds = for_ xGuidePoints draw
   where
   range = bounds.xBounds.upper - bounds.xBounds.lower
 
-  interval = range / 20.0
+  lineCount = 20.0
+
+  interval = range / lineCount
 
   x1 = bounds.xBounds.lower
 
-  xGuidePoints = map toGuidePoints $ 0 .. 20
+  xGuidePoints = map toGuidePoints $ 0 .. (floor lineCount)
 
   draw :: { x :: Number, value :: Number } -> DrawCommand Unit
   draw { x, value } = drawXGridLine x value range
@@ -46,22 +48,31 @@ drawXGridLines bounds = for_ xGuidePoints draw
     where
     numberIndex = toNumber index
 
-    value = D.toNumber $ D.toSignificantDigits 3 $ D.fromNumber $ ((numberIndex * range) / 20.0) + x1
+    value = D.toNumber $ D.toSignificantDigits 3 $ D.fromNumber $ ((numberIndex * range) / lineCount) + x1
 
-    x = (numberIndex * range) / 20.0
+    x = (numberIndex * range) / lineCount
 
 drawYGridLines :: XYBounds -> DrawCommand Unit
 drawYGridLines bounds = for_ yGuidePoints draw
   where
   range = bounds.yBounds.upper - bounds.yBounds.lower
 
-  gran = pow 10.0 $ log $ range / 10.0
+  lineCount = 20.0
+
+  interval = range / lineCount
 
   y1 = bounds.yBounds.lower
 
-  yGuidePoints = map (\p -> ((toNumber p) * gran) + y1) $ 0 .. (ceil (range / gran))
+  yGuidePoints = map toGuidePoints $ 0 .. (floor lineCount)
 
-  draw :: Number -> DrawCommand Unit
-  draw yi = drawYGridLine yiD yi range
+  draw :: { y :: Number, value :: Number } -> DrawCommand Unit
+  draw { y, value } = drawYGridLine y value range
+
+  toGuidePoints :: Int -> { y :: Number, value :: Number }
+  toGuidePoints index = { y, value }
     where
-    yiD = yi - bounds.yBounds.lower
+    numberIndex = toNumber index
+
+    value = D.toNumber $ D.toSignificantDigits 3 $ D.fromNumber $ ((numberIndex * range) / lineCount) + y1
+
+    y = (numberIndex * range) / lineCount
