@@ -8,10 +8,9 @@ import Data.Array ((..))
 import Data.Decimal as D
 import Data.Either (Either(..))
 import Data.Foldable (for_)
-import Data.Int (ceil, floor, toNumber)
+import Data.Int (floor, toNumber)
 import Effect (Effect)
 import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
-import Math (log, pow)
 import Types (XYBounds)
 
 computePlotAsync :: Plot -> Aff (DrawCommand Unit)
@@ -22,10 +21,14 @@ runComputation (Polygon bounds polygon) callback = do
   callback $ Right
     $ do
         -- Computation for drawing plot here
-        drawXGridLines bounds
-        drawYGridLines bounds
+        drawGridlines bounds
         drawPolygon polygon
   pure nonCanceler
+
+drawGridlines :: XYBounds -> DrawCommand Unit
+drawGridlines bounds = do
+  drawXGridLines bounds
+  drawYGridLines bounds
 
 drawXGridLines :: XYBounds -> DrawCommand Unit
 drawXGridLines bounds = for_ xGuidePoints draw
@@ -38,19 +41,10 @@ drawXGridLines bounds = for_ xGuidePoints draw
 
   x1 = bounds.xBounds.lower
 
-  xGuidePoints = map toGuidePoints $ 0 .. (floor lineCount)
+  xGuidePoints = map (toGuidePoints x1 range lineCount) $ 0 .. (floor lineCount)
 
-  draw :: { x :: Number, value :: Number } -> DrawCommand Unit
-  draw { x, value } = drawXGridLine x value range
-
-  toGuidePoints :: Int -> { x :: Number, value :: Number }
-  toGuidePoints index = { x, value }
-    where
-    numberIndex = toNumber index
-
-    value = D.toNumber $ D.toSignificantDigits 3 $ D.fromNumber $ ((numberIndex * range) / lineCount) + x1
-
-    x = (numberIndex * range) / lineCount
+  draw :: { component :: Number, value :: Number } -> DrawCommand Unit
+  draw { component, value } = drawXGridLine component value range
 
 drawYGridLines :: XYBounds -> DrawCommand Unit
 drawYGridLines bounds = for_ yGuidePoints draw
@@ -63,16 +57,22 @@ drawYGridLines bounds = for_ yGuidePoints draw
 
   y1 = bounds.yBounds.lower
 
-  yGuidePoints = map toGuidePoints $ 0 .. (floor lineCount)
+  yGuidePoints = map (toGuidePoints y1 range lineCount) $ 0 .. (floor lineCount)
 
-  draw :: { y :: Number, value :: Number } -> DrawCommand Unit
-  draw { y, value } = drawYGridLine y value range
+  draw :: { component :: Number, value :: Number } -> DrawCommand Unit
+  draw { component, value } = drawYGridLine component value range
 
-  toGuidePoints :: Int -> { y :: Number, value :: Number }
-  toGuidePoints index = { y, value }
-    where
-    numberIndex = toNumber index
+toGuidePoints :: Number -> Number -> Number -> Int -> { component :: Number, value :: Number }
+toGuidePoints offset range lineCount index = { component, value }
+  where
+  numberIndex = toNumber index
 
-    value = D.toNumber $ D.toSignificantDigits 3 $ D.fromNumber $ ((numberIndex * range) / lineCount) + y1
+  value = to3SignificantDigits $ ((numberIndex * range) / lineCount) + offset
 
-    y = (numberIndex * range) / lineCount
+  component = (numberIndex * range) / lineCount
+
+toSignificantDigits :: Int -> Number -> Number
+toSignificantDigits digits = D.toNumber <<< (D.toSignificantDigits digits) <<< D.fromNumber
+
+to3SignificantDigits :: Number -> Number
+to3SignificantDigits = toSignificantDigits 3
