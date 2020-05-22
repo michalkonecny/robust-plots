@@ -12,11 +12,6 @@ npm run install
 npm run build
 ```
 
-# build
-```sh
-npm run robust-plots
-```
-
 # run tests
 ```sh
 npm run test
