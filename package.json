@@ -12,7 +12,7 @@
   "version": "0.0.1",
   "scripts": {
     "install": "spago install",
-    "build": "npm run build-purescript && parcel build index.html --public-url ''",
+    "build": "npm run build-purescript && parcel build index.html",
     "build-purescript": "spago build",
     "test": "spago test --main Test.Main"
   },
