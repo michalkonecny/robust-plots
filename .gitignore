@@ -12,3 +12,4 @@ output
 .parcel-cache
 # bundle file
 dist
+package-lock.json
