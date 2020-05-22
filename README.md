@@ -1,19 +1,29 @@
 # robust-plots
 Web app to plot robust enclosures of function graphs and fractals
 
-# install
+# Robust plots
+
+## Adding external JS dependencies
+Adding external JS libraries as dependencies requires a different pipeline that PS dependencies. For library `x` a `x = require(x);` must be must be added to `app.js` and the version of the JS library must be added via the `package.json` file. The JS library `decimal.js` is an example of this.
+
+## install
 ```sh
 npm run install
 ```
 This will install the project and all its dependencies.
 
-# build
+## build
 ```sh
 npm run build
 ```
 This will create a web server version of the website with URL relative paths. This means that in the `dist/index.html` the path to the `app.js` file starts with a `/`. Remove this to run the website as a simple HTML file. An alternate route is to open the `dist` directory as a local webserver.
 
-# run tests
+It should also be mentioned that the PS can be build alone using
+```sh
+npm run build-purescript
+```
+
+## run tests
 ```sh
 npm run test
 ```
