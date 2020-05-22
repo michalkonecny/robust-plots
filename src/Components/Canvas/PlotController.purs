@@ -63,9 +63,9 @@ toGuidePoints offset range lineCount index = { component, value }
   where
   numberIndex = toNumber index
 
-  value = to3SignificantDigits $ ((numberIndex * range) / lineCount) + offset
-
   component = (numberIndex * range) / lineCount
+
+  value = to3SignificantDigits $ component + offset
 
 toSignificantDigits :: Int -> Number -> Number
 toSignificantDigits digits = D.toNumber <<< (D.toSignificantDigits digits) <<< D.fromNumber
