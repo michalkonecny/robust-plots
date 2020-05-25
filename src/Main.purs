@@ -28,7 +28,7 @@ type Config
 type State
   = { input :: Input (DrawCommand Unit)
     , bounds :: XYBounds
-    , plot :: Maybe PlotCommand
+    , previousPlotCommand :: Maybe PlotCommand
     }
 
 data Action
@@ -66,7 +66,7 @@ ui =
             }
         }
     , bounds: xyBounds (-1.0) (1.0) (-1.0) (1.0)
-    , plot: Nothing
+    , previousPlotCommand: Nothing
     }
 
   render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
@@ -75,28 +75,28 @@ ui =
       [ HH.h1_
           [ HH.text "Robust plot" ]
       , HH.button
-          [ HE.onClick $ buildAction BasicPlot ]
+          [ HE.onClick $ toActionEvent BasicPlot ]
           [ HH.text "Plot example function" ]
       , HH.button
-          [ HE.onClick $ buildAction Clear ]
+          [ HE.onClick $ toActionEvent Clear ]
           [ HH.text "Clear plot" ]
       , HH.button
-          [ HE.onClick $ buildAction $ Pan Left ]
+          [ HE.onClick $ toActionEvent $ Pan Left ]
           [ HH.text "◄" ]
       , HH.button
-          [ HE.onClick $ buildAction $ Pan Right ]
+          [ HE.onClick $ toActionEvent $ Pan Right ]
           [ HH.text "►" ]
       , HH.button
-          [ HE.onClick $ buildAction $ Pan Down ]
+          [ HE.onClick $ toActionEvent $ Pan Down ]
           [ HH.text "▼" ]
       , HH.button
-          [ HE.onClick $ buildAction $ Pan Up ]
+          [ HE.onClick $ toActionEvent $ Pan Up ]
           [ HH.text "▲" ]
       , HH.slot _canvas 1 (canvasComponent canvasController) state.input absurd
       ]
 
-buildAction :: forall a. Action -> a -> Maybe Action
-buildAction action _ = Just action
+toActionEvent :: forall a. Action -> a -> Maybe Action
+toActionEvent action _ = Just action
 
 computePlot :: Size -> PlotCommand -> ReaderT Config Aff (DrawCommand Unit)
 computePlot canvasSize plot = lift $ computePlotAsync canvasSize plot
@@ -106,27 +106,21 @@ handleAction action = do
   state <- H.get
   case action of
     Init -> do
-      let
-        plot = clear $ state.bounds
-      drawCommands <- lift $ computePlot state.input.size $ plot
+      drawCommands <- lift $ computePlot state.input.size $ clear state.bounds
       H.put state { input { operations = drawCommands } }
     Clear -> do
-      let
-        plot = clear state.bounds
-      drawCommands <- lift $ computePlot state.input.size $ plot
-      H.put state { input { operations = drawCommands }, plot = Nothing }
+      drawCommands <- lift $ computePlot state.input.size $ clear state.bounds
+      H.put state { input { operations = drawCommands }, previousPlotCommand = Nothing }
     BasicPlot -> do
       let
-        plotExists = isJust state.plot
-
-        plot = basicPlot plotExists state.bounds
+        plot = basicPlot (isJust state.previousPlotCommand) state.bounds
       drawCommands <- lift $ computePlot state.input.size $ plot
-      H.put state { input { operations = drawCommands }, plot = Just plot }
+      H.put state { input { operations = drawCommands }, previousPlotCommand = Just plot }
     Pan direction -> do
       let
-        { plotCommand, newBounds } = pan state.bounds direction state.plot
+        { plotCommand, newBounds } = pan state.bounds direction state.previousPlotCommand
       drawCommands <- lift $ computePlot state.input.size $ plotCommand
-      H.put state { input { operations = drawCommands }, plot = toMaybePlotCommand plotCommand, bounds = newBounds }
+      H.put state { input { operations = drawCommands }, previousPlotCommand = toMaybePlotCommand plotCommand, bounds = newBounds }
 
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
 ui' = H.hoist (\app -> runReaderT app initialConfig) ui
