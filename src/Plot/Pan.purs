@@ -1,8 +1,9 @@
 module Plot.Pan where
 
 import Prelude
-import Data.Maybe (Maybe(..))
-import Plot.Commands (PlotCommand(..))
+import Data.Maybe (Maybe)
+import Plot.Commands (PlotCommand)
+import Plot.Helper (updatePlotCommandBounds)
 import Types (Direction(..), XYBounds)
 
 pan :: XYBounds -> Direction -> Maybe PlotCommand -> { plotCommand :: PlotCommand, newBounds :: XYBounds }
@@ -26,8 +27,3 @@ panBounds bounds = case _ of
   xMovement = (xRange / 10.0)
 
   yMovement = (yRange / 10.0)
-
-updatePlotCommandBounds :: XYBounds -> Maybe PlotCommand -> PlotCommand
-updatePlotCommandBounds bounds (Just (Plot _ _ func)) = Plot true bounds func
-
-updatePlotCommandBounds bounds _ = Empty bounds

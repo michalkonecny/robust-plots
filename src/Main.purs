@@ -1,6 +1,7 @@
 module Main where
 
 import Prelude
+
 import Components.Canvas (Input, Slot, canvasComponent, xyBounds)
 import Components.Canvas.CanvasController (canvasController)
 import Constants (canvasId)
@@ -18,8 +19,9 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import Plot.Commands (PlotCommand, basicPlot, clear)
-import Plot.PlotController (computePlotAsync, toMaybePlotCommand)
 import Plot.Pan (pan)
+import Plot.PlotController (computePlotAsync, toMaybePlotCommand)
+import Plot.Zoom (zoom)
 import Types (Direction(..), Size, XYBounds)
 
 type Config
@@ -36,6 +38,7 @@ data Action
   | Clear
   | Init
   | Pan Direction
+  | Zoom Boolean 
 
 type ChildSlots
   = ( canvas :: Slot Int )
@@ -92,6 +95,12 @@ ui =
       , HH.button
           [ HE.onClick $ toActionEvent $ Pan Up ]
           [ HH.text "▲" ]
+      , HH.button
+          [ HE.onClick $ toActionEvent $ Zoom true ]
+          [ HH.text "+" ]
+      , HH.button
+          [ HE.onClick $ toActionEvent $ Zoom false ]
+          [ HH.text "-" ]
       , HH.slot _canvas 1 (canvasComponent canvasController) state.input absurd
       ]
 
@@ -119,6 +128,11 @@ handleAction action = do
     Pan direction -> do
       let
         { plotCommand, newBounds } = pan state.bounds direction state.previousPlotCommand
+      drawCommands <- lift $ computePlot state.input.size $ plotCommand
+      H.put state { input { operations = drawCommands }, previousPlotCommand = toMaybePlotCommand plotCommand, bounds = newBounds }
+    Zoom isZoomIn -> do
+      let
+        { plotCommand, newBounds } = zoom state.bounds isZoomIn state.previousPlotCommand
       drawCommands <- lift $ computePlot state.input.size $ plotCommand
       H.put state { input { operations = drawCommands }, previousPlotCommand = toMaybePlotCommand plotCommand, bounds = newBounds }
 
