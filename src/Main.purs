@@ -76,6 +76,9 @@ ui =
       , HH.button
           [ HE.onClick \_ -> Just BasicPlot ]
           [ HH.text "Plot example function" ]
+      , HH.button
+          [ HE.onClick \_ -> Just Clear ]
+          [ HH.text "Clear plot" ]
       , HH.slot _canvas 1 (canvasComponent canvasController) state.input absurd
       ]
 
