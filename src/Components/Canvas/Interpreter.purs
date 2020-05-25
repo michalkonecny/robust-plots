@@ -2,7 +2,7 @@ module Components.Canvas.Interpreter where
 
 import Prelude
 import Draw.Commands (DrawCommand, DrawCommandF(..))
-import Draw.Context (DrawContext)
+import Components.Canvas.Context (DrawContext)
 import Control.Monad.Free (foldFree)
 import Effect (Effect)
 import Components.Canvas.Draw (clearCanvas, drawText, drawYGridLine, drawXGridLine, drawPolygon, drawEnclosure, drawRootEnclosure, drawPlotLine)

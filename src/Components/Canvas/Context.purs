@@ -1,4 +1,4 @@
-module Draw.Context where
+module Components.Canvas.Context where
 
 import Prelude
 import Effect (Effect)

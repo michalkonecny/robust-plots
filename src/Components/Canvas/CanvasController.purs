@@ -3,7 +3,7 @@ module Components.Canvas.CanvasController where
 import Prelude
 import Draw.Commands (DrawCommand)
 import Components.Canvas.Interpreter (runDrawCommands)
-import Draw.Context (DrawContext)
+import Components.Canvas.Context (DrawContext)
 import Constants (canvasId)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
