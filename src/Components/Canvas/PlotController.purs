@@ -1,7 +1,6 @@
 module Components.Canvas.PlotController where
 
 import Prelude
-
 import Components.Canvas.Commands (DrawCommand)
 import Components.Canvas.Commands.Actions (clearCanvas, drawPlotLine, drawXGridLine, drawYGridLine)
 import Components.Canvas.Plot (Plot(..))
@@ -23,10 +22,10 @@ runComputation canvasSize (Plot1 shouldClear bounds plotter) callback = do
   callback $ Right
     $ do
         -- Computation for drawing plot here
-        if shouldClear 
-          then clearAndDrawGridLines bounds
-          else pure unit
-
+        if shouldClear then
+          clearAndDrawGridLines bounds
+        else
+          pure unit
         plotSimpleLine canvasSize bounds plotter
   pure nonCanceler
 
@@ -36,27 +35,30 @@ runComputation canvasSize (Empty bounds) callback = do
 
 plotSimpleLine :: Size -> XYBounds -> (Number -> Number) -> DrawCommand Unit
 plotSimpleLine canvasSize bounds canvasPlotter = do
-  let 
+  let
     points = map (toNumber >>> toCanvasPoint) $ 0 .. (floor canvasSize.width)
+
     lines = zipWith (\a b -> { a, b }) points (fromMaybe [] (tail points))
-  
   for_ lines (\l -> drawPlotLine l.a l.b)
   where
-    rangeX = bounds.xBounds.upper - bounds.xBounds.lower
-    rangeY = bounds.yBounds.upper - bounds.yBounds.lower
+  rangeX = bounds.xBounds.upper - bounds.xBounds.lower
 
-    toCanvasPoint :: Number -> Position
-    toCanvasPoint canvasX = { x: canvasX, y: canvasY }
-      where
-        x = ((canvasX * rangeX) / canvasSize.width) + bounds.xBounds.lower 
-        y = canvasPlotter x
-        canvasY = canvasSize.height - (((y - bounds.yBounds.lower) * canvasSize.height) / rangeY)
-    
+  rangeY = bounds.yBounds.upper - bounds.yBounds.lower
+
+  toCanvasPoint :: Number -> Position
+  toCanvasPoint canvasX = { x: canvasX, y: canvasY }
+    where
+    x = ((canvasX * rangeX) / canvasSize.width) + bounds.xBounds.lower
+
+    y = canvasPlotter x
+
+    canvasY = canvasSize.height - (((y - bounds.yBounds.lower) * canvasSize.height) / rangeY)
+
 clearAndDrawGridLines :: XYBounds -> DrawCommand Unit
 clearAndDrawGridLines bounds = do
   clearCanvas
   drawXGridLines bounds
-  drawYGridLines bounds  
+  drawYGridLines bounds
 
 drawXGridLines :: XYBounds -> DrawCommand Unit
 drawXGridLines bounds = for_ xGuidePoints draw
