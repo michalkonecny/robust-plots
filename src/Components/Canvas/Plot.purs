@@ -4,11 +4,11 @@ import Types (XYBounds)
 import Plotters (plot1)
 
 data Plot
-  = Plot1 Boolean XYBounds (Number -> Number)
+  = Plot Boolean XYBounds (Number -> Number)
   | Empty XYBounds
 
 basicPlot :: Boolean -> XYBounds -> Plot
-basicPlot clearCanvas bounds = Plot1 clearCanvas bounds plot1
+basicPlot clearCanvas bounds = Plot clearCanvas bounds plot1
 
 clear :: XYBounds -> Plot
 clear = Empty

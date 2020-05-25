@@ -18,7 +18,7 @@ computePlotAsync :: Size -> Plot -> Aff (DrawCommand Unit)
 computePlotAsync canvasSize plot = makeAff $ runComputation canvasSize plot
 
 runComputation :: Size -> Plot -> (Either Error (DrawCommand Unit) -> Effect Unit) -> Effect Canceler
-runComputation canvasSize (Plot1 shouldClear bounds plotter) callback = do
+runComputation canvasSize (Plot shouldClear bounds func) callback = do
   callback $ Right
     $ do
         -- Computation for drawing plot here
@@ -26,7 +26,7 @@ runComputation canvasSize (Plot1 shouldClear bounds plotter) callback = do
           clearAndDrawGridLines bounds
         else
           pure unit
-        plotSimpleLine canvasSize bounds plotter
+        plotSimpleLine canvasSize bounds func
   pure nonCanceler
 
 runComputation canvasSize (Empty bounds) callback = do
@@ -34,7 +34,7 @@ runComputation canvasSize (Empty bounds) callback = do
   pure nonCanceler
 
 plotSimpleLine :: Size -> XYBounds -> (Number -> Number) -> DrawCommand Unit
-plotSimpleLine canvasSize bounds canvasPlotter = for_ lines (\l -> drawPlotLine l.a l.b)
+plotSimpleLine canvasSize bounds func = for_ lines (\l -> drawPlotLine l.a l.b)
   where
   rangeX = bounds.xBounds.upper - bounds.xBounds.lower
 
@@ -49,7 +49,7 @@ plotSimpleLine canvasSize bounds canvasPlotter = for_ lines (\l -> drawPlotLine 
     where
     x = ((canvasX * rangeX) / canvasSize.width) + bounds.xBounds.lower
 
-    y = canvasPlotter x
+    y = func x
 
     canvasY = canvasSize.height - (((y - bounds.yBounds.lower) * canvasSize.height) / rangeY)
 
