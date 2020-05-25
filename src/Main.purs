@@ -75,7 +75,7 @@ ui =
           [ HH.text "Robust plot" ]
       , HH.button
           [ HE.onClick \_ -> Just BasicPlot ]
-          [ HH.text "Plot polygon async" ]
+          [ HH.text "Plot example function" ]
       , HH.slot _canvas 1 (canvasComponent canvasController) state.input absurd
       ]
 

@@ -34,16 +34,15 @@ runComputation canvasSize (Empty bounds) callback = do
   pure nonCanceler
 
 plotSimpleLine :: Size -> XYBounds -> (Number -> Number) -> DrawCommand Unit
-plotSimpleLine canvasSize bounds canvasPlotter = do
-  let
-    points = map (toNumber >>> toCanvasPoint) $ 0 .. (floor canvasSize.width)
-
-    lines = zipWith (\a b -> { a, b }) points (fromMaybe [] (tail points))
-  for_ lines (\l -> drawPlotLine l.a l.b)
+plotSimpleLine canvasSize bounds canvasPlotter = for_ lines (\l -> drawPlotLine l.a l.b)
   where
   rangeX = bounds.xBounds.upper - bounds.xBounds.lower
 
   rangeY = bounds.yBounds.upper - bounds.yBounds.lower
+
+  points = map (toNumber >>> toCanvasPoint) $ 0 .. (floor canvasSize.width)
+
+  lines = zipWith (\a b -> { a, b }) points (fromMaybe [] (tail points))
 
   toCanvasPoint :: Number -> Position
   toCanvasPoint canvasX = { x: canvasX, y: canvasY }

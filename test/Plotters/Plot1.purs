@@ -94,3 +94,27 @@ plot1Tests =
         expectedY = 0.137931034482758620
 
       equal expectedY result
+    test "ASSERT y = 0.500000000000000000 WHEN x = 0.1" do
+      let
+        -- given
+        x = 0.1
+
+        -- when
+        result = plot1 x
+
+        -- then
+        expectedY = 0.500000000000000000
+
+      equal expectedY result
+    test "ASSERT y = 0.500000000000000000 WHEN x = -0.1" do
+      let
+        -- given
+        x = -0.1
+
+        -- when
+        result = plot1 x
+
+        -- then
+        expectedY = 0.500000000000000000
+
+      equal expectedY result
