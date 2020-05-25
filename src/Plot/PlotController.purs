@@ -1,18 +1,18 @@
 module Plot.PlotController where
 
 import Prelude
-import Draw.Commands (DrawCommand)
-import Draw.Actions (drawPlotLine)
-import Plot.Commands (PlotCommand(..))
-import Data.Traversable (for_)
 import Data.Array ((..), zipWith, tail)
 import Data.Either (Either(..))
 import Data.Int (floor, toNumber)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Traversable (for_)
+import Draw.Actions (drawPlotLine)
+import Draw.Commands (DrawCommand)
 import Effect (Effect)
 import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
-import Types (Size, XYBounds, Position)
+import Plot.Commands (PlotCommand(..))
 import Plot.GridLines (clearAndDrawGridLines)
+import Types (Size, XYBounds, Position)
 
 computePlotAsync :: Size -> PlotCommand -> Aff (DrawCommand Unit)
 computePlotAsync canvasSize plot = makeAff $ runComputation canvasSize plot
@@ -52,3 +52,8 @@ plotSimpleLine canvasSize bounds func = for_ lines (\l -> drawPlotLine l.a l.b)
     y = func x
 
     canvasY = canvasSize.height - (((y - bounds.yBounds.lower) * canvasSize.height) / rangeY)
+
+toMaybePlotCommand :: PlotCommand -> Maybe PlotCommand
+toMaybePlotCommand (Empty _) = Nothing
+
+toMaybePlotCommand p = Just p
