@@ -20,7 +20,7 @@ import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import Plot.Commands (PlotCommand, basicPlot, clear)
 import Plot.PlotController (computePlotAsync)
-import Types (XYBounds, Size)
+import Types (Direction(..), Size, XYBounds)
 
 type Config
   = { someData :: String }
@@ -35,6 +35,7 @@ data Action
   = BasicPlot
   | Clear
   | Init
+  | Pan Direction
 
 type ChildSlots
   = ( canvas :: Slot Int )
@@ -74,13 +75,28 @@ ui =
       [ HH.h1_
           [ HH.text "Robust plot" ]
       , HH.button
-          [ HE.onClick \_ -> Just BasicPlot ]
+          [ HE.onClick $ buildAction BasicPlot ]
           [ HH.text "Plot example function" ]
       , HH.button
-          [ HE.onClick \_ -> Just Clear ]
+          [ HE.onClick $ buildAction Clear ]
           [ HH.text "Clear plot" ]
+      , HH.button
+          [ HE.onClick $ buildAction $ Pan Left ]
+          [ HH.text "◄" ]
+      , HH.button
+          [ HE.onClick $ buildAction $ Pan Right ]
+          [ HH.text "►" ]
+      , HH.button
+          [ HE.onClick $ buildAction $ Pan Down ]
+          [ HH.text "▼" ]
+      , HH.button
+          [ HE.onClick $ buildAction $ Pan Up ]
+          [ HH.text "▲" ]
       , HH.slot _canvas 1 (canvasComponent canvasController) state.input absurd
       ]
+
+buildAction :: forall a. Action -> a -> Maybe Action
+buildAction action _ = Just action
 
 computePlot :: Size -> PlotCommand -> ReaderT Config Aff (DrawCommand Unit)
 computePlot canvasSize plot = lift $ computePlotAsync canvasSize plot 
@@ -100,6 +116,22 @@ handleAction action = do
     BasicPlot -> do
       plotCommands <- lift $ computePlot state.input.size $ basicPlot state.plotExists state.bounds
       H.put state { input { operations = plotCommands }, plotExists = true }
+    Pan direction -> do
+      let newBounds = pan state.bounds direction
+      plotCommands <- lift $ computePlot state.input.size $ basicPlot state.plotExists newBounds
+      H.put state { input { operations = plotCommands }, plotExists = true, bounds = newBounds }
+
+pan :: XYBounds -> Direction -> XYBounds
+pan bounds = case _ of 
+  Left -> bounds { xBounds { lower = bounds.xBounds.lower - xMovement, upper = bounds.xBounds.upper - xMovement } }
+  Right -> bounds { xBounds { lower = bounds.xBounds.lower + xMovement, upper = bounds.xBounds.upper + xMovement } }
+  Up -> bounds { yBounds { lower = bounds.yBounds.lower + yMovement, upper = bounds.yBounds.upper + yMovement } }
+  Down -> bounds { yBounds { lower = bounds.yBounds.lower - yMovement, upper = bounds.yBounds.upper - yMovement } }
+  where
+    xRange = bounds.xBounds.upper - bounds.xBounds.lower
+    yRange = bounds.yBounds.upper - bounds.yBounds.lower
+    xMovement = (xRange / 10.0)
+    yMovement = (yRange / 10.0)
 
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
 ui' = H.hoist (\app -> runReaderT app initialConfig) ui

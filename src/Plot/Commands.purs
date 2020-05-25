@@ -1,7 +1,7 @@
 module Plot.Commands where
 
-import Types (XYBounds)
 import Plot.Functions (plot1)
+import Types (XYBounds)
 
 data PlotCommand
   = Plot Boolean XYBounds (Number -> Number)
