@@ -13,14 +13,14 @@ import Data.Int (floor, toNumber)
 import Data.Maybe (fromMaybe)
 import Effect (Effect)
 import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
-import Math (ceil, pow)
+import Math (ceil)
 import Types (Size, XYBounds, Position)
 
 computePlotAsync :: Size -> Plot -> Aff (DrawCommand Unit)
 computePlotAsync canvasSize plot = makeAff $ runComputation canvasSize plot
 
 runComputation :: Size -> Plot -> (Either Error (DrawCommand Unit) -> Effect Unit) -> Effect Canceler
-runComputation canvasSize (Plot1 shouldClear bounds) callback = do
+runComputation canvasSize (Plot1 shouldClear bounds plotter) callback = do
   callback $ Right
     $ do
         -- Computation for drawing plot here
@@ -28,7 +28,7 @@ runComputation canvasSize (Plot1 shouldClear bounds) callback = do
           then clearAndDrawGridLines bounds
           else pure unit
 
-        plotSimpleLine canvasSize bounds (plot1 canvasSize)
+        plotSimpleLine canvasSize bounds (toCanvasPoint canvasSize plotter)
   pure nonCanceler
 
 runComputation canvasSize (Empty bounds) callback = do
@@ -36,27 +36,26 @@ runComputation canvasSize (Empty bounds) callback = do
   pure nonCanceler
 
 plotSimpleLine :: Size -> XYBounds -> (Number -> Position) -> DrawCommand Unit
-plotSimpleLine canvasSize bounds func = do
+plotSimpleLine canvasSize bounds canvasPlotter = do
   let 
     range = bounds.xBounds.upper - bounds.xBounds.lower
     interval = ceil (range / canvasSize.width)
     xValues = map (\p -> (toNumber p) * interval) $ 0 .. (floor canvasSize.width)
-    points = map func xValues
+    points = map canvasPlotter xValues
     lines = zipWith (\a b -> { a, b }) points (fromMaybe [] (tail points))
   
   for_ lines (\l -> drawPlotLine l.a l.b)
-
-plot1 :: Size -> Number -> Position 
-plot1 canvasSize x = { x, y }
-  where
-    functY = 1.0 / (1.0 + (100.0 * pow x 2.0))
-    y = canvasSize.height - functY
 
 clearAndDrawGridLines :: XYBounds -> DrawCommand Unit
 clearAndDrawGridLines bounds = do
   clearCanvas
   drawXGridLines bounds
   drawYGridLines bounds  
+
+toCanvasPoint :: Size -> (Number -> Number) -> Number -> Position
+toCanvasPoint canvasSize func x = { x, y }
+  where
+    y = canvasSize.height - func x
 
 drawXGridLines :: XYBounds -> DrawCommand Unit
 drawXGridLines bounds = for_ xGuidePoints draw
