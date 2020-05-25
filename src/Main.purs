@@ -4,14 +4,12 @@ import Prelude
 
 import Components.Canvas (Input, Slot, canvasComponent, xyBounds)
 import Components.Canvas.CanvasController (canvasController)
-import Components.Canvas.Commands (DrawCommand)
-import Components.Canvas.Plot (Plot, basicPlot, clear)
-import Components.Canvas.PlotController (computePlotAsync)
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT, runReaderT)
 import Control.Monad.Trans.Class (lift)
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
+import Draw.Commands (DrawCommand)
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Class (class MonadEffect)
@@ -20,6 +18,8 @@ import Halogen.Aff as HA
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
+import Plot.Commands (PlotCommand, basicPlot, clear)
+import Plot.PlotController (computePlotAsync)
 import Types (XYBounds, Size)
 
 type Config
@@ -82,7 +82,7 @@ ui =
       , HH.slot _canvas 1 (canvasComponent canvasController) state.input absurd
       ]
 
-computePlot :: Size -> Plot -> ReaderT Config Aff (DrawCommand Unit)
+computePlot :: Size -> PlotCommand -> ReaderT Config Aff (DrawCommand Unit)
 computePlot canvasSize plot = lift $ computePlotAsync canvasSize plot 
 
 handleAction :: forall o. Action -> H.HalogenM State Action ChildSlots o (ReaderT Config Aff) Unit

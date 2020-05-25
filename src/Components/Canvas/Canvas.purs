@@ -2,7 +2,7 @@ module Components.Canvas where
 
 import Prelude
 
-import Components.Canvas.Context (DrawContext)
+import Draw.Context (DrawContext)
 import Components.Canvas.CanvasController (CanvasController)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Control.Monad.Maybe.Trans as MaybeT

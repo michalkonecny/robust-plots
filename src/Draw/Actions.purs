@@ -1,8 +1,8 @@
-module Components.Canvas.Commands.Actions where
+module Draw.Actions where
 
 import Prelude
 import Control.Monad.Free (liftF)
-import Components.Canvas.Commands (DrawCommand, DrawCommandF(..))
+import Draw.Commands (DrawCommand, DrawCommandF(..))
 import Types (Position, Polygon)
 
 clearCanvas :: DrawCommand Unit

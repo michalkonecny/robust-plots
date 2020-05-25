@@ -1,4 +1,4 @@
-module Components.Canvas.Commands where
+module Draw.Commands where
 
 import Control.Monad.Free (Free)
 import Types (Position, Polygon)

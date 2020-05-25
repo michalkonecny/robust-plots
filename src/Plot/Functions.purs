@@ -1,4 +1,4 @@
-module Plotters where
+module Plot.Functions where
 
 import Prelude
 import Math (pow)

@@ -8,7 +8,7 @@ import Data.String (joinWith)
 import Effect (Effect)
 import Graphics.Canvas (LineCap(..), beginPath, clearRect, fill, fillText, lineTo, moveTo, setFillStyle, setFont, setLineCap, setLineDash, setLineWidth, setStrokeStyle, stroke)
 import Types (Position, Polygon)
-import Components.Canvas.Context (DrawOperation, withLocalDrawContext)
+import Draw.Context (DrawOperation, withLocalDrawContext)
 
 -- | Draws text
 drawText :: String -> Number -> Position -> DrawOperation

@@ -1,14 +1,14 @@
-module Components.Canvas.Plot where
+module Plot.Commands where
 
 import Types (XYBounds)
-import Plotters (plot1)
+import Plot.Functions (plot1)
 
-data Plot
+data PlotCommand
   = Plot Boolean XYBounds (Number -> Number)
   | Empty XYBounds
 
-basicPlot :: Boolean -> XYBounds -> Plot
+basicPlot :: Boolean -> XYBounds -> PlotCommand
 basicPlot clearCanvas bounds = Plot clearCanvas bounds plot1
 
-clear :: XYBounds -> Plot
+clear :: XYBounds -> PlotCommand
 clear = Empty

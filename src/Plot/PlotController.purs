@@ -1,9 +1,9 @@
-module Components.Canvas.PlotController where
+module Plot.PlotController where
 
 import Prelude
-import Components.Canvas.Commands (DrawCommand)
-import Components.Canvas.Commands.Actions (clearCanvas, drawPlotLine, drawXGridLine, drawYGridLine)
-import Components.Canvas.Plot (Plot(..))
+import Draw.Commands (DrawCommand)
+import Draw.Actions (clearCanvas, drawPlotLine, drawXGridLine, drawYGridLine)
+import Plot.Commands (PlotCommand(..))
 import Data.Traversable (for_)
 import Data.Array ((..), zipWith, tail)
 import Data.Decimal as D
@@ -14,10 +14,10 @@ import Effect (Effect)
 import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
 import Types (Size, XYBounds, Position)
 
-computePlotAsync :: Size -> Plot -> Aff (DrawCommand Unit)
+computePlotAsync :: Size -> PlotCommand -> Aff (DrawCommand Unit)
 computePlotAsync canvasSize plot = makeAff $ runComputation canvasSize plot
 
-runComputation :: Size -> Plot -> (Either Error (DrawCommand Unit) -> Effect Unit) -> Effect Canceler
+runComputation :: Size -> PlotCommand -> (Either Error (DrawCommand Unit) -> Effect Unit) -> Effect Canceler
 runComputation canvasSize (Plot shouldClear bounds func) callback = do
   callback $ Right
     $ do

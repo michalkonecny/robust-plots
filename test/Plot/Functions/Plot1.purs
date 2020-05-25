@@ -1,9 +1,9 @@
-module Test.Plotters.Plot1
+module Test.Plot.Functions.Plot1
   ( plot1Tests
   ) where
 
 import Prelude
-import Plotters (plot1)
+import Plot.Functions (plot1)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
 
