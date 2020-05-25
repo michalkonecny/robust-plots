@@ -1,8 +1,8 @@
 module Components.Canvas.CanvasController where
 
 import Prelude
-import Components.Canvas.Commands (DrawCommand)
-import Components.Canvas.Commands.Interpreter (runDrawCommands)
+import Draw.Commands (DrawCommand)
+import Components.Canvas.Interpreter (runDrawCommands)
 import Components.Canvas.Context (DrawContext)
 import Constants (canvasId)
 import Data.Maybe (Maybe(..))

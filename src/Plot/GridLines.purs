@@ -1,32 +1,17 @@
-module Components.Canvas.PlotController where
+module Plot.GridLines where
 
 import Prelude
-import Components.Canvas.Commands (DrawCommand)
-import Components.Canvas.Commands.Actions (drawXGridLine, drawYGridLine, drawPolygon)
-import Components.Canvas.Plot (Plot(..))
+import Draw.Commands (DrawCommand)
+import Draw.Actions (clearCanvas, drawXGridLine, drawYGridLine)
+import Data.Traversable (for_)
 import Data.Array ((..))
 import Data.Decimal as D
-import Data.Either (Either(..))
-import Data.Foldable (for_)
 import Data.Int (floor, toNumber)
-import Effect (Effect)
-import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
 import Types (XYBounds)
 
-computePlotAsync :: Plot -> Aff (DrawCommand Unit)
-computePlotAsync plot = makeAff $ runComputation plot
-
-runComputation :: Plot -> (Either Error (DrawCommand Unit) -> Effect Unit) -> Effect Canceler
-runComputation (Polygon bounds polygon) callback = do
-  callback $ Right
-    $ do
-        -- Computation for drawing plot here
-        drawGridlines bounds
-        drawPolygon polygon
-  pure nonCanceler
-
-drawGridlines :: XYBounds -> DrawCommand Unit
-drawGridlines bounds = do
+clearAndDrawGridLines :: XYBounds -> DrawCommand Unit
+clearAndDrawGridLines bounds = do
+  clearCanvas
   drawXGridLines bounds
   drawYGridLines bounds
 

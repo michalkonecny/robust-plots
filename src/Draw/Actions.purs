@@ -1,8 +1,8 @@
-module Components.Canvas.Commands.Actions where
+module Draw.Actions where
 
 import Prelude
 import Control.Monad.Free (liftF)
-import Components.Canvas.Commands (DrawCommand, DrawCommandF(..))
+import Draw.Commands (DrawCommand, DrawCommandF(..))
 import Types (Position, Polygon)
 
 clearCanvas :: DrawCommand Unit
@@ -16,6 +16,9 @@ drawXGridLine x value range = liftF $ DrawXGridLine x value range unit
 
 drawYGridLine :: Number -> Number -> Number -> DrawCommand Unit
 drawYGridLine y value range = liftF $ DrawYGridLine y value range unit
+
+drawPlotLine :: Position -> Position -> DrawCommand Unit
+drawPlotLine a b = liftF $ DrawPlotLine a b unit
 
 drawPolygon :: Polygon -> DrawCommand Unit
 drawPolygon polygon = liftF $ DrawPolygon polygon unit

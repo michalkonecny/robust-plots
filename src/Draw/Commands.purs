@@ -1,4 +1,4 @@
-module Components.Canvas.Commands where
+module Draw.Commands where
 
 import Control.Monad.Free (Free)
 import Types (Position, Polygon)
@@ -14,3 +14,4 @@ data DrawCommandF n
   | DrawPolygon Polygon n
   | DrawEnclosure Boolean (Array Polygon) n
   | DrawRootEnclosure Number Number Number n
+  | DrawPlotLine Position Position n
