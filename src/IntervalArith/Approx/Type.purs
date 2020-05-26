@@ -139,3 +139,80 @@ mapMB _f Bottom = Bottom
 
 setMB :: Int -> Approx -> Approx
 setMB mb = mapMB (const mb)
+
+-- -- |Construct a centred approximation from the end-points.
+-- endToApprox :: Int -> Extended Dyadic -> Extended Dyadic -> Approx
+-- endToApprox mb (Finite l) (Finite u)
+--   | u < l = Bottom -- Might be better with a signalling error.
+--   | otherwise =
+--     let a@(m:^s) = scale (l + u) (-1)
+--         (n:^t)   = u-a
+--         r        = min s t
+--         m'       = unsafeShiftL m (s-r)
+--         n'       = unsafeShiftL n (t-r)
+--     in (approxMB mb m' n' r)
+-- endToApprox _ _ _ = Bottom
+-- -- Interval operations
+-- -- |Gives the lower bound of an approximation as an 'Extended' 'Dyadic' number.
+-- lowerBound :: Approx -> Extended Dyadic
+-- lowerBound (Approx _ m e s) = Finite ((m-e):^s)
+-- lowerBound Bottom = NegInf
+-- -- |Gives the upper bound of an approximation as an 'Extended' 'Dyadic' number.
+-- upperBound :: Approx -> Extended Dyadic
+-- upperBound (Approx _ m e s) = Finite ((m+e):^s)
+-- upperBound Bottom = PosInf
+-- |Gives the lower bound of an 'Approx' as an exact 'Approx'.
+lowerA :: Approx -> Approx
+lowerA Bottom = Bottom
+
+lowerA (Approx mb m e s) = Approx mb (m - e) (big 0) s
+
+-- |Gives the upper bound of an 'Approx' as an exact 'Approx'.
+upperA :: Approx -> Approx
+upperA Bottom = Bottom
+
+upperA (Approx mb m e s) = Approx mb (m + e) (big 0) s
+
+-- -- |Gives the mid-point of an approximation as a 'Maybe' 'Dyadic' number.
+-- centre :: Approx -> Maybe Dyadic
+-- centre (Approx _ m _ s) = Just (m:^s)
+-- centre _ = Nothing
+-- |Gives the centre of an 'Approx' as an exact 'Approx'.
+centreA :: Approx -> Approx
+centreA Bottom = Bottom
+
+centreA (Approx mb m _e s) = Approx mb m (big 0) s
+
+-- -- |Gives the radius of an approximation as a 'Dyadic' number. Currently a
+-- -- partial function. Should be made to return an 'Extended' 'Dyadic'.
+-- radius :: Approx -> Extended Dyadic
+-- radius (Approx _ _ e s) = Finite (e:^s)
+-- radius _ = PosInf
+-- -- |Gives the lower bound of an approximation as an 'Extended' 'Dyadic' number.
+-- diameter :: Approx -> Extended Dyadic
+-- diameter (Approx _ _ e s) = Finite $ 2 * (e:^s)
+-- diameter _ = PosInf
+-- |Returns 'True' if the approximation is exact, i.e., it's diameter is 0.
+exact :: Approx -> Boolean
+exact (Approx _ _ e _) = e == (big 0)
+
+exact Bottom = false
+
+-- -- |Checks if a number is approximated by an approximation, i.e., if it
+-- -- belongs to the interval encoded by the approximation.
+-- -- approximatedBy :: Real a => a -> Approx -> Bool
+-- _ `approximatedBy` Bottom = True
+-- r `approximatedBy` d =
+--     let r' = toRational r
+--     in toRational (lowerBound d) <= r' && r' <= toRational (upperBound d)
+-- -- |A partial order on approximations. The first approximation is better than
+-- -- the second if it is a sub-interval of the second.
+-- better :: Approx -> Approx -> Bool
+-- d `better` e = lowerBound d >= lowerBound e &&
+--                upperBound d <= upperBound e
+-- -- |Turns a 'Dyadic' number into an exact approximation.
+-- fromDyadic :: Dyadic -> Approx
+-- fromDyadic (m:^s) = approxAutoMB m 0 s
+-- -- |Turns a 'Dyadic' number into an exact approximation.
+-- fromDyadicMB :: Int -> Dyadic -> Approx
+-- fromDyadicMB mb (m:^s) = approxMB mb m 0 s
