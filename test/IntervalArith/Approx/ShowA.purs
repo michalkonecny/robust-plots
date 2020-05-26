@@ -2,9 +2,13 @@ module Test.IntervalArith.Approx.ShowA
   ( showATests
   ) where
 
+import Prelude
+import IntervalArith.Approx (Approx(..), showA)
+import IntervalArith.Misc (big)
+import Test.QuickCheck ((===))
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
-import IntervalArith.Approx (Approx(..), showA, big)
+import Test.Unit.QuickCheck (quickCheck)
 
 showATests :: TestSuite
 showATests =
@@ -20,3 +24,16 @@ showATests =
         -- then
         expected = "1"
       equal expected result
+    test "SHOULD format (Approx 1 N 0 0) as N FOR ANY integer N"
+      $ quickCheck \n ->
+          let
+            -- given
+            input = Approx 1 (big n) (big 0) 0
+
+            -- when
+            result = showA input
+
+            -- then
+            expected = show n
+          in
+            expected === result
