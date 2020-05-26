@@ -2,7 +2,7 @@
   Based on CDAR.Approx fork by Michal Konečný (https://github.com/michalkonecny/cdar)
   originally developed by Jens Blanck (https://github.com/jensblanck/cdar).
 -}
-module IntervalArith.Approx.Show where
+module IntervalArith.Approx.ShowA where
 
 import Prelude
 import Data.Array (elem, reverse)
