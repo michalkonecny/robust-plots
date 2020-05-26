@@ -29,6 +29,7 @@ type Config
 type State
   = { input :: Input (DrawCommand Unit)
     , bounds :: XYBounds
+    , plotExists :: Boolean
     }
 
 data Action
@@ -67,6 +68,7 @@ ui =
             }
         }
     , bounds: xyBounds (-1.0) (1.0) (-1.0) (1.0)
+    , plotExists: false
     }
 
   render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
@@ -116,19 +118,23 @@ handleAction action = do
       H.put state { input { operations = drawCommands } }
     Clear -> do
       drawCommands <- lift $ computePlot state.input.size $ clear state.bounds
-      H.put state { input { operations = drawCommands } }
+      H.put state { input { operations = drawCommands }, plotExists = false}
     BasicPlot -> do
-      drawCommands <- lift $ computePlot state.input.size $ basicPlot true state.bounds
-      H.put state { input { operations = drawCommands } }
+      drawCommands <- lift $ computePlot state.input.size $ basicPlot state.plotExists state.bounds
+      H.put state { input { operations = drawCommands }, plotExists = true }
     Pan direction -> do
       let
         newBounds = panBounds state.bounds direction
-      drawCommands <- lift $ computePlot state.input.size $ basicPlot true newBounds
+      drawCommands <- if state.plotExists 
+        then lift $ computePlot state.input.size $ basicPlot true newBounds
+        else lift $ computePlot state.input.size $ clear state.bounds
       H.put state { input { operations = drawCommands }, bounds = newBounds }
     Zoom isZoomIn -> do
       let
         newBounds = zoomBounds state.bounds isZoomIn
-      drawCommands <- lift $ computePlot state.input.size $ basicPlot true newBounds
+      drawCommands <- if state.plotExists 
+        then lift $ computePlot state.input.size $ basicPlot true newBounds
+        else lift $ computePlot state.input.size $ clear state.bounds
       H.put state { input { operations = drawCommands }, bounds = newBounds }
 
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
