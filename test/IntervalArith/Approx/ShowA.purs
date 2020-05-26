@@ -24,7 +24,7 @@ showATests =
         -- then
         expected = "1"
       equal expected result
-    test "SHOULD format (Approx 1 N 0 0) as N FOR ANY integer N"
+    test "SHOULD format (Approx 1 n 0 0) as n FOR ANY integer n"
       $ quickCheck \n ->
           let
             -- given
