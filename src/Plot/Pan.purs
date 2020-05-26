@@ -1,17 +1,7 @@
 module Plot.Pan where
 
 import Prelude
-import Data.Maybe (Maybe)
-import Plot.Commands (PlotCommand)
-import Plot.Helper (updatePlotCommandBounds)
 import Types (Direction(..), XYBounds)
-
-pan :: XYBounds -> Direction -> Maybe PlotCommand -> { plotCommand :: PlotCommand, newBounds :: XYBounds }
-pan oldBounds panDirection previousCommand = { plotCommand, newBounds }
-  where
-  newBounds = panBounds oldBounds panDirection
-
-  plotCommand = updatePlotCommandBounds newBounds previousCommand
 
 panBounds :: XYBounds -> Direction -> XYBounds
 panBounds bounds = case _ of

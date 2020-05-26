@@ -1,13 +1,12 @@
 module Main where
 
 import Prelude
-
 import Components.Canvas (Input, Slot, canvasComponent, xyBounds)
 import Components.Canvas.CanvasController (canvasController)
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT, runReaderT)
 import Control.Monad.Trans.Class (lift)
-import Data.Maybe (Maybe(..), isJust)
+import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Draw.Commands (DrawCommand)
 import Effect (Effect)
@@ -19,9 +18,9 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import Plot.Commands (PlotCommand, basicPlot, clear)
-import Plot.Pan (pan)
-import Plot.PlotController (computePlotAsync, toMaybePlotCommand)
-import Plot.Zoom (zoom)
+import Plot.Pan (panBounds)
+import Plot.PlotController (computePlotAsync)
+import Plot.Zoom (zoomBounds)
 import Types (Direction(..), Size, XYBounds)
 
 type Config
@@ -30,7 +29,6 @@ type Config
 type State
   = { input :: Input (DrawCommand Unit)
     , bounds :: XYBounds
-    , previousPlotCommand :: Maybe PlotCommand
     }
 
 data Action
@@ -38,7 +36,7 @@ data Action
   | Clear
   | Init
   | Pan Direction
-  | Zoom Boolean 
+  | Zoom Boolean
 
 type ChildSlots
   = ( canvas :: Slot Int )
@@ -69,7 +67,6 @@ ui =
             }
         }
     , bounds: xyBounds (-1.0) (1.0) (-1.0) (1.0)
-    , previousPlotCommand: Nothing
     }
 
   render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
@@ -119,22 +116,20 @@ handleAction action = do
       H.put state { input { operations = drawCommands } }
     Clear -> do
       drawCommands <- lift $ computePlot state.input.size $ clear state.bounds
-      H.put state { input { operations = drawCommands }, previousPlotCommand = Nothing }
+      H.put state { input { operations = drawCommands } }
     BasicPlot -> do
-      let
-        plot = basicPlot (isJust state.previousPlotCommand) state.bounds
-      drawCommands <- lift $ computePlot state.input.size $ plot
-      H.put state { input { operations = drawCommands }, previousPlotCommand = Just plot }
+      drawCommands <- lift $ computePlot state.input.size $ basicPlot true state.bounds
+      H.put state { input { operations = drawCommands } }
     Pan direction -> do
       let
-        { plotCommand, newBounds } = pan state.bounds direction state.previousPlotCommand
-      drawCommands <- lift $ computePlot state.input.size $ plotCommand
-      H.put state { input { operations = drawCommands }, previousPlotCommand = toMaybePlotCommand plotCommand, bounds = newBounds }
+        newBounds = panBounds state.bounds direction
+      drawCommands <- lift $ computePlot state.input.size $ basicPlot true newBounds
+      H.put state { input { operations = drawCommands }, bounds = newBounds }
     Zoom isZoomIn -> do
       let
-        { plotCommand, newBounds } = zoom state.bounds isZoomIn state.previousPlotCommand
-      drawCommands <- lift $ computePlot state.input.size $ plotCommand
-      H.put state { input { operations = drawCommands }, previousPlotCommand = toMaybePlotCommand plotCommand, bounds = newBounds }
+        newBounds = zoomBounds state.bounds isZoomIn
+      drawCommands <- lift $ computePlot state.input.size $ basicPlot true newBounds
+      H.put state { input { operations = drawCommands }, bounds = newBounds }
 
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
 ui' = H.hoist (\app -> runReaderT app initialConfig) ui
