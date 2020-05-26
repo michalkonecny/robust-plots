@@ -14,3 +14,5 @@ type Size
 
 type Polygon
   = Array Position
+
+data Direction = Up | Down | Left | Right

@@ -1,7 +1,6 @@
 module Main where
 
 import Prelude
-
 import Components.Canvas (Input, Slot, canvasComponent, xyBounds)
 import Components.Canvas.CanvasController (canvasController)
 import Constants (canvasId)
@@ -19,8 +18,10 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import Plot.Commands (PlotCommand, basicPlot, clear)
+import Plot.Pan (panBounds)
 import Plot.PlotController (computePlotAsync)
-import Types (XYBounds, Size)
+import Plot.Zoom (zoomBounds)
+import Types (Direction(..), Size, XYBounds)
 
 type Config
   = { someData :: String }
@@ -35,6 +36,8 @@ data Action
   = BasicPlot
   | Clear
   | Init
+  | Pan Direction
+  | Zoom Boolean
 
 type ChildSlots
   = ( canvas :: Slot Int )
@@ -74,32 +77,65 @@ ui =
       [ HH.h1_
           [ HH.text "Robust plot" ]
       , HH.button
-          [ HE.onClick \_ -> Just BasicPlot ]
+          [ HE.onClick $ toActionEvent BasicPlot ]
           [ HH.text "Plot example function" ]
       , HH.button
-          [ HE.onClick \_ -> Just Clear ]
+          [ HE.onClick $ toActionEvent Clear ]
           [ HH.text "Clear plot" ]
+      , HH.button
+          [ HE.onClick $ toActionEvent $ Pan Left ]
+          [ HH.text "◄" ]
+      , HH.button
+          [ HE.onClick $ toActionEvent $ Pan Right ]
+          [ HH.text "►" ]
+      , HH.button
+          [ HE.onClick $ toActionEvent $ Pan Down ]
+          [ HH.text "▼" ]
+      , HH.button
+          [ HE.onClick $ toActionEvent $ Pan Up ]
+          [ HH.text "▲" ]
+      , HH.button
+          [ HE.onClick $ toActionEvent $ Zoom true ]
+          [ HH.text "+" ]
+      , HH.button
+          [ HE.onClick $ toActionEvent $ Zoom false ]
+          [ HH.text "-" ]
       , HH.slot _canvas 1 (canvasComponent canvasController) state.input absurd
       ]
 
+toActionEvent :: forall a. Action -> a -> Maybe Action
+toActionEvent action _ = Just action
+
 computePlot :: Size -> PlotCommand -> ReaderT Config Aff (DrawCommand Unit)
-computePlot canvasSize plot = lift $ computePlotAsync canvasSize plot 
+computePlot canvasSize plot = lift $ computePlotAsync canvasSize plot
 
 handleAction :: forall o. Action -> H.HalogenM State Action ChildSlots o (ReaderT Config Aff) Unit
 handleAction action = do
   state <- H.get
   case action of
     Init -> do
-      plotCommands <- lift $ computePlot state.input.size $ clear $ state.bounds
-      H.put state { input { operations = plotCommands } }
+      drawCommands <- lift $ computePlot state.input.size $ clear state.bounds
+      H.put state { input { operations = drawCommands } }
     Clear -> do
-      plotCommands <- if state.plotExists 
-        then lift $ computePlot state.input.size $ clear $ state.bounds
-        else pure $ pure unit
-      H.put state { input { operations = plotCommands }, plotExists = false }
+      drawCommands <- lift $ computePlot state.input.size $ clear state.bounds
+      H.put state { input { operations = drawCommands }, plotExists = false}
     BasicPlot -> do
-      plotCommands <- lift $ computePlot state.input.size $ basicPlot state.plotExists state.bounds
-      H.put state { input { operations = plotCommands }, plotExists = true }
+      drawCommands <- lift $ computePlot state.input.size $ basicPlot state.plotExists state.bounds
+      H.put state { input { operations = drawCommands }, plotExists = true }
+    Pan direction -> do
+      let
+        newBounds = panBounds state.bounds direction
+      drawCommands <- if state.plotExists 
+        then lift $ computePlot state.input.size $ basicPlot true newBounds
+        else lift $ computePlot state.input.size $ clear state.bounds
+      H.put state { input { operations = drawCommands }, bounds = newBounds }
+    Zoom isZoomIn -> do
+      let
+        newBounds = zoomBounds state.bounds isZoomIn
+      drawCommands <- if state.plotExists 
+        then lift $ computePlot state.input.size $ basicPlot true newBounds
+        else lift $ computePlot state.input.size $ clear state.bounds
+      H.put state { input { operations = drawCommands }, bounds = newBounds }
 
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
 ui' = H.hoist (\app -> runReaderT app initialConfig) ui
