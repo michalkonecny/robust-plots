@@ -1,4 +1,4 @@
-module Plot.Expression.Evaluator where
+module Expression.Evaluator where
 
 import Prelude
 
@@ -6,8 +6,8 @@ import Data.Array (find)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Math (cos, e, exp, log, pi, pow, sin, sqrt, tan)
-import Plot.Expression.Error (Expect, unknownValue)
-import Plot.Expression.Syntax (BinaryOperation(..), Constant(..), Expression(..), UnaryOperation(..), VariableName)
+import Expression.Error (Expect, unknownValue)
+import Expression.Syntax (BinaryOperation(..), Constant(..), Expression(..), UnaryOperation(..), VariableName)
 
 type VariableMap a = Array (Tuple VariableName a)
 

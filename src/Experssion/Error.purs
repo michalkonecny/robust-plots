@@ -1,7 +1,7 @@
-module Plot.Expression.Error where
+module Expression.Error where
 
 import Prelude
-import Plot.Expression.Syntax (VariableName)
+import Expression.Syntax (VariableName)
 
 import Data.Either (Either(..))
 

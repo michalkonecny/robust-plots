@@ -1,4 +1,4 @@
-module Plot.Expression.Token where
+module Expression.Token where
 
 import Control.Alt ((<|>))
 import Text.Parsing.Parser.Token (LanguageDef, GenLanguageDef(..), TokenParser, makeTokenParser, letter, alphaNum)

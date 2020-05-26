@@ -1,4 +1,4 @@
-module Plot.Expression.Syntax
+module Expression.Syntax
   ( Expression(..)
   , Constant(..)
   , UnaryOperation(..)

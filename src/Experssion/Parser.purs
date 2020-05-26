@@ -1,14 +1,14 @@
-module Plot.Expression.Parser where
+module Expression.Parser where
 
 import Prelude
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Identity (Identity)
-import Plot.Expression.Syntax (BinaryOperation(..), Constant(..), Expression(..), UnaryOperation(..))
-import Plot.Expression.Token (token)
+import Expression.Syntax (BinaryOperation(..), Constant(..), Expression(..), UnaryOperation(..))
+import Expression.Token (token)
 import Text.Parsing.Parser (Parser, parseErrorMessage, runParser)
 import Text.Parsing.Parser.Expr (OperatorTable, Assoc(..), Operator(..), buildExprParser)
-import Plot.Expression.Error (Expect, parseError)
+import Expression.Error (Expect, parseError)
 import Data.Either (Either(..))
 
 type P a
