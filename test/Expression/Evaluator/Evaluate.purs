@@ -6,10 +6,9 @@ import Prelude
 import Data.Either (Either(..))
 import Data.Tuple (Tuple(..))
 import Expression.Error (Expect)
-import Expression.Evaluator (VariableMap, evaluate)
+import Expression.Evaluator (VariableMap, evaluate, presetConstants)
 import Expression.Parser (parse)
 import Expression.Syntax (Expression)
-import Math (e, pi)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
 
@@ -54,6 +53,84 @@ evaluateTests =
 
         -- then
         expectedResult = show 9
+      equal expectedResult result
+    test "ASSERT f(x) = 7.5 WHEN f(x) = 4.5+3" do
+      let
+        -- given
+        variables = presetConstants
+
+        rawExpression = "4.5+3"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 7.5
+      equal expectedResult result
+    test "ASSERT f(x) = 12 WHEN f(x) = 4*3" do
+      let
+        -- given
+        variables = presetConstants
+
+        rawExpression = "4*3"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 12
+      equal expectedResult result
+    test "ASSERT f(x) = 9 WHEN f(x) = 4.5*2" do
+      let
+        -- given
+        variables = presetConstants
+
+        rawExpression = "4.5*2"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 9
+      equal expectedResult result
+    test "ASSERT f(x) = 4 WHEN f(x) = 8/2" do
+      let
+        -- given
+        variables = presetConstants
+
+        rawExpression = "8/2"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 4
+      equal expectedResult result
+    test "ASSERT f(x) = 4.5 WHEN f(x) = 9/2" do
+      let
+        -- given
+        variables = presetConstants
+
+        rawExpression = "9/2"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 4.5
+      equal expectedResult result
+    test "ASSERT f(x) = 4.75 WHEN f(x) = 9.5/2" do
+      let
+        -- given
+        variables = presetConstants
+
+        rawExpression = "9.5/2"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 4.75
       equal expectedResult result
     test "ASSERT f(x) = 4 WHEN f(x) = 2.0*x AND x = 2.0" do
       let
@@ -101,6 +178,3 @@ fromExpect :: Expect Expression -> String
 fromExpect (Right expression) = show expression
 
 fromExpect (Left error) = show error
-
-presetConstants :: Array (Tuple String Number)
-presetConstants = [ (Tuple "pi" pi), (Tuple "e" e) ]

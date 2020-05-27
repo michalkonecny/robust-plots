@@ -5,7 +5,7 @@ import Prelude
 import Data.Array (find)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Math (cos, exp, log, pow, sin, sqrt, tan)
+import Math (cos, exp, log, pow, sin, sqrt, tan, e, pi)
 import Expression.Error (Expect, unknownValue)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..), VariableName)
 
@@ -21,6 +21,8 @@ lookup variableMap variableName = toMaybeValue $ find search variableMap
     toMaybeValue (Just (Tuple _ value)) = Just value
     toMaybeValue _ = Nothing
 
+presetConstants :: Array (Tuple String Number)
+presetConstants = [ (Tuple "pi" pi), (Tuple "e" e) ]
 
 evaluate :: VariableMap Number -> Expression -> Expect Expression
 evaluate variableMap = case _ of
