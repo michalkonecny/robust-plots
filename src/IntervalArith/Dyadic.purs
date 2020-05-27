@@ -38,6 +38,8 @@ instance ringDyadic :: Ring Dyadic where
     | s <= t = (a - scale b (t - s)) :^ s
     | otherwise = (scale a (s - t) - b) :^ t
 
+instance commutativeRingDyadic :: CommutativeRing Dyadic
+
 fromInteger :: Integer -> Dyadic
 fromInteger i = i :^ 0
 
