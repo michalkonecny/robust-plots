@@ -4,42 +4,33 @@ module Test.Expression.Evaluator.Evaluate
 
 import Prelude
 import Data.Either (Either(..))
+import Data.Int (toNumber)
 import Data.Tuple (Tuple(..))
 import Expression.Error (Expect, throw)
 import Expression.Evaluator (VariableMap, evaluate, presetConstants)
 import Expression.Parser (parse)
+import Test.QuickCheck ((===))
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
+import Test.Unit.QuickCheck (quickCheck)
 
 evaluateTests :: TestSuite
 evaluateTests =
   suite "Expression.Evaluator - evaluate" do
-    test "ASSERT f(x) = 1.0 WHEN f(x) = 1" do
-      let
-        -- given
-        variables = presetConstants
+    test "ASSERT f(x) = n WHEN f(x) = n FOR ANY integer n" $ quickCheck
+      $ \(n :: Int) -> do
+          let
+            -- given
+            variables = presetConstants
 
-        rawExpression = "1"
+            rawExpression = show $ toNumber n
 
-        -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+            -- when
+            result = fromExpect $ parseAndEvaluate variables rawExpression
 
-        -- then
-        expectedResult = show 1.0
-      equal expectedResult result
-    test "ASSERT f(x) = 5.0 WHEN f(x) = 5" do
-      let
-        -- given
-        variables = presetConstants
-
-        rawExpression = "5"
-
-        -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
-
-        -- then
-        expectedResult = show 5.0
-      equal expectedResult result
+            -- then
+            expectedResult = show $ toNumber n
+          expectedResult === result
     test "ASSERT f(x) = 9.0 WHEN f(x) = 4+5" do
       let
         -- given

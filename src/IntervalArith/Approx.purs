@@ -4,5 +4,5 @@
 -}
 module IntervalArith.Approx (module IntervalArith.Approx.Type, module IntervalArith.Approx.ShowA) where
 
-import IntervalArith.Approx.Type
-import IntervalArith.Approx.ShowA
+import IntervalArith.Approx.Type (Approx(..), Precision, approxAutoMB, approxMB, approxMB2, centreA, enforceMB, exact, lowerA, mBound, mapMB, setMB, upperA)
+import IntervalArith.Approx.ShowA (showA, showExactA, showInBaseA, showInexactA, showNearZeroA, toDigit, unsafeToDigit)
