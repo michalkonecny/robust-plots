@@ -10,6 +10,8 @@
   , "test-unit" 
   , "decimals"
   , "parsing"
+  , "rationals"
+  , "quickcheck-combinators"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]
