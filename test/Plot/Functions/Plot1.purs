@@ -9,7 +9,7 @@ import Test.Unit.Assert (equal)
 
 plot1Tests :: TestSuite
 plot1Tests =
-  suite "Plotters - plot1" do
+  suite "Plot.Functions - plot1" do
     test "ASSERT y = 1.000000000000000000 WHEN x = 0.0" do
       let
         -- given
