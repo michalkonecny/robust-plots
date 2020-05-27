@@ -183,6 +183,110 @@ evaluateTests =
         -- then
         expectedResult = show 12.0
       equal expectedResult result
+    test "ASSERT f(x) = 36.0 WHEN f(x) = (2+4)*6" do
+      let
+        -- given
+        variables = presetConstants
+
+        rawExpression = "(2+4)*6"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 36.0
+      equal expectedResult result
+    test "ASSERT f(x) = 26.0 WHEN f(x) = 2+4*6" do
+      let
+        -- given
+        variables = presetConstants
+
+        rawExpression = "2+4*6"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 26.0
+      equal expectedResult result
+    test "ASSERT f(x) = 8.0 WHEN f(x) = 2^3" do
+      let
+        -- given
+        variables = presetConstants
+
+        rawExpression = "2^3"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 8.0
+      equal expectedResult result
+    test "ASSERT f(x) = 1.0 WHEN f(x) = sin(pi/2)" do
+      let
+        -- given
+        variables = presetConstants
+
+        rawExpression = "sin(pi/2)"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 1.0
+      equal expectedResult result
+    test "ASSERT f(x) = 0.0 WHEN f(x) = sin(0)" do
+      let
+        -- given
+        variables = presetConstants
+
+        rawExpression = "sin(0)"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 0.0
+      equal expectedResult result
+    test "ASSERT f(x) = -1.0 WHEN f(x) = cos(pi)" do
+      let
+        -- given
+        variables = presetConstants
+
+        rawExpression = "cos(pi)"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show $ -1.0
+      equal expectedResult result
+    test "ASSERT f(x) = 1.0 WHEN f(x) = cos(0)" do
+      let
+        -- given
+        variables = presetConstants
+
+        rawExpression = "cos(0)"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 1.0
+      equal expectedResult result
+    test "ASSERT f(x) = 0.0 WHEN f(x) = tan(0)" do
+      let
+        -- given
+        variables = presetConstants
+
+        rawExpression = "tan(0)"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 0.0
+      equal expectedResult result
     test "ASSERT f(x) = 4.0 WHEN f(x) = 2.0*x AND x = 2.0" do
       let
         -- given
