@@ -23,8 +23,8 @@ instance arbitraryDyadic :: Arbitrary ArbitraryDyadic where
 dyadicTests :: TestSuite
 dyadicTests =
   suite "IntervalArith.Misc - Dyadic arithmetic" do
-    dyadicTests_Scaling
     dyadicTests_Ring
+    dyadicTests_Scaling
 
 dyadicTests_Scaling :: TestSuite
 dyadicTests_Scaling =
