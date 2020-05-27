@@ -317,6 +317,36 @@ evaluateTests =
         -- then
         expectedResult = show 4.0
       equal expectedResult result
+    test "ASSERT f(x) = 1.0 WHEN f(x) = 1 / (1 + (100 * (x ^ 2))) AND x = 0.0" do
+      let
+        -- given
+        x = 0.0
+
+        variables = [ (Tuple "x" x) ] <> presetConstants
+
+        rawExpression = "1 / (1 + (100 * (x ^ 2)))"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 1.0
+      equal expectedResult result
+    test "ASSERT f(x) = 0.5 WHEN f(x) = 1 / (1 + (100 * (x ^ 2))) AND x = 0.1" do
+      let
+        -- given
+        x = 0.1
+
+        variables = [ (Tuple "x" x) ] <> presetConstants
+
+        rawExpression = "1 / (1 + (100 * (x ^ 2)))"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 0.5
+      equal expectedResult result
 
 parseAndEvaluate :: VariableMap Number -> String -> Expect Number
 parseAndEvaluate variables rawExpression = result
