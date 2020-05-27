@@ -3,7 +3,6 @@ module Test.Expression.Evaluator.Evaluate
   ) where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Data.Tuple (Tuple(..))
 import Expression.Error (Expect)
@@ -25,7 +24,7 @@ evaluateTests =
         rawExpression = "1"
 
         -- when
-        result = toStr $ parseAndEvaluate variables rawExpression
+        result = fromExpect $ parseAndEvaluate variables rawExpression
 
         -- then
         expectedResult = show 1
@@ -38,10 +37,23 @@ evaluateTests =
         rawExpression = "5"
 
         -- when
-        result = toStr $ parseAndEvaluate variables rawExpression
+        result = fromExpect $ parseAndEvaluate variables rawExpression
 
         -- then
         expectedResult = show 5
+      equal expectedResult result
+    test "ASSERT f(x) = 9 WHEN f(x) = 4+5" do
+      let
+        -- given
+        variables = presetConstants
+
+        rawExpression = "4+5"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 9
       equal expectedResult result
     test "ASSERT f(x) = 4 WHEN f(x) = 2.0*x AND x = 2.0" do
       let
@@ -53,7 +65,7 @@ evaluateTests =
         rawExpression = "2.0*x"
 
         -- when
-        result = toStr $ parseAndEvaluate variables rawExpression
+        result = fromExpect $ parseAndEvaluate variables rawExpression
 
         -- then
         expectedResult = show 4
@@ -68,7 +80,7 @@ evaluateTests =
         rawExpression = "2.0*x"
 
         -- when
-        result = toStr $ parseAndEvaluate variables rawExpression
+        result = fromExpect $ parseAndEvaluate variables rawExpression
 
         -- then
         expectedResult = show 4
@@ -77,17 +89,18 @@ evaluateTests =
 parseAndEvaluate :: VariableMap Number -> String -> Expect Expression
 parseAndEvaluate variables rawExpression = result
   where
-    expressionOrParseError = parse rawExpression
+  expressionOrParseError = parse rawExpression
 
-    expressionOrEvaluationError = case expressionOrParseError of
-      Right expression -> evaluate variables expression
-      Left error -> expressionOrParseError
+  expressionOrEvaluationError = case expressionOrParseError of
+    Right expression -> evaluate variables expression
+    Left error -> expressionOrParseError
 
-    result = expressionOrEvaluationError
+  result = expressionOrEvaluationError
 
-toStr :: Expect Expression -> String 
-toStr (Right expression) = show expression
-toStr (Left error) = show error
+fromExpect :: Expect Expression -> String
+fromExpect (Right expression) = show expression
+
+fromExpect (Left error) = show error
 
 presetConstants :: Array (Tuple String Number)
 presetConstants = [ (Tuple "pi" pi), (Tuple "e" e) ]
