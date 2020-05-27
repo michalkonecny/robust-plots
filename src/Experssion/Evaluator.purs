@@ -5,9 +5,9 @@ import Prelude
 import Data.Array (find)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Math (cos, e, exp, log, pi, pow, sin, sqrt, tan)
+import Math (cos, exp, log, pow, sin, sqrt, tan)
 import Expression.Error (Expect, unknownValue)
-import Expression.Syntax (BinaryOperation(..), Constant(..), Expression(..), UnaryOperation(..), VariableName)
+import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..), VariableName)
 
 type VariableMap a = Array (Tuple VariableName a)
 
@@ -25,7 +25,6 @@ lookup variableMap variableName = toMaybeValue $ find search variableMap
 evaluate :: VariableMap Number -> Expression -> Expect Expression
 evaluate variableMap = case _ of
   expression@(ExpressionLiteral value) -> pure expression
-  ExpressionConstant constant -> evaluateConstant constant
   ExpressionVariable name -> case lookup variableMap name of
     Just value -> pure $ ExpressionLiteral value
     _ -> unknownValue name
@@ -45,10 +44,6 @@ evaluateArithmeticBinaryOperation operation variableMap leftExpression rightExpr
     leftValue <- evaluate variableMap leftExpression
     rightValue <- evaluate variableMap rightExpression
     evaluateArithmeticBinaryOperation operation variableMap leftValue rightValue
-
-evaluateConstant :: Constant -> Expect Expression
-evaluateConstant (Pi) = pure $ ExpressionLiteral pi
-evaluateConstant (E) = pure $ ExpressionLiteral e
 
 evaluateUnaryOperation :: UnaryOperation -> VariableMap Number -> Expression -> Expect Expression
 evaluateUnaryOperation (Neg) = evaluateNegate 

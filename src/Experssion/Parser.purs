@@ -1,15 +1,17 @@
 module Expression.Parser where
 
 import Prelude
+
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
+import Data.Either (Either(..))
 import Data.Identity (Identity)
-import Expression.Syntax (BinaryOperation(..), Constant(..), Expression(..), UnaryOperation(..))
+import Data.Int (toNumber)
+import Expression.Error (Expect, parseError)
+import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 import Expression.Token (token)
 import Text.Parsing.Parser (Parser, parseErrorMessage, runParser)
 import Text.Parsing.Parser.Expr (OperatorTable, Assoc(..), Operator(..), buildExprParser)
-import Expression.Error (Expect, parseError)
-import Data.Either (Either(..))
 
 type P a
   = Parser String a
@@ -20,23 +22,21 @@ brackets = token.parens
 reservedOp :: String -> P Unit
 reservedOp = token.reservedOp
 
-reserved :: String -> P Unit
-reserved = token.reserved
-
 identifier :: P String
 identifier = token.identifier
 
 literal :: P Expression
-literal = ExpressionLiteral <$> token.float
+literal = ExpressionLiteral <$> toLiteral <$> token.naturalOrFloat
 
-constant :: P Expression
-constant = reserved "e" $> ExpressionConstant E <|> reserved "pi" $> ExpressionConstant Pi
+toLiteral :: Either Int Number -> Number
+toLiteral (Right number) = number
+toLiteral (Left integer) = toNumber integer
 
 variable :: P Expression
 variable = ExpressionVariable <$> identifier
 
 term :: P Expression -> P Expression
-term p = brackets p <|> literal <|> constant
+term p = literal <|> brackets p <|> variable
 
 table :: OperatorTable Identity String Expression
 table =

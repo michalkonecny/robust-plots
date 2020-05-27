@@ -1,6 +1,5 @@
 module Expression.Syntax
   ( Expression(..)
-  , Constant(..)
   , UnaryOperation(..)
   , BinaryOperation(..)
   , VariableName
@@ -8,18 +7,6 @@ module Expression.Syntax
 
 import Prelude
 import Data.Int (round, toNumber)
-
-data Constant
-  = Pi
-  | E
-
-derive instance constantEq :: Eq Constant
-
-derive instance constantOrd :: Ord Constant
-
-instance constantShow :: Show Constant where
-  show Pi = "pi"
-  show E = "e"
 
 data UnaryOperation
   = Neg
@@ -66,7 +53,6 @@ type VariableName = String
 data Expression
   = ExpressionVariable VariableName
   | ExpressionLiteral Number
-  | ExpressionConstant Constant
   | ExpressionUnary UnaryOperation Expression
   | ExpressionBinary BinaryOperation Expression Expression
 
@@ -77,7 +63,6 @@ derive instance expressionOrd :: Ord Expression
 instance expressionShow :: Show Expression where
   show (ExpressionVariable name) = name
   show (ExpressionLiteral value) = showLiteral value
-  show (ExpressionConstant constant) = show constant
   show (ExpressionUnary unaryOperation expression) = (show unaryOperation) <> (showNestedExpression expression)
   show (ExpressionBinary binaryOperation leftExpression rightExpression) = (showNestedExpression leftExpression) <> (show binaryOperation) <> (showNestedExpression rightExpression)
 

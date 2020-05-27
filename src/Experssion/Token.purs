@@ -15,9 +15,9 @@ languageDefinition =
     , identLetter: alphaNum <|> char '\''
     , opStart: oneOf [ '-', '+', '*', '/', '^' ]
     , opLetter: oneOf []
-    , reservedNames: ["e", "pi"]
-    , reservedOpNames: [ "+", "-", "*", "/", "sin", "cos", "tan", "exp", "log", "sqrt" ]
-    , caseSensitive: true
+    , reservedNames: []
+    , reservedOpNames: [ "+", "-", "*", "/", "^", "sin", "cos", "tan", "exp", "log", "sqrt" ]
+    , caseSensitive: false
     }
 
 token :: TokenParser
