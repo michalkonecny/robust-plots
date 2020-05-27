@@ -287,6 +287,47 @@ evaluateTests =
         -- then
         expectedResult = show 0.0
       equal expectedResult result
+    test "ASSERT f(x) = 2.0 WHEN f(x) = sqrt(4)" do
+      let
+        -- given
+        variables = presetConstants
+
+        rawExpression = "sqrt(4)"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 2.0
+      equal expectedResult result
+    test "ASSERT f(x) = 0.0 WHEN f(x) = log(1)" do
+      let
+        -- given
+        variables = presetConstants
+
+        rawExpression = "log(1)"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 0.0
+      equal expectedResult result
+    test "ASSERT f(x) = 5.0 WHEN f(x) = x AND x = 5.0" do
+      let
+        -- given
+        x = 5.0
+
+        variables = [ (Tuple "x" x) ] <> presetConstants
+
+        rawExpression = "x"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 5.0
+      equal expectedResult result
     test "ASSERT f(x) = 4.0 WHEN f(x) = 2.0*x AND x = 2.0" do
       let
         -- given
