@@ -5,38 +5,40 @@ import Data.Foldable (foldl)
 import Data.NonEmpty ((:|))
 import IntervalArith.Misc (Integer, big, scale)
 import Test.QuickCheck (class Arbitrary, (<=?), (==?))
+import Test.QuickCheck.Combinators ((&=&))
 import Test.QuickCheck.Gen (chooseInt, elements, listOf, sized)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.QuickCheck (quickCheck)
-import Test.QuickCheck.Combinators ((&=&))
 
 miscTests :: TestSuite
 miscTests =
   suite "IntervalArith.Misc - scale Integer" do
-    test "SHOULD HOLD n = scale (scale n 1) (-1) FOR ALL integers n"
-      $ quickCheck \n ->
+    test "SHOULD HOLD n = scale (scale n i) (-i) FOR ALL integers n and i>=0"
+      $ quickCheck \nPre iPre ->
           let
             -- given
-            (ArbitraryInteger input) = n :: ArbitraryInteger
+            (ArbitraryInteger n) = nPre
+
+            (ArbitraryPositiveExponent i) = iPre
 
             -- when
-            result = scale (scale input 1) (-1)
+            result = scale (scale n i) (-i)
 
             -- then
-            expected = input
+            expected = n
           in
             expected ==? result
     test "SHOULD HOLD n <= 2*(scale n (-1)) <= (n+1) FOR ALL integers n"
-      $ quickCheck \n ->
+      $ quickCheck \nPre ->
           let
             -- given
-            (ArbitraryInteger input) = n :: ArbitraryInteger
+            (ArbitraryInteger n) = nPre
 
             -- when
-            result = (big 2) * (scale input (-1))
+            result = (big 2) * (scale n (-1))
 
             -- then
-            expected = input
+            expected = n
           in
             (expected <=? result) &=& (result <=? expected + (big 1))
 
@@ -63,3 +65,11 @@ instance arbitraryInteger :: Arbitrary ArbitraryInteger where
       let
         n = foldl (\b a -> b * top + a) 0 ns
       pure $ big n
+
+newtype ArbitraryPositiveExponent
+  = ArbitraryPositiveExponent Int
+
+instance arbitraryPositiveExponent :: Arbitrary ArbitraryPositiveExponent where
+  arbitrary =
+    sized \size ->
+      ArbitraryPositiveExponent <$> chooseInt 0 (2 * size + 1)
