@@ -7,12 +7,12 @@ import Data.Either (Either(..))
 
 data Error = ParseError String
            | UnknownValue VariableName
-           | TheImpossibleHappened String
+           | MultipleErrors String
 
 instance showError :: Show Error where
   show (ParseError s) = "Parse error: " <> s
   show (UnknownValue n) = "Unknown value: " <> n
-  show (TheImpossibleHappened msg) = "The impossible happened: " <> msg     
+  show (MultipleErrors msg) = msg     
 
 type Expect a = Either Error a
 
@@ -25,5 +25,5 @@ parseError = throw <<< ParseError
 unknownValue :: forall a. VariableName -> Expect a
 unknownValue = throw <<< UnknownValue
 
-theImpossibleHappened :: forall a. String -> Expect a
-theImpossibleHappened = throw <<< TheImpossibleHappened
+multipleErrors :: forall a. String -> Expect a
+multipleErrors = throw <<< MultipleErrors
