@@ -388,6 +388,32 @@ evaluateTests =
         -- then
         expectedResult = show 0.5
       equal expectedResult result
+    test "SHOULD throw error 'Unknown value: x' WHEN f(x) = 1 / (1 + (100 * (x ^ 2))) AND x is undefined" do
+      let
+        -- given
+        variables = presetConstants
+
+        rawExpression = "1 / (1 + (100 * (x ^ 2)))"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = "Unknown value: x"
+      equal expectedResult result
+    test "SHOULD throw error 'Unknown value: a | Unknown value: b' WHEN f(x) = a + b AND a is undefined AND b in undefined" do
+      let
+        -- given
+        variables = presetConstants
+
+        rawExpression = "a + b"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = "Unknown value: a | Unknown value: b"
+      equal expectedResult result
 
 parseAndEvaluate :: VariableMap Number -> String -> Expect Number
 parseAndEvaluate variables rawExpression = result

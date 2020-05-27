@@ -27,7 +27,7 @@ presetConstants = [ (Tuple "pi" pi), (Tuple "e" e) ]
 
 evaluate :: VariableMap Number -> Expression -> Expect Number
 evaluate variableMap = case _ of
-  (ExpressionLiteral value) -> pure value
+  ExpressionLiteral value -> pure value
   ExpressionVariable name -> case lookup variableMap name of
     Just value -> pure value
     _ -> unknownValue name
