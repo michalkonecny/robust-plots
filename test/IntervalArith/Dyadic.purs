@@ -4,9 +4,11 @@ import Prelude
 import IntervalArith.Dyadic (Dyadic, (:^))
 import IntervalArith.Misc (scale)
 import Test.IntervalArith.Misc (ArbitraryInteger(..), ArbitraryPositiveExponent(..))
-import Test.Ring (commutativeRingTests)
+import Test.Order (totalOrderTests)
 import Test.QuickCheck (class Arbitrary, arbitrary, (==?))
 import Test.QuickCheck.Gen (chooseInt, sized)
+import Test.Ring (commutativeRingTests)
+import Test.TestUtils (assertOp, SuiteOrdParams1, SuiteEqParams1)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.QuickCheck (quickCheck)
 
@@ -23,6 +25,7 @@ instance arbitraryDyadic :: Arbitrary ArbitraryDyadic where
 dyadicTests :: TestSuite
 dyadicTests =
   suite "IntervalArith.Misc - Dyadic arithmetic" do
+    dyadicTests_Order
     dyadicTests_Ring
     dyadicTests_Scaling
 
@@ -60,12 +63,28 @@ dyadicTests_Scaling =
           in
             expected ==? result
 
+dyadicTests_Order :: TestSuite
+dyadicTests_Order = totalOrderTests dyadicOrdParams
+
+dyadicOrdParams :: SuiteOrdParams1 ArbitraryDyadic Dyadic
+dyadicOrdParams =
+  { suitePrefix: "IntervalArith.Misc - Dyadic <="
+  , valuesName: "dyadic numbers"
+  , fromArbitraryValue: \(ArbitraryDyadic d) -> d
+  , leqOp: (assertOp (<=) "")
+  , leqOpSymbol: "<="
+  , eqOp: (==?)
+  , eqOpSymbol: "="
+  }
+
 dyadicTests_Ring :: TestSuite
-dyadicTests_Ring =
-  commutativeRingTests
-    { suitePrefix: "IntervalArith.Misc - Dyadic"
-    , valuesName: "dyadic numbers"
-    , fromArbitraryValue: \(ArbitraryDyadic d) -> d
-    , eqOp: (==?)
-    , eqOpSymbol: "="
-    }
+dyadicTests_Ring = commutativeRingTests dyadicEqParams
+
+dyadicEqParams :: SuiteEqParams1 ArbitraryDyadic Dyadic
+dyadicEqParams =
+  { suitePrefix: "IntervalArith.Misc - Dyadic"
+  , valuesName: "dyadic numbers"
+  , fromArbitraryValue: \(ArbitraryDyadic d) -> d
+  , eqOp: (==?)
+  , eqOpSymbol: "="
+  }
