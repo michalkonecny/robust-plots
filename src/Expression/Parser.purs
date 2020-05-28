@@ -9,9 +9,13 @@ import Data.Identity (Identity)
 import Data.Int (toNumber)
 import Expression.Error (Expect, parseError)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
-import Expression.Token (token)
 import Text.Parsing.Parser (Parser, parseErrorMessage, runParser)
 import Text.Parsing.Parser.Expr (OperatorTable, Assoc(..), Operator(..), buildExprParser)
+import Text.Parsing.Parser.Token (TokenParser, makeTokenParser)
+import Text.Parsing.Parser.Language (emptyDef)
+
+token :: TokenParser
+token = makeTokenParser emptyDef
 
 type P a
   = Parser String a
