@@ -19,7 +19,7 @@ import Data.Tuple.Nested (tuple3)
 import Data.Unfoldable (replicate, unfoldr)
 import Partial.Unsafe (unsafePartial)
 import IntervalArith.Misc (Integer, big, shift, fromCA)
-import IntervalArith.Approx.Type (Approx(..))
+import IntervalArith.Approx (Approx(..))
 
 {-|
 
