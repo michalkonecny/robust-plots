@@ -15,7 +15,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Types (Size, XYBounds)
 
-type Slot p
+type CanvasSlot p
   = forall q. H.Slot q Void p
 
 type State operations
