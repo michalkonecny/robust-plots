@@ -9,6 +9,7 @@
   , "psci-support"
   , "test-unit" 
   , "decimals"
+  , "parsing"
   , "rationals"
   , "quickcheck-combinators"
   ]
