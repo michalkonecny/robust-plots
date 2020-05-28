@@ -1,10 +1,14 @@
 module Components.ExpressionInput where
 
 import Prelude
+
 import Components.ExpressionInput.Controller (ExpressionInputController)
 import Data.Either (Either(..))
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Tuple (Tuple(..))
 import Effect.Class (class MonadEffect)
+import Expression.Error (Expect)
+import Expression.Evaluator (evaluate, presetConstants)
 import Expression.Syntax (Expression)
 import Halogen as H
 import Halogen.HTML as HH
@@ -58,6 +62,8 @@ render state =
       , HH.button
           [ HE.onClick $ toActionEvent Parse ]
           [ HH.text "Plot" ]
+      , HH.p_
+          [ HH.text $ fromMaybe "" state.error ]
     ]
 
 toValueChangeActionEvent :: String -> Maybe Action
@@ -77,8 +83,13 @@ handleAction controller = case _ of
     let
       result = controller.parse input
     case result of
-      Left error -> H.modify_ _ { error = Just $ show error }
-      Right expression -> H.raise (Parsed expression input)
+      Left parseError -> H.modify_ _ { error = Just $ show parseError }
+      Right expression -> case checkExpression expression of
+        Left evaluationError -> H.modify_ _ { error = Just $ show evaluationError }
+        Right _ -> H.raise (Parsed expression input)
   HandleInput input -> do
     H.modify_ _ { input = input }
     pure unit
+
+checkExpression :: Expression -> Expect Number
+checkExpression expression = evaluate (presetConstants <> [ Tuple "x" 0.0 ]) expression
