@@ -9,9 +9,10 @@ import Data.Int (toNumber)
 import Expression.Error (Expect, parseError)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 import Text.Parsing.Parser (Parser, parseErrorMessage, runParser, fail)
-import Text.Parsing.Parser.Combinators (try)
+import Text.Parsing.Parser.Combinators (lookAhead)
 import Text.Parsing.Parser.Expr (OperatorTable, Assoc(..), Operator(..), buildExprParser)
 import Text.Parsing.Parser.Language (emptyDef)
+import Text.Parsing.Parser.String (string)
 import Text.Parsing.Parser.Token (TokenParser, makeTokenParser)
 
 token :: TokenParser
@@ -37,24 +38,25 @@ toLiteral (Right number) = number
 
 toLiteral (Left integer) = toNumber integer
 
-unaryFunctionCall :: P Expression -> P Expression
-unaryFunctionCall p = do
+variableOrUnaryFunctionCall :: P Expression -> P Expression
+variableOrUnaryFunctionCall p = do
   idString <- identifier
-  expr <- brackets p
-  case idString of
-    "sin" -> pure $ ExpressionUnary Sine expr
-    "cos" -> pure $ ExpressionUnary Cosine expr
-    "tan" -> pure $ ExpressionUnary Tan expr
-    "exp" -> pure $ ExpressionUnary Exp expr
-    "log" -> pure $ ExpressionUnary Log expr
-    "sqrt" -> pure $ ExpressionUnary Sqrt expr
-    _ -> fail ("Invaid operator: " <> idString)
-
-variable :: P Expression
-variable = ExpressionVariable <$> identifier
+  (lookAhead (string "(") *> functionCall idString)
+    <|> (pure (ExpressionVariable idString))
+  where
+  functionCall idString = do
+    expr <- brackets p
+    case idString of
+      "sin" -> pure $ ExpressionUnary Sine expr
+      "cos" -> pure $ ExpressionUnary Cosine expr
+      "tan" -> pure $ ExpressionUnary Tan expr
+      "exp" -> pure $ ExpressionUnary Exp expr
+      "log" -> pure $ ExpressionUnary Log expr
+      "sqrt" -> pure $ ExpressionUnary Sqrt expr
+      _ -> fail ("Unknown function: " <> idString)
 
 term :: P Expression -> P Expression
-term p = literal <|> brackets p <|> try (unaryFunctionCall p) <|> variable
+term p = literal <|> brackets p <|> variableOrUnaryFunctionCall p
 
 table :: OperatorTable Identity String Expression
 table =

@@ -68,6 +68,17 @@ parseTests =
         -- then
         expectedResult = "(sqrt(1+(sin(x/2))))/2"
       equal expectedResult result
+    test "SHOULD fail to parse WHEN input is '1+son(x/2)'" do
+      let
+        -- given
+        input = "1+son(x/2)"
+
+        -- when
+        result = fromExpect $ parse input
+
+        -- then
+        expectedResult = "Parse error: Unknown function: son"
+      equal expectedResult result
 
 fromExpect :: Expect Expression -> String
 fromExpect (Right expression) = show expression
