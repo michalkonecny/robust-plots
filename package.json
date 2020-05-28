@@ -13,6 +13,7 @@
   "scripts": {
     "install": "spago install",
     "build": "npm run build-purescript && parcel build index.html",
+    "server": "parcel index.html",
     "build-purescript": "spago build",
     "test": "spago test --main Test.Main"
   },
