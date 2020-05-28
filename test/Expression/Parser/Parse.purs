@@ -46,7 +46,7 @@ parseTests =
         -- then
         expectedResult = "x+4"
       equal expectedResult result
-    test "SHOULD parse as 'x+4' WHEN input is '1+sin(x/2)'" do
+    test "SHOULD parse as '1+(sin(x/2))' WHEN input is '1+sin(x/2)'" do
       let
         -- given
         input = "1+sin(x/2)"
@@ -57,7 +57,7 @@ parseTests =
         -- then
         expectedResult = "1+(sin(x/2))"
       equal expectedResult result
-    test "SHOULD parse as 'x+4' WHEN input is 'sqrt(1+sin(x/2))/2'" do
+    test "SHOULD parse as '(sqrt(1+(sin(x/2))))/2' WHEN input is 'sqrt(1+sin(x/2))/2'" do
       let
         -- given
         input = "sqrt(1+sin(x/2))/2"
