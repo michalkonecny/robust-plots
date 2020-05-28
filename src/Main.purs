@@ -86,6 +86,7 @@ ui =
     HH.div_
       [ HH.h1_
           [ HH.text "Robust plot" ]
+      , HH.slot _expressionInput 1 (expressionInputComponent expressionInputController) state.expressionText (Just <<< HandleExpressionInput)
       , HH.button
           [ HE.onClick $ toActionEvent Clear ]
           [ HH.text "Clear plot" ]
@@ -108,7 +109,6 @@ ui =
           [ HE.onClick $ toActionEvent $ Zoom false ]
           [ HH.text "-" ]
       , HH.slot _canvas 1 (canvasComponent canvasController) state.input absurd
-      , HH.slot _expressionInput 1 (expressionInputComponent expressionInputController) state.expressionText (Just <<< HandleExpressionInput)
       ]
 
 toActionEvent :: forall a. Action -> a -> Maybe Action

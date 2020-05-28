@@ -22,7 +22,7 @@ computePlotAsync :: Size -> PlotCommand -> Aff (DrawCommand Unit)
 computePlotAsync canvasSize plot = makeAff $ runComputation canvasSize plot
 
 runComputation :: Size -> PlotCommand -> (Either Error (DrawCommand Unit) -> Effect Unit) -> Effect Canceler
-runComputation canvasSize (Plot shouldClear bounds func) callback = do
+runComputation canvasSize (Plot shouldClear bounds expression) callback = do
   callback $ Right
     $ do
         -- Computation for drawing plot here
@@ -30,7 +30,7 @@ runComputation canvasSize (Plot shouldClear bounds func) callback = do
           clearAndDrawGridLines bounds
         else
           pure unit
-        plotSimpleLine canvasSize bounds $ evaluateWithX func
+        plotSimpleLine canvasSize bounds $ evaluateWithX expression
   pure nonCanceler
 
 runComputation canvasSize (Empty bounds) callback = do
