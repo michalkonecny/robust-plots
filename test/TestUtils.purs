@@ -9,7 +9,7 @@ type SuiteEqParams1 at t
   = { suitePrefix :: String
     , valuesName :: String
     , fromArbitraryValue :: (at -> t)
-    , eqOp :: (t -> t -> Result)
+    , eqOpWithInput :: Array t -> (t -> t -> Result)
     , eqOpSymbol :: String
     }
 
@@ -17,9 +17,9 @@ type SuiteOrdParams1 at t
   = { suitePrefix :: String
     , valuesName :: String
     , fromArbitraryValue :: (at -> t)
-    , leqOp :: (t -> t -> Result)
+    , leqOpWithInput :: Array t -> (t -> t -> Result)
     , leqOpSymbol :: String
-    , eqOp :: (t -> t -> Result)
+    , eqOpWithInput :: Array t -> (t -> t -> Result)
     , eqOpSymbol :: String
     }
 

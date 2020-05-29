@@ -24,7 +24,7 @@ partialOrderTests params =
 
 reflexivity ::
   forall at t. Arbitrary at => CommutativeRing t => SuiteOrdParams1 at t -> TestSuite
-reflexivity { suitePrefix, valuesName, fromArbitraryValue, leqOp, leqOpSymbol, eqOp, eqOpSymbol } =
+reflexivity { suitePrefix, valuesName, fromArbitraryValue, leqOpWithInput, leqOpSymbol, eqOpWithInput, eqOpSymbol } =
   test
     ( "SHOULD HOLD reflexivity: "
         <> "a"
@@ -37,12 +37,14 @@ reflexivity { suitePrefix, valuesName, fromArbitraryValue, leqOp, leqOpSymbol, e
     $ quickCheck \aA ->
         let
           a = fromArbitraryValue aA
+
+          leqOp = leqOpWithInput [ a ]
         in
           (a) `leqOp` (a)
 
 antisymmetry ::
   forall at t. Arbitrary at => CommutativeRing t => SuiteOrdParams1 at t -> TestSuite
-antisymmetry { suitePrefix, valuesName, fromArbitraryValue, leqOp, leqOpSymbol, eqOp, eqOpSymbol } =
+antisymmetry { suitePrefix, valuesName, fromArbitraryValue, leqOpWithInput, leqOpSymbol, eqOpWithInput, eqOpSymbol } =
   test
     ( "SHOULD HOLD antisymmetry: "
         <> "a"
@@ -65,12 +67,16 @@ antisymmetry { suitePrefix, valuesName, fromArbitraryValue, leqOp, leqOpSymbol, 
           a = fromArbitraryValue aA
 
           b = fromArbitraryValue bA
+
+          eqOp = eqOpWithInput [ a, b ]
+
+          leqOp = leqOpWithInput [ a, b ]
         in
           ((a `leqOp` b) &=& (b `leqOp` a)) ==> (a `eqOp` b)
 
 transitivity ::
   forall at t. Arbitrary at => CommutativeRing t => SuiteOrdParams1 at t -> TestSuite
-transitivity { suitePrefix, valuesName, fromArbitraryValue, leqOp, leqOpSymbol, eqOp, eqOpSymbol } =
+transitivity { suitePrefix, valuesName, fromArbitraryValue, leqOpWithInput, leqOpSymbol, eqOpWithInput, eqOpSymbol } =
   test
     ( "SHOULD HOLD transitivity: "
         <> "a"
@@ -95,5 +101,7 @@ transitivity { suitePrefix, valuesName, fromArbitraryValue, leqOp, leqOpSymbol, 
           b = fromArbitraryValue bA
 
           c = fromArbitraryValue cA
+
+          leqOp = leqOpWithInput [ a, b, c ]
         in
           ((a `leqOp` b) &=& (b `leqOp` c)) ==> (a `leqOp` c)

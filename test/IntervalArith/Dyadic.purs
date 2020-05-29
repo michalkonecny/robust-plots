@@ -6,10 +6,10 @@ import IntervalArith.Dyadic (Dyadic, fromInteger, (:^))
 import IntervalArith.Misc (big, scale, toRational)
 import Test.IntervalArith.Misc (ArbitraryInteger(..), ArbitraryPositiveExponent(..))
 import Test.Order (totalOrderTests)
-import Test.QuickCheck (class Arbitrary, arbitrary, (==?))
+import Test.QuickCheck (class Arbitrary, arbitrary)
 import Test.QuickCheck.Gen (chooseInt, sized)
 import Test.Ring (commutativeRingTests)
-import Test.TestUtils (SuiteEqParams1, SuiteOrdParams1, assertOp, eqWithInput)
+import Test.TestUtils (SuiteEqParams1, SuiteOrdParams1, assertOpWithInput, eqWithInput)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.QuickCheck (quickCheck)
 
@@ -93,9 +93,9 @@ dyadicOrdParams =
   { suitePrefix: "IntervalArith.Misc - Dyadic <="
   , valuesName: "dyadic numbers"
   , fromArbitraryValue: \(ArbitraryDyadic d) -> d
-  , leqOp: (assertOp (<=) "")
+  , leqOpWithInput: (assertOpWithInput (<=) " <= ")
   , leqOpSymbol: "<="
-  , eqOp: (==?)
+  , eqOpWithInput: (assertOpWithInput (==) " == ")
   , eqOpSymbol: "="
   }
 
@@ -107,6 +107,6 @@ dyadicEqParams =
   { suitePrefix: "IntervalArith.Misc - Dyadic"
   , valuesName: "dyadic numbers"
   , fromArbitraryValue: \(ArbitraryDyadic d) -> d
-  , eqOp: (==?)
+  , eqOpWithInput: (assertOpWithInput (==) " == ")
   , eqOpSymbol: "="
   }

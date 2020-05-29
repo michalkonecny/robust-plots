@@ -19,7 +19,7 @@ commutativeRingTests params =
 -- distributiveRules params
 commutativeMonoidAddition ::
   forall at t. Arbitrary at => Semiring t => SuiteEqParams1 at t -> TestSuite
-commutativeMonoidAddition { suitePrefix, valuesName, fromArbitraryValue, eqOp, eqOpSymbol } =
+commutativeMonoidAddition { suitePrefix, valuesName, fromArbitraryValue, eqOpWithInput, eqOpSymbol } =
   suite (suitePrefix <> " forms a commutative monoid under addition") do
     test
       ( "SHOULD HOLD associativity: (a + b) + c "
@@ -35,6 +35,8 @@ commutativeMonoidAddition { suitePrefix, valuesName, fromArbitraryValue, eqOp, e
             b = fromArbitraryValue bA
 
             c = fromArbitraryValue cA
+
+            eqOp = eqOpWithInput [ a, b, c ]
           in
             ((a + b) + c) `eqOp` (a + (b + c))
     test
@@ -50,6 +52,8 @@ commutativeMonoidAddition { suitePrefix, valuesName, fromArbitraryValue, eqOp, e
       $ quickCheck \aA ->
           let
             a = fromArbitraryValue aA
+
+            eqOp = eqOpWithInput [ a ]
           in
             ((a + zero) `eqOp` a)
               &=& (a `eqOp` (a + zero))
@@ -66,12 +70,14 @@ commutativeMonoidAddition { suitePrefix, valuesName, fromArbitraryValue, eqOp, e
             a = fromArbitraryValue aA
 
             b = fromArbitraryValue bA
+
+            eqOp = eqOpWithInput [ a, b ]
           in
             (a + b) `eqOp` (b + a)
 
 commutativeMonoidMultiplication ::
   forall at t. Arbitrary at => CommutativeRing t => SuiteEqParams1 at t -> TestSuite
-commutativeMonoidMultiplication { suitePrefix, valuesName, fromArbitraryValue, eqOp, eqOpSymbol } =
+commutativeMonoidMultiplication { suitePrefix, valuesName, fromArbitraryValue, eqOpWithInput, eqOpSymbol } =
   suite (suitePrefix <> " forms a commutative monoid under multiplication") do
     test
       ( "SHOULD HOLD associativity: (a * b) * c "
@@ -87,6 +93,8 @@ commutativeMonoidMultiplication { suitePrefix, valuesName, fromArbitraryValue, e
             b = fromArbitraryValue bA
 
             c = fromArbitraryValue cA
+
+            eqOp = eqOpWithInput [ a, b, c ]
           in
             ((a * b) * c) `eqOp` (a * (b * c))
     test
@@ -102,6 +110,8 @@ commutativeMonoidMultiplication { suitePrefix, valuesName, fromArbitraryValue, e
       $ quickCheck \aA ->
           let
             a = fromArbitraryValue aA
+
+            eqOp = eqOpWithInput [ a ]
           in
             ((a * one) `eqOp` a)
               &=& (a `eqOp` (a * one))
@@ -118,12 +128,14 @@ commutativeMonoidMultiplication { suitePrefix, valuesName, fromArbitraryValue, e
             a = fromArbitraryValue aA
 
             b = fromArbitraryValue bA
+
+            eqOp = eqOpWithInput [ a, b ]
           in
             (a * b) `eqOp` (b * a)
 
 distributiveLaws ::
   forall at t. Arbitrary at => Semiring t => SuiteEqParams1 at t -> TestSuite
-distributiveLaws { suitePrefix, valuesName, fromArbitraryValue, eqOp, eqOpSymbol } =
+distributiveLaws { suitePrefix, valuesName, fromArbitraryValue, eqOpWithInput, eqOpSymbol } =
   suite (suitePrefix <> " satisfies semiring distributive laws") do
     test
       ( "SHOULD HOLD left distributivity: a * (b + c) "
@@ -139,6 +151,8 @@ distributiveLaws { suitePrefix, valuesName, fromArbitraryValue, eqOp, eqOpSymbol
             b = fromArbitraryValue bA
 
             c = fromArbitraryValue cA
+
+            eqOp = eqOpWithInput [ a, b, c ]
           in
             (a * (b + c)) `eqOp` ((a * b) + (a * c))
     test
@@ -155,12 +169,14 @@ distributiveLaws { suitePrefix, valuesName, fromArbitraryValue, eqOp, eqOpSymbol
             b = fromArbitraryValue bA
 
             c = fromArbitraryValue cA
+
+            eqOp = eqOpWithInput [ a, b, c ]
           in
             ((a + b) * c) `eqOp` ((a * c) + (b * c))
 
 otherLaws ::
   forall at t. Arbitrary at => CommutativeRing t => SuiteEqParams1 at t -> TestSuite
-otherLaws { suitePrefix, valuesName, fromArbitraryValue, eqOp, eqOpSymbol } =
+otherLaws { suitePrefix, valuesName, fromArbitraryValue, eqOpWithInput, eqOpSymbol } =
   suite (suitePrefix <> " satisfies other ring laws") do
     test
       ( "SHOULD HOLD additive inverse: a - a "
@@ -175,10 +191,11 @@ otherLaws { suitePrefix, valuesName, fromArbitraryValue, eqOp, eqOpSymbol } =
       $ quickCheck \aA ->
           let
             a = fromArbitraryValue aA
+
+            eqOp = eqOpWithInput [ a ]
           in
             ((a - a) `eqOp` zero)
-            &=&
-            (((zero - a) + a) `eqOp` zero)
+              &=& (((zero - a) + a) `eqOp` zero)
     test
       ( "SHOULD HOLD annihilation: zero * a "
           <> eqOpSymbol
@@ -190,5 +207,7 @@ otherLaws { suitePrefix, valuesName, fromArbitraryValue, eqOp, eqOpSymbol } =
       $ quickCheck \aA ->
           let
             a = fromArbitraryValue aA
+
+            eqOp = eqOpWithInput [ a ]
           in
             (zero * a) `eqOp` zero
