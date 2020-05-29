@@ -15,3 +15,5 @@ data DrawCommandF n
   | DrawEnclosure Boolean (Array Polygon) n
   | DrawRootEnclosure Number Number Number n
   | DrawPlotLine Position Position n
+  | DrawXAxis Number Number n 
+  | DrawYAxis Number Number n 

@@ -1,11 +1,12 @@
 module Components.Canvas.Interpreter where
 
 import Prelude
-import Draw.Commands (DrawCommand, DrawCommandF(..))
+
 import Components.Canvas.Context (DrawContext)
+import Components.Canvas.Draw (clearCanvas, drawEnclosure, drawPlotLine, drawPolygon, drawRootEnclosure, drawText, drawXAxisLine, drawXGridLine, drawYAxisLine, drawYGridLine)
 import Control.Monad.Free (foldFree)
+import Draw.Commands (DrawCommand, DrawCommandF(..))
 import Effect (Effect)
-import Components.Canvas.Draw (clearCanvas, drawText, drawYGridLine, drawXGridLine, drawPolygon, drawEnclosure, drawRootEnclosure, drawPlotLine)
 
 runDrawCommands :: forall a. DrawContext -> DrawCommand a -> Effect a
 runDrawCommands drawContext = foldFree interpret
@@ -18,6 +19,10 @@ runDrawCommands drawContext = foldFree interpret
   interpret (DrawXGridLine x value range n) = const n <$> drawXGridLine x value range drawContext
 
   interpret (DrawYGridLine y value range n) = const n <$> drawYGridLine y value range drawContext
+
+  interpret (DrawXAxis xZero range n) = const n <$> drawXAxisLine xZero range drawContext
+
+  interpret (DrawYAxis yZero range n) = const n <$> drawYAxisLine yZero range drawContext
 
   interpret (DrawPolygon polygon n) = const n <$> drawPolygon polygon drawContext
 
