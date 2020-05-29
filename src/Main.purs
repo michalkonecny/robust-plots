@@ -1,7 +1,7 @@
 module Main where
 
 import Prelude
-import Components.Canvas (Input, CanvasSlot, canvasComponent, xyBounds)
+import Components.Canvas (Input, CanvasSlot, CanvasMessage(..), canvasComponent, xyBounds)
 import Components.Canvas.Controller (canvasController)
 import Components.ExpressionInput (ExpressionInputSlot, ExpressionInputMessage(..), expressionInputComponent)
 import Components.ExpressionInput.Controller (expressionInputController)
@@ -22,7 +22,7 @@ import Halogen.HTML.Events as HE
 import Halogen.Query.EventSource as ES
 import Halogen.VDom.Driver (runUI)
 import Plot.Commands (PlotCommand, plot, clear)
-import Plot.Pan (panBounds)
+import Plot.Pan (panBounds, panBoundsByVector)
 import Plot.PlotController (computePlotAsync)
 import Plot.Zoom (zoomBounds)
 import Types (Direction(..), Size, XYBounds)
@@ -51,6 +51,7 @@ data Action
   | Zoom Boolean
   | HandleExpressionInput ExpressionInputMessage
   | HandleScroll H.SubscriptionId WheelEvent
+  | HandleCanvas CanvasMessage
 
 type ChildSlots
   = ( canvas :: CanvasSlot Int
@@ -61,7 +62,7 @@ _canvas = SProxy :: SProxy "canvas"
 
 _expressionInput = SProxy :: SProxy "expressionInput"
 
-ui :: forall f i o. H.Component HH.HTML f i o (ReaderT Config Aff)
+ui :: forall query input output. H.Component HH.HTML query input output (ReaderT Config Aff)
 ui =
   H.mkComponent
     { initialState: const initialState
@@ -116,7 +117,7 @@ ui =
       , HH.button
           [ HE.onClick $ toActionEvent $ Zoom false ]
           [ HH.text "-" ]
-      , HH.slot _canvas 1 (canvasComponent canvasController) state.input absurd
+      , HH.slot _canvas 1 (canvasComponent canvasController) state.input (Just <<< HandleCanvas)
       ]
 
 toActionEvent :: forall a. Action -> a -> Maybe Action
@@ -125,7 +126,7 @@ toActionEvent action _ = Just action
 computePlot :: Size -> PlotCommand -> ReaderT Config Aff (DrawCommand Unit)
 computePlot canvasSize plot = lift $ computePlotAsync canvasSize plot
 
-handleAction :: forall o. Action -> H.HalogenM State Action ChildSlots o (ReaderT Config Aff) Unit
+handleAction :: forall output. Action -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 handleAction action = do
   state <- H.get
   case action of
@@ -160,6 +161,11 @@ handleAction action = do
       when (changeInY /= 0.0) do
         H.liftEffect $ E.preventDefault (WE.toEvent event)
         handleAction $ Zoom (changeInY < 0.0)
+    HandleCanvas (Dragged delta) -> do
+      let
+        newBounds = panBoundsByVector state.input.size state.bounds delta
+      drawCommands <- lift $ recomputePlot state newBounds
+      H.put state { input { operations = drawCommands }, bounds = newBounds }
 
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
 ui' = H.hoist (\app -> runReaderT app initialConfig) ui

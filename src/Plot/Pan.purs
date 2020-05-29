@@ -1,7 +1,7 @@
 module Plot.Pan where
 
 import Prelude
-import Types (Direction(..), XYBounds)
+import Types (Direction(..), Position, XYBounds, Size)
 
 panBounds :: XYBounds -> Direction -> XYBounds
 panBounds bounds = case _ of
@@ -17,3 +17,21 @@ panBounds bounds = case _ of
   xMovement = (xRange / 10.0)
 
   yMovement = (yRange / 10.0)
+
+panBoundsByVector :: Size -> XYBounds -> Position -> XYBounds
+panBoundsByVector canvasSize bounds delta =
+  { xBounds: { lower: bounds.xBounds.lower + xMovement, upper: bounds.xBounds.upper + xMovement }
+  , yBounds: { lower: bounds.yBounds.lower + yMovement, upper: bounds.yBounds.upper + yMovement }
+  }
+  where
+  changeInX = delta.x
+
+  changeInY = delta.y
+
+  xRange = bounds.xBounds.upper - bounds.xBounds.lower
+
+  yRange = bounds.yBounds.upper - bounds.yBounds.lower
+
+  xMovement = (changeInX * xRange) / canvasSize.width
+
+  yMovement = (changeInY * yRange) / canvasSize.height
