@@ -1,7 +1,6 @@
 module Main where
 
 import Prelude
-
 import Components.Canvas (Input, CanvasSlot, canvasComponent, xyBounds)
 import Components.Canvas.Controller (canvasController)
 import Components.ExpressionInput (ExpressionInputSlot, ExpressionInputMessage(..), expressionInputComponent)
@@ -156,7 +155,8 @@ handleAction action = do
       drawCommands <- lift $ recomputePlot state newBounds
       H.put state { input { operations = drawCommands }, bounds = newBounds }
     HandleScroll _ event -> do
-      let changeInZ = WE.deltaY event
+      let
+        changeInZ = WE.deltaY event
       when (changeInZ /= 0.0) do
         H.liftEffect $ E.preventDefault (WE.toEvent event)
         handleAction $ Zoom (changeInZ < 0.0)
