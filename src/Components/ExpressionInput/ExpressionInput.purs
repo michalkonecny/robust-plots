@@ -16,14 +16,14 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 
 type ExpressionInputSlot p
-  = forall q. H.Slot q Message p
+  = forall q. H.Slot q ExpressionInputMessage p
 
 type State
   = { input :: String
     , error :: Maybe String
     }
 
-data Message
+data ExpressionInputMessage
   = Parsed Expression String
 
 data Action
@@ -31,7 +31,7 @@ data Action
   | HandleInput String
   | Parse
 
-expressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> H.Component HH.HTML query String Message m
+expressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> H.Component HH.HTML query String ExpressionInputMessage m
 expressionInputComponent controller =
   H.mkComponent
     { initialState
@@ -72,7 +72,7 @@ toValueChangeActionEvent value = Just $ HandleInput value
 toActionEvent :: forall a. Action -> a -> Maybe Action
 toActionEvent action _ = Just action
 
-handleAction :: forall m. MonadEffect m => ExpressionInputController -> Action -> H.HalogenM State Action () Message m Unit
+handleAction :: forall m. MonadEffect m => ExpressionInputController -> Action -> H.HalogenM State Action () ExpressionInputMessage m Unit
 handleAction controller = case _ of
   Init -> do
     { input } <- H.get

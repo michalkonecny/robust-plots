@@ -4,7 +4,7 @@ import Prelude
 
 import Components.Canvas (Input, CanvasSlot, canvasComponent, xyBounds)
 import Components.Canvas.CanvasController (canvasController)
-import Components.ExpressionInput (ExpressionInputSlot, Message(..), expressionInputComponent)
+import Components.ExpressionInput (ExpressionInputSlot, ExpressionInputMessage(..), expressionInputComponent)
 import Components.ExpressionInput.Controller (expressionInputController)
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT, runReaderT)
@@ -42,7 +42,7 @@ data Action
   | Init
   | Pan Direction
   | Zoom Boolean
-  | HandleExpressionInput Message
+  | HandleExpressionInput ExpressionInputMessage
 
 type ChildSlots
   = ( canvas :: CanvasSlot Int
