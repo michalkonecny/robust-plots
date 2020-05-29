@@ -135,14 +135,14 @@ handleAction action = do
         newBounds = panBounds state.bounds direction
       drawCommands <- case state.expression of
         Just expression -> lift $ computePlot state.input.size $ plot true newBounds expression
-        Nothing -> lift $ computePlot state.input.size $ clear state.bounds
+        Nothing -> lift $ computePlot state.input.size $ clear newBounds
       H.put state { input { operations = drawCommands }, bounds = newBounds }
     Zoom isZoomIn -> do
       let
         newBounds = zoomBounds state.bounds isZoomIn
       drawCommands <- case state.expression of
         Just expression -> lift $ computePlot state.input.size $ plot true newBounds expression
-        Nothing -> lift $ computePlot state.input.size $ clear state.bounds
+        Nothing -> lift $ computePlot state.input.size $ clear newBounds
       H.put state { input { operations = drawCommands }, bounds = newBounds }
 
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
