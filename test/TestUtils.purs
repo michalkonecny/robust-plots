@@ -1,7 +1,6 @@
 module Test.TestUtils where
 
 import Prelude
-
 import Data.String (joinWith)
 import Test.QuickCheck (Result, (<?>))
 
@@ -40,8 +39,11 @@ assertOpMoreHelp op opString moreHelp a b =
     <> show b
     <> moreHelp
 
-assertOpWithInput :: 
-  forall t1 t2. Eq t1 => Show t1 => Show t2 => 
+assertOpWithInput ::
+  forall t1 t2.
+  Eq t1 =>
+  Show t1 =>
+  Show t2 =>
   (t1 -> t1 -> Boolean) -> String -> Array t2 -> t1 -> t1 -> Result
 assertOpWithInput op opString input = assertOpMoreHelp op opString moreHelp
   where

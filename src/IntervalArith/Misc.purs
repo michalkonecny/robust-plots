@@ -1,7 +1,6 @@
 module IntervalArith.Misc where
 
 import Prelude
-
 import Data.BigInt (BigInt, fromInt, shl)
 import Data.Int as Int
 import Data.Monoid (power)
@@ -10,27 +9,23 @@ import Data.Ratio (Ratio, (%), numerator, denominator)
 import Data.String.CodeUnits as StrCU
 
 {-- Strings --}
-
 fromCA :: Array Char -> String
 fromCA = StrCU.fromCharArray
 
 {-- Power operator --}
-
 infixl 8 multiplicativePower as ^
+
 infixl 8 multiplicativePowerRecip as ^^
 
 multiplicativePower :: forall t. Semiring t => t -> Int -> t
-multiplicativePower base exponent =
-  case power (Multiplicative base) exponent of Multiplicative result -> result
+multiplicativePower base exponent = case power (Multiplicative base) exponent of Multiplicative result -> result
 
 multiplicativePowerRecip :: forall t. Semiring t => DivisionRing t => t -> Int -> t
-multiplicativePowerRecip base exponent 
+multiplicativePowerRecip base exponent
   | exponent >= 0 = multiplicativePower base exponent
-  | otherwise = multiplicativePower (recip base) (- exponent)
-
+  | otherwise = multiplicativePower (recip base) (-exponent)
 
 {-- Integers --}
-
 type Integer
   = BigInt
 
@@ -44,7 +39,6 @@ bit :: Int -> Integer
 bit n = shift (big 1) n
 
 {-- Rational --}
-
 type Rational
   = Ratio BigInt
 
@@ -58,7 +52,6 @@ instance toRationalInteger :: ToRational BigInt where
   toRational n = n % (big 1)
 
 {-- Scalable --}
-
 -- | 'Scalable' allows scaling numerical data types by powers of 2.
 class Scalable a where
   scale :: a -> Int -> a

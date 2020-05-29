@@ -1,7 +1,6 @@
 module Test.IntervalArith.Dyadic where
 
 import Prelude
-
 import IntervalArith.Dyadic (Dyadic, fromInteger, (:^))
 import IntervalArith.Misc (big, scale, toRational)
 import Test.IntervalArith.Misc (ArbitraryInteger(..), ArbitraryPositiveExponent(..))
@@ -48,7 +47,7 @@ dyadicTests_Scaling =
             -- then
             expected = d
           in
-            eqWithInput [d, fromInteger (big i)] expected result
+            eqWithInput [ d, fromInteger (big i) ] expected result
     test "SHOULD HOLD n = scale (scale n (-i)) i FOR ALL integers n and i>=0"
       $ quickCheck \dPre iPre ->
           let
@@ -63,7 +62,7 @@ dyadicTests_Scaling =
             -- then
             expected = d
           in
-            eqWithInput [d, fromInteger (big i)] expected result
+            eqWithInput [ d, fromInteger (big i) ] expected result
 
 dyadicTests_Order :: TestSuite
 dyadicTests_Order = totalOrderTests dyadicOrdParams
@@ -84,9 +83,8 @@ dyadicTests_ToRational =
             left = (toRational (d1 + d2))
 
             right = (toRational d1) + (toRational d2)
-
           in
-            eqWithInput [d1, d2] left right
+            eqWithInput [ d1, d2 ] left right
 
 dyadicOrdParams :: SuiteOrdParams1 ArbitraryDyadic Dyadic
 dyadicOrdParams =
