@@ -27,34 +27,44 @@ clearCanvas =
   withLocalDrawContext \drawContext -> do
     clearRect drawContext.context { height: drawContext.canvasHeight, width: drawContext.canvasWidth, x: 0.0, y: 0.0 }
 
-drawLine :: Position -> Position -> DrawOperation
-drawLine { x: x1, y: y1 } { x: x2, y: y2 } =
+drawLine :: Boolean -> Position -> Position -> DrawOperation
+drawLine isDashed { x: x1, y: y1 } { x: x2, y: y2 } =
   withLocalDrawContext \drawContext -> do
     beginPath drawContext.context
     moveTo drawContext.context x1 y1
     lineTo drawContext.context x2 y2
-    setLineDash drawContext.context [ 1.0, 3.0 ]
-    setStrokeStyle drawContext.context $ toRGBA 0.0 0.0 0.0 0.3
+    when isDashed do
+      setLineDash drawContext.context [ 1.0, 3.0 ]
+      setStrokeStyle drawContext.context $ toRGBA 0.0 0.0 0.0 0.3
     stroke drawContext.context
 
 drawPlotLine :: Position -> Position -> DrawOperation
-drawPlotLine { x: x1, y: y1 } { x: x2, y: y2 } =
-  withLocalDrawContext \drawContext -> do
-    beginPath drawContext.context
-    moveTo drawContext.context x1 y1
-    lineTo drawContext.context x2 y2
-    stroke drawContext.context
+drawPlotLine = drawLine false
+
+drawXAxisLine :: Number -> Number -> DrawOperation
+drawXAxisLine xZero range drawContext = drawPlotLine a b drawContext
+  where
+    relativeX = (xZero * drawContext.canvasWidth) / range
+    a = { x: relativeX, y: 0.0 }
+    b = { x: relativeX, y: drawContext.canvasHeight }
+
+drawYAxisLine :: Number -> Number -> DrawOperation
+drawYAxisLine yZero range drawContext = drawPlotLine a b drawContext
+  where
+    relativeY = drawContext.canvasHeight - (yZero * drawContext.canvasHeight) / range
+    a = { x: 0.0, y: relativeY }
+    b = { x: drawContext.canvasWidth, y: relativeY }
 
 drawXGridLine :: Number -> Number -> Number -> DrawOperation
 drawXGridLine x value range drawContext = do
-  drawLine { x: relativeX, y: 0.0 } { x: relativeX, y: drawContext.canvasHeight } drawContext
+  drawLine true { x: relativeX, y: 0.0 } { x: relativeX, y: drawContext.canvasHeight } drawContext
   drawText (show value) 10.0 { x: relativeX, y: drawContext.canvasHeight - 12.0 } drawContext
   where
   relativeX = (x * drawContext.canvasWidth) / range
 
 drawYGridLine :: Number -> Number -> Number -> DrawOperation
 drawYGridLine y value range drawContext = do
-  drawLine { x: 0.0, y: relativeY } { x: drawContext.canvasWidth, y: relativeY } drawContext
+  drawLine true { x: 0.0, y: relativeY } { x: drawContext.canvasWidth, y: relativeY } drawContext
   drawText (show value) 10.0 { x: drawContext.canvasWidth - 40.0, y: relativeY } drawContext
   where
   relativeY = drawContext.canvasHeight - ((y * drawContext.canvasHeight) / range)

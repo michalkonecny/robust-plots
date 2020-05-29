@@ -1,6 +1,7 @@
 module Draw.Actions where
 
 import Prelude
+
 import Control.Monad.Free (liftF)
 import Draw.Commands (DrawCommand, DrawCommandF(..))
 import Types (Position, Polygon)
@@ -16,6 +17,12 @@ drawXGridLine x value range = liftF $ DrawXGridLine x value range unit
 
 drawYGridLine :: Number -> Number -> Number -> DrawCommand Unit
 drawYGridLine y value range = liftF $ DrawYGridLine y value range unit
+
+drawXAxisLine :: Number -> Number -> DrawCommand Unit
+drawXAxisLine xZero range = liftF $ DrawXAxis xZero range unit
+
+drawYAxisLine :: Number -> Number -> DrawCommand Unit
+drawYAxisLine yZero range = liftF $ DrawYAxis yZero range unit
 
 drawPlotLine :: Position -> Position -> DrawCommand Unit
 drawPlotLine a b = liftF $ DrawPlotLine a b unit

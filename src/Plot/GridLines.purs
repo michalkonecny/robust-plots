@@ -2,7 +2,7 @@ module Plot.GridLines where
 
 import Prelude
 import Draw.Commands (DrawCommand)
-import Draw.Actions (clearCanvas, drawXGridLine, drawYGridLine)
+import Draw.Actions (clearCanvas, drawXGridLine, drawYGridLine, drawXAxisLine, drawYAxisLine)
 import Data.Traversable (for_)
 import Data.Array ((..))
 import Data.Decimal as D
@@ -12,8 +12,19 @@ import Types (XYBounds)
 clearAndDrawGridLines :: XYBounds -> DrawCommand Unit
 clearAndDrawGridLines bounds = do
   clearCanvas
+  drawAxes bounds
   drawXGridLines bounds
   drawYGridLines bounds
+
+drawAxes :: XYBounds -> DrawCommand Unit
+drawAxes bounds = do
+  drawXAxisLine xZero rangeX
+  drawYAxisLine yZero rangeY
+  where
+  xZero = -bounds.xBounds.lower
+  yZero = -bounds.yBounds.lower
+  rangeX = bounds.xBounds.upper - bounds.xBounds.lower
+  rangeY = bounds.yBounds.upper - bounds.yBounds.lower
 
 drawXGridLines :: XYBounds -> DrawCommand Unit
 drawXGridLines bounds = for_ xGuidePoints draw
