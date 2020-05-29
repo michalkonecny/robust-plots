@@ -3,7 +3,7 @@ module Main where
 import Prelude
 
 import Components.Canvas (Input, CanvasSlot, canvasComponent, xyBounds)
-import Components.Canvas.CanvasController (canvasController)
+import Components.Canvas.Controller (canvasController)
 import Components.ExpressionInput (ExpressionInputSlot, ExpressionInputMessage(..), expressionInputComponent)
 import Components.ExpressionInput.Controller (expressionInputController)
 import Constants (canvasId)
