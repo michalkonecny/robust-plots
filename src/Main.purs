@@ -1,6 +1,7 @@
 module Main where
 
 import Prelude
+
 import Components.Canvas (Input, CanvasSlot, canvasComponent, xyBounds)
 import Components.Canvas.Controller (canvasController)
 import Components.ExpressionInput (ExpressionInputSlot, ExpressionInputMessage(..), expressionInputComponent)
@@ -25,6 +26,14 @@ import Plot.Pan (panBounds)
 import Plot.PlotController (computePlotAsync)
 import Plot.Zoom (zoomBounds)
 import Types (Direction(..), Size, XYBounds)
+import Web.UIEvent.WheelEvent (WheelEvent)
+import Web.UIEvent.WheelEvent as WE
+import Web.UIEvent.WheelEvent.EventTypes as WET
+import Web.Event.Event as E
+import Web.HTML (window) as Web
+import Web.HTML.HTMLDocument as HTMLDocument
+import Web.HTML.Window (document) as Web
+import Halogen.Query.EventSource as ES
 
 type Config
   = { someData :: String }
@@ -42,6 +51,7 @@ data Action
   | Pan Direction
   | Zoom Boolean
   | HandleExpressionInput ExpressionInputMessage
+  | HandleScroll H.SubscriptionId WheelEvent
 
 type ChildSlots
   = ( canvas :: CanvasSlot Int
@@ -122,6 +132,12 @@ handleAction action = do
   case action of
     Init -> do
       drawCommands <- lift $ computePlot state.input.size $ clear state.bounds
+      document <- H.liftEffect $ Web.document =<< Web.window
+      H.subscribe' \id ->
+        ES.eventListenerEventSource
+          WET.wheel
+          (HTMLDocument.toEventTarget document)
+          (map (HandleScroll id) <<< WE.fromEvent)
       H.put state { input { operations = drawCommands } }
     Clear -> do
       drawCommands <- lift $ computePlot state.input.size $ clear state.bounds
@@ -139,6 +155,11 @@ handleAction action = do
         newBounds = zoomBounds state.bounds isZoomIn
       drawCommands <- lift $ recomputePlot state newBounds
       H.put state { input { operations = drawCommands }, bounds = newBounds }
+    HandleScroll _ ev -> do
+      let changeInZ = WE.deltaY ev
+      when (changeInZ /= 0.0) do
+        H.liftEffect $ E.preventDefault (WE.toEvent ev)
+        handleAction $ Zoom (changeInZ < 0.0)
 
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
 ui' = H.hoist (\app -> runReaderT app initialConfig) ui
