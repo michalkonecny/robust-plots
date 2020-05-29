@@ -24,14 +24,10 @@ panBoundsByVector canvasSize bounds delta =
   , yBounds: { lower: bounds.yBounds.lower + yMovement, upper: bounds.yBounds.upper + yMovement }
   }
   where
-  changeInX = delta.x
-
-  changeInY = delta.y
-
   xRange = bounds.xBounds.upper - bounds.xBounds.lower
 
   yRange = bounds.yBounds.upper - bounds.yBounds.lower
 
-  xMovement = (changeInX * xRange) / canvasSize.width
+  xMovement = (delta.x * xRange) / canvasSize.width
 
-  yMovement = (changeInY * yRange) / canvasSize.height
+  yMovement = (delta.y * yRange) / canvasSize.height
