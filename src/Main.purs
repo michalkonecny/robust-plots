@@ -156,10 +156,10 @@ handleAction action = do
       H.put state { input { operations = drawCommands }, bounds = newBounds }
     HandleScroll _ event -> do
       let
-        changeInZ = WE.deltaY event
-      when (changeInZ /= 0.0) do
+        changeInY = WE.deltaY event
+      when (changeInY /= 0.0) do
         H.liftEffect $ E.preventDefault (WE.toEvent event)
-        handleAction $ Zoom (changeInZ < 0.0)
+        handleAction $ Zoom (changeInY < 0.0)
 
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
 ui' = H.hoist (\app -> runReaderT app initialConfig) ui
