@@ -20,20 +20,20 @@ import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
+import Halogen.Query.EventSource as ES
 import Halogen.VDom.Driver (runUI)
 import Plot.Commands (PlotCommand, plot, clear)
 import Plot.Pan (panBounds)
 import Plot.PlotController (computePlotAsync)
 import Plot.Zoom (zoomBounds)
 import Types (Direction(..), Size, XYBounds)
-import Web.UIEvent.WheelEvent (WheelEvent)
-import Web.UIEvent.WheelEvent as WE
-import Web.UIEvent.WheelEvent.EventTypes as WET
 import Web.Event.Event as E
 import Web.HTML (window) as Web
 import Web.HTML.HTMLDocument as HTMLDocument
 import Web.HTML.Window (document) as Web
-import Halogen.Query.EventSource as ES
+import Web.UIEvent.WheelEvent (WheelEvent)
+import Web.UIEvent.WheelEvent as WE
+import Web.UIEvent.WheelEvent.EventTypes as WET
 
 type Config
   = { someData :: String }
@@ -155,10 +155,10 @@ handleAction action = do
         newBounds = zoomBounds state.bounds isZoomIn
       drawCommands <- lift $ recomputePlot state newBounds
       H.put state { input { operations = drawCommands }, bounds = newBounds }
-    HandleScroll _ ev -> do
-      let changeInZ = WE.deltaY ev
+    HandleScroll _ event -> do
+      let changeInZ = WE.deltaY event
       when (changeInZ /= 0.0) do
-        H.liftEffect $ E.preventDefault (WE.toEvent ev)
+        H.liftEffect $ E.preventDefault (WE.toEvent event)
         handleAction $ Zoom (changeInZ < 0.0)
 
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
