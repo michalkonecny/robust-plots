@@ -1,14 +1,14 @@
 module Plot.Commands where
 
-import Plot.Functions (plot1)
+import Expression.Syntax (Expression)
 import Types (XYBounds)
 
 data PlotCommand
-  = Plot Boolean XYBounds (Number -> Number)
+  = Plot Boolean XYBounds Expression
   | Empty XYBounds
 
-basicPlot :: Boolean -> XYBounds -> PlotCommand
-basicPlot clearCanvas bounds = Plot clearCanvas bounds plot1
+plot :: Boolean -> XYBounds -> Expression -> PlotCommand
+plot clearCanvas bounds expression = Plot clearCanvas bounds expression
 
 clear :: XYBounds -> PlotCommand
 clear = Empty

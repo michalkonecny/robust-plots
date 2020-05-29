@@ -1,4 +1,4 @@
-module Components.Canvas.CanvasController where
+module Components.Canvas.Controller where
 
 import Prelude
 import Draw.Commands (DrawCommand)
