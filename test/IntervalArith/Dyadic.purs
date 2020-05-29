@@ -1,14 +1,15 @@
 module Test.IntervalArith.Dyadic where
 
 import Prelude
-import IntervalArith.Dyadic (Dyadic, (:^))
-import IntervalArith.Misc (scale)
+
+import IntervalArith.Dyadic (Dyadic, fromInteger, (:^))
+import IntervalArith.Misc (big, scale, toRational)
 import Test.IntervalArith.Misc (ArbitraryInteger(..), ArbitraryPositiveExponent(..))
 import Test.Order (totalOrderTests)
 import Test.QuickCheck (class Arbitrary, arbitrary, (==?))
 import Test.QuickCheck.Gen (chooseInt, sized)
 import Test.Ring (commutativeRingTests)
-import Test.TestUtils (assertOp, SuiteOrdParams1, SuiteEqParams1)
+import Test.TestUtils (SuiteEqParams1, SuiteOrdParams1, assertOp, eqWithInput)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.QuickCheck (quickCheck)
 
@@ -28,6 +29,7 @@ dyadicTests =
     dyadicTests_Order
     dyadicTests_Ring
     dyadicTests_Scaling
+    dyadicTests_ToRational
 
 dyadicTests_Scaling :: TestSuite
 dyadicTests_Scaling =
@@ -46,7 +48,7 @@ dyadicTests_Scaling =
             -- then
             expected = d
           in
-            expected ==? result
+            eqWithInput [d, fromInteger (big i)] expected result
     test "SHOULD HOLD n = scale (scale n (-i)) i FOR ALL integers n and i>=0"
       $ quickCheck \dPre iPre ->
           let
@@ -61,10 +63,30 @@ dyadicTests_Scaling =
             -- then
             expected = d
           in
-            expected ==? result
+            eqWithInput [d, fromInteger (big i)] expected result
 
 dyadicTests_Order :: TestSuite
 dyadicTests_Order = totalOrderTests dyadicOrdParams
+
+dyadicTests_ToRational :: TestSuite
+dyadicTests_ToRational =
+  suite "IntervalArith.Misc - Dyadic conversion to Rational" do
+    test "SHOULD HOLD Q(d1 + d2) = Q(d1) + Q(d2) FOR ALL dyadic numbers d1, d2"
+      $ quickCheck \d1Pre d2Pre ->
+          let
+            -- given
+            (ArbitraryDyadic d1) = d1Pre :: ArbitraryDyadic
+
+            (ArbitraryDyadic d2) = d2Pre :: ArbitraryDyadic
+
+            -- when
+            -- then
+            left = (toRational (d1 + d2))
+
+            right = (toRational d1) + (toRational d2)
+
+          in
+            eqWithInput [d1, d2] left right
 
 dyadicOrdParams :: SuiteOrdParams1 ArbitraryDyadic Dyadic
 dyadicOrdParams =

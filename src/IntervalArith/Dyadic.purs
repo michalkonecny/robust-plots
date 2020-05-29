@@ -1,7 +1,7 @@
 module IntervalArith.Dyadic where
 
 import Prelude
-import IntervalArith.Misc (class Scalable, Integer, big, scale, shift)
+import IntervalArith.Misc ((^^), class Scalable, class ToRational, Integer, big, scale, shift, toRational)
 
 -- |The Dyadic data type.
 data Dyadic
@@ -43,4 +43,5 @@ instance commutativeRingDyadic :: CommutativeRing Dyadic
 fromInteger :: Integer -> Dyadic
 fromInteger i = i :^ 0
 
--- toRational (a :^ s) = (toRational a)*2^^s
+instance toRationalDyadic :: ToRational Dyadic where
+  toRational (a :^ s) = (toRational a) * (toRational 2) ^^ s
