@@ -1,8 +1,7 @@
 module Plot.PlotController where
 
 import Prelude
-
-import Data.Array ((..), zipWith, tail)
+import Data.Array (fold, tail, zipWith, (..))
 import Data.Either (Either(..))
 import Data.Int (floor, toNumber)
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -18,32 +17,29 @@ import Plot.Commands (PlotCommand(..))
 import Plot.GridLines (clearAndDrawGridLines)
 import Types (Size, XYBounds, Position)
 
-computePlotAsync :: Size -> PlotCommand -> Aff (DrawCommand Unit)
+computePlotAsync :: Size -> Array PlotCommand -> Aff (DrawCommand Unit)
 computePlotAsync canvasSize plot = makeAff $ runComputation canvasSize plot
 
-runComputation :: Size -> PlotCommand -> (Either Error (DrawCommand Unit) -> Effect Unit) -> Effect Canceler
-runComputation canvasSize (Plot shouldClear bounds expression) callback = do
-  callback $ Right
-    $ do
-        -- Computation for drawing plot here
-        if shouldClear then
-          clearAndDrawGridLines bounds
-        else
-          pure unit
-        plotSimpleLine canvasSize bounds $ evaluateWithX expression
+runComputation :: Size -> Array PlotCommand -> (Either Error (DrawCommand Unit) -> Effect Unit) -> Effect Canceler
+runComputation canvasSize commands callback = do
+  callback $ Right result
   pure nonCanceler
-
-runComputation canvasSize (Empty bounds) callback = do
-  callback $ Right $ clearAndDrawGridLines bounds
-  pure nonCanceler
+  where
+  result = fold $ map (runCommand canvasSize) commands
 
 evaluateWithX :: Expression -> Number -> Number
 evaluateWithX expression x = value
   where
-    variableMap = presetConstants <> [ Tuple "x" x ]
-    value = case evaluate variableMap expression of
-      Left _ -> 0.0 
-      Right v -> v
+  variableMap = presetConstants <> [ Tuple "x" x ]
+
+  value = case evaluate variableMap expression of
+    Left _ -> 0.0
+    Right v -> v
+
+runCommand :: Size -> PlotCommand -> DrawCommand Unit
+runCommand canvasSize (Empty bounds) = clearAndDrawGridLines bounds
+
+runCommand canvasSize (Plot bounds expression) = plotSimpleLine canvasSize bounds $ evaluateWithX expression
 
 plotSimpleLine :: Size -> XYBounds -> (Number -> Number) -> DrawCommand Unit
 plotSimpleLine canvasSize bounds func = for_ lines (\l -> drawPlotLine l.a l.b)

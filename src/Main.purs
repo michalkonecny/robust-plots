@@ -8,7 +8,8 @@ import Components.ExpressionInput.Controller (expressionInputController)
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT, runReaderT)
 import Control.Monad.Trans.Class (lift)
-import Data.Maybe (Maybe(..), isJust)
+import Data.Array (length, mapMaybe, null)
+import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Draw.Commands (DrawCommand)
 import Effect (Effect)
@@ -21,7 +22,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.Query.EventSource as ES
 import Halogen.VDom.Driver (runUI)
-import Plot.Commands (PlotCommand, plot, clear)
+import Plot.Commands (PlotCommand, plotExpression, clear)
 import Plot.Pan (panBounds, panBoundsByVector)
 import Plot.PlotController (computePlotAsync)
 import Plot.Zoom (zoomBounds)
@@ -40,8 +41,13 @@ type Config
 type State
   = { input :: Input (DrawCommand Unit)
     , bounds :: XYBounds
-    , expression :: Maybe Expression
+    , plots :: Array ExpressionPlot
+    }
+
+type ExpressionPlot
+  = { expression :: Maybe Expression
     , expressionText :: String
+    , id :: Int
     }
 
 data Action
@@ -52,6 +58,7 @@ data Action
   | HandleExpressionInput ExpressionInputMessage
   | HandleScroll H.SubscriptionId WheelEvent
   | HandleCanvas CanvasMessage
+  | Add
 
 type ChildSlots
   = ( canvas :: CanvasSlot Int
@@ -86,74 +93,81 @@ ui =
             }
         }
     , bounds: xyBounds (-1.0) (1.0) (-1.0) (1.0)
-    , expressionText: ""
-    , expression: Nothing
+    , plots:
+        [ newPlot 1
+        ]
     }
 
   render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
   render state =
     HH.div_
-      [ HH.h1_
-          [ HH.text "Robust plot" ]
-      , HH.slot _expressionInput 1 (expressionInputComponent expressionInputController) state.expressionText (Just <<< HandleExpressionInput)
-      , HH.button
-          [ HE.onClick $ toActionEvent Clear ]
-          [ HH.text "Clear plot" ]
-      , HH.button
-          [ HE.onClick $ toActionEvent $ Pan Left ]
-          [ HH.text "◄" ]
-      , HH.button
-          [ HE.onClick $ toActionEvent $ Pan Right ]
-          [ HH.text "►" ]
-      , HH.button
-          [ HE.onClick $ toActionEvent $ Pan Down ]
-          [ HH.text "▼" ]
-      , HH.button
-          [ HE.onClick $ toActionEvent $ Pan Up ]
-          [ HH.text "▲" ]
-      , HH.button
-          [ HE.onClick $ toActionEvent $ Zoom true ]
-          [ HH.text "+" ]
-      , HH.button
-          [ HE.onClick $ toActionEvent $ Zoom false ]
-          [ HH.text "-" ]
-      , HH.slot _canvas 1 (canvasComponent canvasController) state.input (Just <<< HandleCanvas)
-      ]
+      $ [ HH.h1_
+            [ HH.text "Robust plot" ]
+        ]
+      <> inputs
+      <> [ HH.button
+            [ HE.onClick $ toActionEvent $ Add ]
+            [ HH.text "Add plot" ]
+        , HH.button
+            [ HE.onClick $ toActionEvent Clear ]
+            [ HH.text "Clear plots" ]
+        , HH.button
+            [ HE.onClick $ toActionEvent $ Pan Left ]
+            [ HH.text "◄" ]
+        , HH.button
+            [ HE.onClick $ toActionEvent $ Pan Right ]
+            [ HH.text "►" ]
+        , HH.button
+            [ HE.onClick $ toActionEvent $ Pan Down ]
+            [ HH.text "▼" ]
+        , HH.button
+            [ HE.onClick $ toActionEvent $ Pan Up ]
+            [ HH.text "▲" ]
+        , HH.button
+            [ HE.onClick $ toActionEvent $ Zoom true ]
+            [ HH.text "+" ]
+        , HH.button
+            [ HE.onClick $ toActionEvent $ Zoom false ]
+            [ HH.text "-" ]
+        , HH.slot _canvas 1 (canvasComponent canvasController) state.input (Just <<< HandleCanvas)
+        ]
+    where
+    inputs = map (\plot -> HH.slot _expressionInput plot.id (expressionInputComponent expressionInputController plot.id) plot.expressionText (Just <<< HandleExpressionInput)) state.plots
 
 toActionEvent :: forall a. Action -> a -> Maybe Action
 toActionEvent action _ = Just action
-
-computePlot :: Size -> PlotCommand -> ReaderT Config Aff (DrawCommand Unit)
-computePlot canvasSize plot = lift $ computePlotAsync canvasSize plot
 
 handleAction :: forall output. Action -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 handleAction action = do
   state <- H.get
   case action of
     Init -> do
-      drawCommands <- lift $ computePlot state.input.size $ clear state.bounds
       document <- H.liftEffect $ Web.document =<< Web.window
       H.subscribe' \id ->
         ES.eventListenerEventSource
           WET.wheel
           (HTMLDocument.toEventTarget document)
           (map (HandleScroll id) <<< WE.fromEvent)
-      H.put state { input { operations = drawCommands } }
+      handleAction Clear
     Clear -> do
-      drawCommands <- lift $ computePlot state.input.size $ clear state.bounds
-      H.put state { input { operations = drawCommands } }
-    HandleExpressionInput (Parsed expression text) -> do
-      drawCommands <- lift $ computePlot state.input.size $ plot (isJust state.expression) state.bounds expression
-      H.put state { input { operations = drawCommands }, expressionText = text, expression = Just expression }
+      let
+        plots = map (\plot -> plot { expression = Nothing }) state.plots
+      drawCommands <- lift $ computePlots state.input.size state.bounds plots
+      H.put state { input { operations = drawCommands }, plots = plots }
+    HandleExpressionInput (Parsed id expression text) -> do
+      let
+        plots = map (updatePlot id expression text) state.plots
+      drawCommands <- lift $ computePlots state.input.size state.bounds plots
+      H.put state { input { operations = drawCommands }, plots = plots }
     Pan direction -> do
       let
         newBounds = panBounds state.bounds direction
-      drawCommands <- lift $ recomputePlot state newBounds
+      drawCommands <- lift $ computePlots state.input.size newBounds state.plots
       H.put state { input { operations = drawCommands }, bounds = newBounds }
     Zoom isZoomIn -> do
       let
         newBounds = zoomBounds state.bounds isZoomIn
-      drawCommands <- lift $ recomputePlot state newBounds
+      drawCommands <- lift $ computePlots state.input.size newBounds state.plots
       H.put state { input { operations = drawCommands }, bounds = newBounds }
     HandleScroll _ event -> do
       let
@@ -164,16 +178,43 @@ handleAction action = do
     HandleCanvas (Dragged delta) -> do
       let
         newBounds = panBoundsByVector state.input.size state.bounds delta
-      drawCommands <- lift $ recomputePlot state newBounds
+      drawCommands <- lift $ computePlots state.input.size newBounds state.plots
       H.put state { input { operations = drawCommands }, bounds = newBounds }
+    Add -> do
+      let
+        plots = state.plots <> [ newPlot (1 + length state.plots) ]
+      H.put state { plots = plots }
 
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
 ui' = H.hoist (\app -> runReaderT app initialConfig) ui
 
-recomputePlot :: State -> XYBounds -> ReaderT Config Aff (DrawCommand Unit)
-recomputePlot state newBounds = case state.expression of
-  Just expression -> computePlot state.input.size $ plot true newBounds expression
-  Nothing -> computePlot state.input.size $ clear newBounds
+newPlot :: Int -> ExpressionPlot
+newPlot id = { expressionText: "", expression: Nothing, id }
+
+updatePlot :: Int -> Expression -> String -> ExpressionPlot -> ExpressionPlot
+updatePlot id expression text plot = if plot.id == id 
+  then 
+    { expressionText: text, expression: Just expression, id }
+  else 
+    plot
+
+computePlots :: Size -> XYBounds -> Array ExpressionPlot -> ReaderT Config Aff (DrawCommand Unit)
+computePlots canvasSize newBounds plots = lift $ computePlotAsync canvasSize computedPlot
+  where
+  commands = mapMaybe (computePlot canvasSize newBounds) plots
+
+  clearCommand = clear newBounds
+
+  computedPlot =
+    if null commands then
+      [ clearCommand ]
+    else
+      [ clearCommand ] <> commands
+
+computePlot :: Size -> XYBounds -> ExpressionPlot -> Maybe PlotCommand
+computePlot size newBounds plot = case plot.expression of
+  Just expression -> Just $ plotExpression newBounds expression
+  Nothing -> Nothing
 
 initialConfig :: Config
 initialConfig = { someData: "" }
