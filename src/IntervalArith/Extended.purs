@@ -7,7 +7,10 @@
 module IntervalArith.Extended (Extended(..)) where
 
 import Prelude
+
 import Control.Apply (lift2)
+import Effect.Exception.Unsafe (unsafeThrow)
+import IntervalArith.Misc (class ToRational, toRational)
 
 -- |Extended numbers are either finite numbers or one of the two infinities.
 data Extended a
@@ -67,11 +70,6 @@ instance ringExtended :: (Ord a, Ring a) => Ring (Extended a) where
 
 instance commutativeringExtended :: (Ord a, CommutativeRing a) => CommutativeRing (Extended a)
 
---     abs = fmap abs
---     signum PosInf = Finite 1
---     signum NegInf = Finite (-1)
---     signum a = signum <$> a
---     fromInteger i = Finite $ fromInteger i
--- instance Real a => Real (Extended a) where
---     toRational (Finite x) = toRational x
---     toRational _ = undefined
+instance extendedToRational :: (ToRational a, Show a) => ToRational (Extended a) where
+  toRational (Finite x) = toRational x
+  toRational e = unsafeThrow $ "Cannot convert " <> show e <> " to a rational number."
