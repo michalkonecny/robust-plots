@@ -3,7 +3,9 @@ module Test.IntervalArith.Approx.ShowA
   ) where
 
 import Prelude
-import IntervalArith.Approx (Approx(..), showA)
+
+import IntervalArith.Approx (Approx(..))
+import IntervalArith.Approx.ShowA (showA)
 import IntervalArith.Misc (big)
 import Test.QuickCheck ((===))
 import Test.Unit (TestSuite, suite, test)
