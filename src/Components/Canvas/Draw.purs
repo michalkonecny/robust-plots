@@ -8,7 +8,7 @@ import Data.String (joinWith)
 import Data.Traversable (for_)
 import Effect (Effect)
 import Graphics.Canvas (LineCap(..), beginPath, clearRect, fill, fillText, lineTo, moveTo, setFillStyle, setFont, setLineCap, setLineDash, setLineWidth, setStrokeStyle, stroke)
-import Types (Polygon, Position, RGBA)
+import Types (Polygon, Position, Color)
 
 -- | Draws text
 drawText :: String -> Number -> Position -> DrawOperation
@@ -27,7 +27,7 @@ clearCanvas =
   withLocalDrawContext \drawContext -> do
     clearRect drawContext.context { height: drawContext.canvasHeight, width: drawContext.canvasWidth, x: 0.0, y: 0.0 }
 
-drawLine :: Boolean -> RGBA -> Position -> Position -> DrawOperation
+drawLine :: Boolean -> Color -> Position -> Position -> DrawOperation
 drawLine isDashed color { x: x1, y: y1 } { x: x2, y: y2 } =
   withLocalDrawContext \drawContext -> do
     beginPath drawContext.context
@@ -117,5 +117,5 @@ drawRootEnclosure yZero l r =
 origin :: Position
 origin = { x: 0.0, y: 0.0 }
 
-toColorString :: RGBA -> String
+toColorString :: Color -> String
 toColorString { r, g, b, a } = "rgb(" <> (show r) <> "," <> (show g) <> "," <> (show b) <> "," <> (show a) <> ")"

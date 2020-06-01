@@ -15,7 +15,7 @@ type Size
 type Polygon
   = Array Position
 
-type RGBA
+type Color
   = { r :: Number
     , g :: Number
     , b :: Number
