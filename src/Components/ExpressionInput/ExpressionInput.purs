@@ -21,20 +21,21 @@ type ExpressionInputSlot p
 type State
   = { input :: String
     , error :: Maybe String
+    , id :: Int
     }
 
 data ExpressionInputMessage
-  = Parsed Expression String
+  = Parsed Int Expression String
 
 data Action
   = Init
   | HandleInput String
   | Parse
 
-expressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> H.Component HH.HTML query String ExpressionInputMessage m
-expressionInputComponent controller =
+expressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> Int -> H.Component HH.HTML query String ExpressionInputMessage m
+expressionInputComponent controller id =
   H.mkComponent
-    { initialState
+    { initialState: initialState id
     , render
     , eval:
         H.mkEval
@@ -45,10 +46,11 @@ expressionInputComponent controller =
               }
     }
 
-initialState :: String -> State
-initialState input =
+initialState :: Int -> String -> State
+initialState id input =
   { input
   , error: Nothing
+  , id
   }
 
 render :: forall slots m. State -> HH.ComponentHTML Action slots m
@@ -79,14 +81,16 @@ handleAction controller = case _ of
     handleAction controller (HandleInput input)
     pure unit
   Parse -> do
-    { input } <- H.get
+    { input, id } <- H.get
     let
       result = controller.parse input
     case result of
       Left parseError -> H.modify_ _ { error = Just $ show parseError }
       Right expression -> case checkExpression expression of
         Left evaluationError -> H.modify_ _ { error = Just $ show evaluationError }
-        Right _ -> H.raise (Parsed expression input)
+        Right _ -> do 
+          H.modify_ _ { error = Nothing }
+          H.raise (Parsed id expression input)
   HandleInput input -> do
     H.modify_ _ { input = input }
     pure unit

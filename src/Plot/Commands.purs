@@ -4,11 +4,11 @@ import Expression.Syntax (Expression)
 import Types (XYBounds)
 
 data PlotCommand
-  = Plot Boolean XYBounds Expression
+  = Plot XYBounds Expression
   | Empty XYBounds
 
-plot :: Boolean -> XYBounds -> Expression -> PlotCommand
-plot clearCanvas bounds expression = Plot clearCanvas bounds expression
+plotExpression :: XYBounds -> Expression -> PlotCommand
+plotExpression bounds expression = Plot bounds expression
 
 clear :: XYBounds -> PlotCommand
 clear = Empty
