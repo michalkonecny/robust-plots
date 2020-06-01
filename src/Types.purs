@@ -15,4 +15,15 @@ type Size
 type Polygon
   = Array Position
 
-data Direction = Up | Down | Left | Right
+type RGBA
+  = { r :: Number
+    , g :: Number
+    , b :: Number
+    , a :: Number
+    }
+
+data Direction
+  = Up
+  | Down
+  | Left
+  | Right
