@@ -23,7 +23,7 @@ npm run build-purescript
 
 ## Run project
 ```sh
-npm run start
+npm start
 ```
 This will start the web page as a server that can be accessed via `http://localhost:1234/`
 
