@@ -6,9 +6,10 @@ import Data.Array (head, tail)
 import Data.Maybe (fromMaybe)
 import Data.String (joinWith)
 import Data.Traversable (for_)
+import Draw.Color (Color, rgba)
 import Effect (Effect)
 import Graphics.Canvas (LineCap(..), beginPath, clearRect, fill, fillText, lineTo, moveTo, setFillStyle, setFont, setLineCap, setLineDash, setLineWidth, setStrokeStyle, stroke)
-import Types (Polygon, Position, Color)
+import Types (Polygon, Position)
 
 -- | Draws text
 drawText :: String -> Number -> Position -> DrawOperation
@@ -17,9 +18,9 @@ drawText text size { x, y } =
     let
       font = joinWith " " [ show size <> "px", "Arial" ]
 
-      color = { r: 0.0, g: 0.0, b: 0.0, a: 1.0 }
+      color = rgba 0.0 0.0 0.0 1.0 
     setFont drawContext.context font
-    setFillStyle drawContext.context $ toColorString color
+    setFillStyle drawContext.context $ show color
     fillText drawContext.context text x y
 
 clearCanvas :: DrawOperation
@@ -33,13 +34,13 @@ drawLine isDashed color { x: x1, y: y1 } { x: x2, y: y2 } =
     beginPath drawContext.context
     moveTo drawContext.context x1 y1
     lineTo drawContext.context x2 y2
-    setStrokeStyle drawContext.context $ toColorString color
+    setStrokeStyle drawContext.context $ show color
     when isDashed do
       setLineDash drawContext.context [ 1.0, 3.0 ]
     stroke drawContext.context
 
 drawPlotLine :: Position -> Position -> DrawOperation
-drawPlotLine = drawLine false { r: 0.0, g: 0.0, b: 0.0, a: 1.0 }
+drawPlotLine = drawLine false $ rgba 0.0 0.0 0.0 1.0 
 
 drawXAxisLine :: Number -> Number -> DrawOperation
 drawXAxisLine xZero range drawContext = drawPlotLine a b drawContext
@@ -66,7 +67,7 @@ drawXGridLine x value range drawContext = do
   where
   relativeX = (x * drawContext.canvasWidth) / range
 
-  color = { r: 0.0, g: 0.0, b: 0.0, a: 0.3 }
+  color = rgba 0.0 0.0 0.0 0.3 
 
 drawYGridLine :: Number -> Number -> Number -> DrawOperation
 drawYGridLine y value range drawContext = do
@@ -75,7 +76,7 @@ drawYGridLine y value range drawContext = do
   where
   relativeY = drawContext.canvasHeight - ((y * drawContext.canvasHeight) / range)
 
-  color = { r: 0.0, g: 0.0, b: 0.0, a: 0.3 }
+  color = rgba 0.0 0.0 0.0 0.3 
 
 drawPolygon :: Polygon -> DrawOperation
 drawPolygon [] drawContext = pure unit
@@ -96,11 +97,11 @@ drawEnclosure :: Boolean -> Array Polygon -> DrawOperation
 drawEnclosure isSelected polygons =
   withLocalDrawContext \drawContext -> do
     if isSelected then do
-      setFillStyle drawContext.context $ toColorString { r: 255.0, g: 192.0, b: 203.0, a: 0.7 }
-      setStrokeStyle drawContext.context $ toColorString { r: 0.0, g: 0.0, b: 0.0, a: 1.0 }
+      setFillStyle drawContext.context $ show $ rgba 255.0 192.0 203.0 0.7
+      setStrokeStyle drawContext.context $ show $ rgba 0.0 0.0 0.0 1.0
     else do
-      setFillStyle drawContext.context $ toColorString { r: 255.0, g: 192.0, b: 203.0, a: 0.4 }
-      setStrokeStyle drawContext.context $ toColorString { r: 0.0, g: 0.0, b: 0.0, a: 0.7 }
+      setFillStyle drawContext.context $ show $ rgba 255.0 192.0 203.0 0.4
+      setStrokeStyle drawContext.context $ show $ rgba 0.0 0.0 0.0 0.7
     for_ polygons (\polygon -> drawPolygon polygon drawContext)
 
 drawRootEnclosure :: Number -> Number -> Number -> DrawOperation
@@ -111,11 +112,8 @@ drawRootEnclosure yZero l r =
     lineTo drawContext.context r yZero
     setLineWidth drawContext.context 5.0
     setLineCap drawContext.context Round
-    setStrokeStyle drawContext.context $ toColorString { r: 255.0, g: 0.0, b: 0.0, a: 1.0 }
+    setStrokeStyle drawContext.context $ show $ rgba 255.0 0.0 0.0 1.0
     stroke drawContext.context
 
 origin :: Position
 origin = { x: 0.0, y: 0.0 }
-
-toColorString :: Color -> String
-toColorString { r, g, b, a } = "rgb(" <> (show r) <> "," <> (show g) <> "," <> (show b) <> "," <> (show a) <> ")"

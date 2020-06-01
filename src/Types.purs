@@ -15,13 +15,6 @@ type Size
 type Polygon
   = Array Position
 
-type Color
-  = { r :: Number
-    , g :: Number
-    , b :: Number
-    , a :: Number
-    }
-
 data Direction
   = Up
   | Down
