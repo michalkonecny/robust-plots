@@ -12,6 +12,7 @@
   , "parsing"
   , "rationals"
   , "quickcheck-combinators"
+  , "numbers"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]
