@@ -21,6 +21,12 @@ It should also be mentioned that the PS can be build alone using
 npm run build-purescript
 ```
 
+## Run project
+```sh
+npm run start
+```
+This will start the web page as a server that can be accessed via `http://localhost:1234/`
+
 ## Run tests
 ```sh
 npm run test
