@@ -1,0 +1,63 @@
+module Test.Expression.Differentiator.Differentiate
+  ( differentiateTests
+  ) where
+
+import Prelude
+import Data.Either (Either(..))
+import Expression.Differentiator (differentiate)
+import Expression.Error (Expect, throw)
+import Expression.Parser (parse)
+import Expression.Syntax (Expression)
+import Test.Unit (TestSuite, suite, test)
+import Test.Unit.Assert (equal)
+
+differentiateTests :: TestSuite
+differentiateTests =
+  suite "Expression.Differentiator - differentiate" do
+    test "ASSERT f(x)' = 0 WHEN f(x) = 1" do
+      let
+        -- given
+        rawExpression = "1"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate rawExpression
+
+        -- then
+        expectedResult = "0"
+      equal expectedResult result
+    test "ASSERT f(x)' = 1 WHEN f(x) = x" do
+      let
+        -- given
+        rawExpression = "x"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate rawExpression
+
+        -- then
+        expectedResult = "1"
+      equal expectedResult result
+    test "ASSERT f(x)' = 2x WHEN f(x) = x^2" do
+      let
+        -- given
+        rawExpression = "x^2"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate rawExpression
+
+        -- then
+        expectedResult = "2*x"
+      equal expectedResult result
+
+parseAndEvaluate :: String -> Expect Expression
+parseAndEvaluate rawExpression = valueOrEvaluationError
+  where
+  expressionOrParseError = parse rawExpression
+
+  valueOrEvaluationError = case expressionOrParseError of
+    Right expression -> pure $ differentiate expression
+    Left error -> throw error
+
+fromExpect :: Expect Expression -> String
+fromExpect (Right value) = show value
+
+fromExpect (Left error) = show error
