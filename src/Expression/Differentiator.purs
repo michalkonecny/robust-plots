@@ -3,6 +3,9 @@ module Expression.Differentiator where
 import Prelude
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 
+secondDifferentiate :: Expression -> Expression
+secondDifferentiate = differentiate <<< differentiate
+
 differentiate :: Expression -> Expression
 differentiate = case _ of
   ExpressionLiteral _ -> ExpressionLiteral 0.0
