@@ -58,7 +58,7 @@ data Action
   | HandleExpressionInput ExpressionInputMessage
   | HandleScroll H.SubscriptionId WheelEvent
   | HandleCanvas CanvasMessage
-  | Add
+  | AddPlot
 
 type ChildSlots
   = ( canvas :: CanvasSlot Int
@@ -106,7 +106,7 @@ ui =
         ]
       <> inputs
       <> [ HH.button
-            [ HE.onClick $ toActionEvent $ Add ]
+            [ HE.onClick $ toActionEvent $ AddPlot ]
             [ HH.text "Add plot" ]
         , HH.button
             [ HE.onClick $ toActionEvent Clear ]
@@ -180,7 +180,7 @@ handleAction action = do
         newBounds = panBoundsByVector state.input.size state.bounds delta
       drawCommands <- lift $ computePlots state.input.size newBounds state.plots
       H.put state { input { operations = drawCommands }, bounds = newBounds }
-    Add -> do
+    AddPlot -> do
       let
         plots = state.plots <> [ newPlot (1 + length state.plots) ]
       H.put state { plots = plots }
