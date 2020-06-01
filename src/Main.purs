@@ -1,6 +1,7 @@
 module Main where
 
 import Prelude
+import Components.BoundsInput (BoundsInputMessage(..), BoundsInputSlot, boundsInputComponent)
 import Components.Canvas (Input, CanvasSlot, CanvasMessage(..), canvasComponent, xyBounds)
 import Components.Canvas.Controller (canvasController)
 import Components.ExpressionInput (ExpressionInputSlot, ExpressionInputMessage(..), expressionInputComponent)
@@ -58,16 +59,20 @@ data Action
   | HandleExpressionInput ExpressionInputMessage
   | HandleScroll H.SubscriptionId WheelEvent
   | HandleCanvas CanvasMessage
+  | HandleBoundsInput BoundsInputMessage
   | AddPlot
 
 type ChildSlots
   = ( canvas :: CanvasSlot Int
     , expressionInput :: ExpressionInputSlot Int
+    , boundsInput :: BoundsInputSlot Int
     )
 
 _canvas = SProxy :: SProxy "canvas"
 
 _expressionInput = SProxy :: SProxy "expressionInput"
+
+_boundsInput = SProxy :: SProxy "boundsInput"
 
 ui :: forall query input output. H.Component HH.HTML query input output (ReaderT Config Aff)
 ui =
@@ -111,6 +116,7 @@ ui =
         , HH.button
             [ HE.onClick $ toActionEvent Clear ]
             [ HH.text "Clear plots" ]
+        , HH.slot _boundsInput 1 boundsInputComponent state.bounds (Just <<< HandleBoundsInput)
         , HH.button
             [ HE.onClick $ toActionEvent $ Pan Left ]
             [ HH.text "◄" ]
@@ -184,6 +190,9 @@ handleAction action = do
       let
         plots = state.plots <> [ newPlot (1 + length state.plots) ]
       H.put state { plots = plots }
+    HandleBoundsInput (Updated newBounds) -> do
+      drawCommands <- lift $ computePlots state.input.size newBounds state.plots
+      H.put state { input { operations = drawCommands }, bounds = newBounds }
 
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
 ui' = H.hoist (\app -> runReaderT app initialConfig) ui
@@ -192,10 +201,10 @@ newPlot :: Int -> ExpressionPlot
 newPlot id = { expressionText: "", expression: Nothing, id }
 
 updatePlot :: Int -> Expression -> String -> ExpressionPlot -> ExpressionPlot
-updatePlot id expression text plot = if plot.id == id 
-  then 
+updatePlot id expression text plot =
+  if plot.id == id then
     { expressionText: text, expression: Just expression, id }
-  else 
+  else
     plot
 
 computePlots :: Size -> XYBounds -> Array ExpressionPlot -> ReaderT Config Aff (DrawCommand Unit)

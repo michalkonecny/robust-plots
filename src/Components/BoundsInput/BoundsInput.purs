@@ -1,7 +1,7 @@
 module Components.BoundsInput where
 
 import Prelude
-import Components.ExpressionInput.Controller (ExpressionInputController)
+
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Number (fromString)
 import Effect.Class (class MonadEffect)
@@ -41,15 +41,15 @@ data Action
   | HandleInput Bound String
   | Update
 
-expressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> H.Component HH.HTML query XYBounds BoundsInputMessage m
-expressionInputComponent controller =
+boundsInputComponent :: forall query m. MonadEffect m => H.Component HH.HTML query XYBounds BoundsInputMessage m
+boundsInputComponent =
   H.mkComponent
     { initialState: initialState
     , render
     , eval:
         H.mkEval
           $ H.defaultEval
-              { handleAction = handleAction controller
+              { handleAction = handleAction
               , receive = Just <<< Recieve
               , initialize = Just Init
               }
@@ -80,33 +80,37 @@ render state =
         , HP.value state.xBounds.lower
         , HP.id_ "xLower"
         ]
+    , HH.br_
     , HH.label
         [ HP.for "xUpper" ]
         [ HH.text "Upper X:" ]
     , HH.input
         [ HP.type_ HP.InputText
-        , HE.onValueChange $ toValueChangeActionEvent XLower
-        , HP.value state.xBounds.lower
+        , HE.onValueChange $ toValueChangeActionEvent XUpper
+        , HP.value state.xBounds.upper
         , HP.id_ "xUpper"
         ]
+    , HH.br_
     , HH.label
         [ HP.for "yLower" ]
         [ HH.text "Lower Y:" ]
     , HH.input
         [ HP.type_ HP.InputText
-        , HE.onValueChange $ toValueChangeActionEvent XLower
-        , HP.value state.xBounds.lower
+        , HE.onValueChange $ toValueChangeActionEvent YLower
+        , HP.value state.yBounds.lower
         , HP.id_ "yLower"
         ]
+    , HH.br_
     , HH.label
         [ HP.for "yUpper" ]
         [ HH.text "Upper Y:" ]
     , HH.input
         [ HP.type_ HP.InputText
-        , HE.onValueChange $ toValueChangeActionEvent XLower
-        , HP.value state.xBounds.lower
+        , HE.onValueChange $ toValueChangeActionEvent YUpper
+        , HP.value state.yBounds.upper
         , HP.id_ "yUpper"
         ]
+    , HH.br_
     , HH.button
         [ HE.onClick $ toActionEvent Update ]
         [ HH.text "Update" ]
@@ -120,15 +124,14 @@ toValueChangeActionEvent bound value = Just $ HandleInput bound value
 toActionEvent :: forall a. Action -> a -> Maybe Action
 toActionEvent action _ = Just action
 
-handleAction :: forall m. MonadEffect m => ExpressionInputController -> Action -> H.HalogenM State Action () BoundsInputMessage m Unit
-handleAction controller = case _ of
+handleAction :: forall m. MonadEffect m => Action -> H.HalogenM State Action () BoundsInputMessage m Unit
+handleAction = case _ of
   Init -> do
     { xBounds, yBounds } <- H.get
-    handleAction controller (HandleInput XLower $ xBounds.lower)
-    handleAction controller (HandleInput XUpper $ xBounds.upper)
-    handleAction controller (HandleInput YLower $ yBounds.lower)
-    handleAction controller (HandleInput YUpper $ yBounds.upper)
-    pure unit
+    handleAction (HandleInput XLower $ xBounds.lower)
+    handleAction (HandleInput XUpper $ xBounds.upper)
+    handleAction (HandleInput YLower $ yBounds.lower)
+    handleAction (HandleInput YUpper $ yBounds.upper)
   HandleInput XLower stringInput -> H.modify_ _ { xBounds { lower = stringInput } }
   HandleInput XUpper stringInput -> H.modify_ _ { xBounds { upper = stringInput } }
   HandleInput YLower stringInput -> H.modify_ _ { yBounds { lower = stringInput } }
