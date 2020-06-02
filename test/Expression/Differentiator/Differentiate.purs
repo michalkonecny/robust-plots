@@ -36,7 +36,7 @@ differentiateTests =
         -- then
         expectedResult = "1"
       equal expectedResult result
-    test "ASSERT f(x)' = 2x WHEN f(x) = x^2" do
+    test "ASSERT f(x)' = 2*x WHEN f(x) = x^2" do
       let
         -- given
         rawExpression = "x^2"
@@ -46,6 +46,17 @@ differentiateTests =
 
         -- then
         expectedResult = "2*x"
+      equal expectedResult result
+    test "ASSERT f(x)' = 12*x WHEN f(x) = 6 * (x^2)" do
+      let
+        -- given
+        rawExpression = "6 * (x^2)"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate rawExpression
+
+        -- then
+        expectedResult = "12*x"
       equal expectedResult result
 
 parseAndEvaluate :: String -> Expect Expression
