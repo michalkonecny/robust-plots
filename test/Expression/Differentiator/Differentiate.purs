@@ -115,6 +115,39 @@ differentiateTests =
         -- then
         expectedResult = "2*(cos(2*x))"
       equal expectedResult result
+    test "ASSERT f(x)' = -(2*(sin(2*x))) WHEN f(x) = cos(2*x)" do
+      let
+        -- given
+        rawExpression = "cos(2*x)"
+
+        -- when
+        result = fromExpect $ parseAndDifferentiate rawExpression
+
+        -- then
+        expectedResult = "-(2*(sin(2*x)))"
+      equal expectedResult result
+    test "ASSERT f(x)' = 2*(1+((tan(2*x))^2)) WHEN f(x) = tan(2*x)" do
+      let
+        -- given
+        rawExpression = "tan(2*x)"
+
+        -- when
+        result = fromExpect $ parseAndDifferentiate rawExpression
+
+        -- then
+        expectedResult = "2*(1+((tan(2*x))^2))"
+      equal expectedResult result
+    test "ASSERT f(x)' = 2/(2*x) WHEN f(x) = log(2*x)" do
+      let
+        -- given
+        rawExpression = "log(2*x)"
+
+        -- when
+        result = fromExpect $ parseAndDifferentiate rawExpression
+
+        -- then
+        expectedResult = "2/(2*x)"
+      equal expectedResult result
 
 parseAndDifferentiate :: String -> Expect Expression
 parseAndDifferentiate rawExpression = valueOrEvaluationError
