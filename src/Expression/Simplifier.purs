@@ -1,9 +1,11 @@
 module Expression.Simplifier where
 
 import Prelude
-import Data.Maybe (Maybe(..), fromMaybe)
+
 import Control.Alt ((<|>))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
+import Math (pow)
 
 simplify :: Expression -> Expression
 simplify (ExpressionUnary operation expression) = case simplify expression, operation of
@@ -11,6 +13,8 @@ simplify (ExpressionUnary operation expression) = case simplify expression, oper
   simplifiedExpression, _ -> ExpressionUnary operation simplifiedExpression
 
 simplify (ExpressionBinary Power leftExpression (ExpressionLiteral 1.0)) = simplify leftExpression
+
+simplify (ExpressionBinary Power _ (ExpressionLiteral 0.0)) = ExpressionLiteral 1.0
 
 simplify (ExpressionBinary operation leftExpression rightExpression) =
   fromMaybe default
@@ -44,6 +48,7 @@ trimConstantLeafNodes simplifiedLeftExpression simplifiedRightExpression operati
   ExpressionLiteral leftValue, ExpressionLiteral rightValue, Minus -> Just $ ExpressionLiteral (leftValue - rightValue)
   ExpressionLiteral leftValue, ExpressionLiteral rightValue, Times -> Just $ ExpressionLiteral (leftValue * rightValue)
   ExpressionLiteral leftValue, ExpressionLiteral rightValue, Divide -> Just $ ExpressionLiteral (leftValue / rightValue)
+  ExpressionLiteral leftValue, ExpressionLiteral rightValue, Power -> Just $ ExpressionLiteral (pow leftValue rightValue)
   _, _, _ -> Nothing
 
 trimTimesOperations :: Expression -> Expression -> BinaryOperation -> Maybe Expression
