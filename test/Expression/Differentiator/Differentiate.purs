@@ -3,10 +3,12 @@ module Test.Expression.Differentiator.Differentiate
   ) where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Expression.Differentiator (differentiate)
 import Expression.Error (Expect, throw)
 import Expression.Parser (parse)
+import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
@@ -65,7 +67,7 @@ parseAndEvaluate rawExpression = valueOrEvaluationError
   expressionOrParseError = parse rawExpression
 
   valueOrEvaluationError = case expressionOrParseError of
-    Right expression -> pure $ differentiate expression
+    Right expression -> pure $ simplify $ differentiate expression
     Left error -> throw error
 
 fromExpect :: Expect Expression -> String

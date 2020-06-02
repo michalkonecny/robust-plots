@@ -3,8 +3,10 @@ module Test.Expression.Parser.Parse
   ) where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Expression.Error (Expect)
+import Expression.Simplifier (simplify)
 import Expression.Parser (parse)
 import Expression.Syntax (Expression)
 import Test.Unit (TestSuite, suite, test)
@@ -81,6 +83,6 @@ parseTests =
       equal expectedResult result
 
 fromExpect :: Expect Expression -> String
-fromExpect (Right expression) = show expression
+fromExpect (Right expression) = show $ simplify expression
 
 fromExpect (Left error) = show error
