@@ -41,6 +41,10 @@ differentiateBinaryOperation (Divide) topExpression bottomExpression = Expressio
 
   g' = differentiate g
 
+differentiateBinaryOperation (Power) (ExpressionVariable "e") (ExpressionLiteral value) = ExpressionBinary Power (ExpressionVariable "e") (ExpressionLiteral value)
+
+differentiateBinaryOperation (Power) (ExpressionVariable "e") exponentExpression = ExpressionBinary Times (differentiate exponentExpression) (ExpressionBinary Power (ExpressionVariable "e") exponentExpression)
+
 differentiateBinaryOperation (Power) mantisaExpression (ExpressionLiteral value) = ExpressionBinary Times (ExpressionLiteral value) (ExpressionBinary Power mantisaExpression (ExpressionLiteral (value - 1.0)))
 
 differentiateBinaryOperation (Power) mantisaExpression exponentExpression = ExpressionBinary Times k (ExpressionBinary Plus j l)
@@ -79,8 +83,8 @@ differentiateUnaryOperation (Exp) expression = ExpressionBinary Times (different
 
 differentiateUnaryOperation (Log) expression = ExpressionBinary Divide (differentiate expression) (expression)
 
-differentiateUnaryOperation (Sine) expression = ExpressionBinary Times (ExpressionUnary Cosine expression) (differentiate expression)
+differentiateUnaryOperation (Sine) expression = ExpressionBinary Times (differentiate expression) (ExpressionUnary Cosine expression)
 
-differentiateUnaryOperation (Cosine) expression = ExpressionUnary Neg $ (ExpressionBinary Times (ExpressionUnary Sine expression) (differentiate expression))
+differentiateUnaryOperation (Cosine) expression = ExpressionUnary Neg $ (ExpressionBinary Times (differentiate expression) (ExpressionUnary Sine expression))
 
-differentiateUnaryOperation (Tan) expression = ExpressionBinary Divide (ExpressionUnary Sine expression) (ExpressionUnary Cosine expression)
+differentiateUnaryOperation (Tan) expression = ExpressionBinary Divide (ExpressionBinary Times (differentiate expression) (ExpressionUnary Sine expression)) (ExpressionUnary Cosine expression)

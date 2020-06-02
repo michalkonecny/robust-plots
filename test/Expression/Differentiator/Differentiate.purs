@@ -71,6 +71,50 @@ differentiateTests =
         -- then
         expectedResult = "(x^(x--1))*(x+((x*x)*(logx)))"
       equal expectedResult result
+    test "ASSERT f(x)' = (-1)/(x^2) WHEN f(x) = 1/x" do
+      let
+        -- given
+        rawExpression = "1/x"
+
+        -- when
+        result = fromExpect $ parseAndDifferentiate rawExpression
+
+        -- then
+        expectedResult = "(-1)/(x^2)"
+      equal expectedResult result
+    test "ASSERT f(x)' = 3*(e^(3*x)) WHEN f(x) = e^(3*x)" do
+      let
+        -- given
+        rawExpression = "e^(3*x)"
+
+        -- when
+        result = fromExpect $ parseAndDifferentiate rawExpression
+
+        -- then
+        expectedResult = "3*(e^(3*x))"
+      equal expectedResult result
+    test "ASSERT f(x)' = e^3 WHEN f(x) = e^3" do
+      let
+        -- given
+        rawExpression = "e^3"
+
+        -- when
+        result = fromExpect $ parseAndDifferentiate rawExpression
+
+        -- then
+        expectedResult = "e^3"
+      equal expectedResult result
+    test "ASSERT f(x)' = 2*(cos(2*x)) WHEN f(x) = sin(2*x)" do
+      let
+        -- given
+        rawExpression = "sin(2*x)"
+
+        -- when
+        result = fromExpect $ parseAndDifferentiate rawExpression
+
+        -- then
+        expectedResult = "2*(cos(2*x))"
+      equal expectedResult result
 
 parseAndDifferentiate :: String -> Expect Expression
 parseAndDifferentiate rawExpression = valueOrEvaluationError
