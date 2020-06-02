@@ -2,14 +2,14 @@ module Expression.Differentiator where
 
 import Prelude
 
-import Expression.Helper (foldConstants)
+import Expression.Simplifier (simplify)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 
 secondDifferentiate :: Expression -> Expression
 secondDifferentiate = differentiate <<< differentiate
 
 differentiate :: Expression -> Expression
-differentiate = foldConstants <<< case _ of
+differentiate = simplify <<< case _ of
   ExpressionLiteral _ -> ExpressionLiteral 0.0
   ExpressionVariable _ -> ExpressionLiteral 1.0
   ExpressionBinary operation leftExpression rightExpression -> differentiateBinaryOperation operation leftExpression rightExpression

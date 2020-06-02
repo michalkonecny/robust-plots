@@ -8,7 +8,7 @@ import Data.Either (Either(..))
 import Data.Identity (Identity)
 import Data.Int (toNumber)
 import Expression.Error (Expect, parseError)
-import Expression.Helper (foldConstants)
+import Expression.Simplifier (simplify)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 import Text.Parsing.Parser (Parser, parseErrorMessage, runParser, fail)
 import Text.Parsing.Parser.Combinators (lookAhead)
@@ -79,4 +79,4 @@ expressionParser = fix (\p -> buildExprParser table (term p))
 parse :: String -> Expect Expression
 parse input = case runParser input expressionParser of
   Left error -> parseError $ parseErrorMessage error
-  Right experssion -> pure $ foldConstants experssion
+  Right experssion -> pure $ simplify experssion
