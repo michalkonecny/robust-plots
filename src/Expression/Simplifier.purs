@@ -1,7 +1,6 @@
 module Expression.Simplifier where
 
 import Prelude
-
 import Control.Alt ((<|>))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
@@ -17,7 +16,7 @@ simplify (ExpressionBinary Power leftExpression (ExpressionLiteral 1.0)) = simpl
 simplify (ExpressionBinary Power _ (ExpressionLiteral 0.0)) = ExpressionLiteral 1.0
 
 simplify (ExpressionBinary operation leftExpression rightExpression) =
-  fromMaybe default
+  fromMaybe (ExpressionBinary operation simplifiedLeftExpression simplifiedRightExpression)
     $ trimZeroLeafNodes simplifiedLeftExpression simplifiedRightExpression operation
     <|> trimConstantLeafNodes simplifiedLeftExpression simplifiedRightExpression operation
     <|> trimTimesOperations simplifiedLeftExpression simplifiedRightExpression operation
@@ -26,8 +25,6 @@ simplify (ExpressionBinary operation leftExpression rightExpression) =
   simplifiedLeftExpression = simplify leftExpression
 
   simplifiedRightExpression = simplify rightExpression
-
-  default = (ExpressionBinary operation simplifiedLeftExpression simplifiedRightExpression)
 
 simplify expression = expression
 
