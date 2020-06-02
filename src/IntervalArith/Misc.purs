@@ -31,10 +31,10 @@ type Integer
   = BigInt
 
 big :: Int -> Integer
-big = fromInt
+big = BigInt.fromInt
 
 shift :: Integer -> Int -> Integer
-shift x n = shl x (Int.toNumber n)
+shift x n = BigInt.shl x (Int.toNumber n)
 
 bit :: Int -> Integer
 bit n = shift (big 1) n
@@ -51,6 +51,10 @@ instance toRationalInt :: ToRational Int where
 
 instance toRationalInteger :: ToRational BigInt where
   toRational n = n % (big 1)
+
+rationalToNumber :: Rational -> Number
+rationalToNumber q = 
+  (BigInt.toNumber (numerator q)) / (BigInt.toNumber (denominator q))
 
 {-- Scalable --}
 -- | 'Scalable' allows scaling numerical data types by powers of 2.
@@ -74,7 +78,3 @@ instance scalableRational :: Scalable (Ratio BigInt) where
     result
       | n >= 0 = shift a n % b
       | otherwise = a % shift b (-n)
-
-rationalToNumber :: Rational -> Number
-rationalToNumber q = 
- (BigInt.toNumber (numerator q)) / (BigInt.toNumber (denominator q))
