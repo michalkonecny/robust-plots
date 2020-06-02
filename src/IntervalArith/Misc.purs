@@ -1,7 +1,9 @@
 module IntervalArith.Misc where
 
 import Prelude
-import Data.BigInt (BigInt, fromInt, shl)
+
+import Data.BigInt (BigInt)
+import Data.BigInt as BigInt
 import Data.Int as Int
 import Data.Monoid (power)
 import Data.Monoid.Multiplicative (Multiplicative(..))
@@ -30,10 +32,10 @@ type Integer
   = BigInt
 
 big :: Int -> Integer
-big = fromInt
+big = BigInt.fromInt
 
 shift :: Integer -> Int -> Integer
-shift x n = shl x (Int.toNumber n)
+shift x n = BigInt.shl x (Int.toNumber n)
 
 bit :: Int -> Integer
 bit n = shift (big 1) n
@@ -50,6 +52,10 @@ instance toRationalInt :: ToRational Int where
 
 instance toRationalInteger :: ToRational BigInt where
   toRational n = n % (big 1)
+
+rationalToNumber :: Rational -> Number
+rationalToNumber q = 
+  (BigInt.toNumber (numerator q)) / (BigInt.toNumber (denominator q))
 
 {-- Scalable --}
 -- | 'Scalable' allows scaling numerical data types by powers of 2.
