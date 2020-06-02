@@ -43,5 +43,8 @@ instance commutativeRingDyadic :: CommutativeRing Dyadic
 fromInteger :: Integer -> Dyadic
 fromInteger i = i :^ 0
 
+fromInt :: Int -> Dyadic
+fromInt i = (big i) :^ 0
+
 instance toRationalDyadic :: ToRational Dyadic where
   toRational (a :^ s) = (toRational a) * (toRational 2) ^^ s
