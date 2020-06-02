@@ -1,7 +1,7 @@
 module IntervalArith.Misc where
 
 import Prelude
-import Data.BigInt (BigInt, fromInt, shl)
+import Data.BigInt (BigInt)
 import Data.BigInt as BigInt
 import Data.Int as Int
 import Data.Monoid (power)
