@@ -1,7 +1,7 @@
 module Plot.PlotController where
 
 import Prelude
-import Data.Array (fold, tail, zipWith, (..))
+import Data.Array (fold, tail, zipWith, (..), concat)
 import Data.Either (Either(..))
 import Data.Int (floor, toNumber)
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -11,7 +11,9 @@ import Draw.Actions (drawPlotLine)
 import Draw.Commands (DrawCommand)
 import Effect (Effect)
 import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
+import Expression.Differentiator (secondDifferentiate)
 import Expression.Evaluator (evaluate, presetConstants)
+import Expression.Helper (simplify)
 import Expression.Syntax (Expression)
 import Plot.Commands (PlotCommand(..))
 import Plot.GridLines (clearAndDrawGridLines)
@@ -39,25 +41,47 @@ evaluateWithX expression x = value
 runCommand :: Size -> PlotCommand -> DrawCommand Unit
 runCommand canvasSize (Empty bounds) = clearAndDrawGridLines bounds
 
-runCommand canvasSize (Plot bounds expression) = plotSimpleLine canvasSize bounds $ evaluateWithX expression
+runCommand canvasSize (Plot bounds expression) = plotSimpleLine canvasSize bounds f f''
+  where
+  f = evaluateWithX expression
 
-plotSimpleLine :: Size -> XYBounds -> (Number -> Number) -> DrawCommand Unit
-plotSimpleLine canvasSize bounds func = for_ lines (\l -> drawPlotLine l.a l.b)
+  f'' = evaluateWithX $ simplify $ secondDifferentiate expression
+
+plotSimpleLine :: Size -> XYBounds -> (Number -> Number) -> (Number -> Number) -> DrawCommand Unit
+plotSimpleLine canvasSize bounds f f'' = for_ lines (\l -> drawPlotLine l.a l.b)
   where
   rangeX = bounds.xBounds.upper - bounds.xBounds.lower
 
   rangeY = bounds.yBounds.upper - bounds.yBounds.lower
 
-  points = map (toNumber >>> toCanvasPoint) $ 0 .. (floor canvasSize.width)
+  defaultRange = map (toNumber >>> toDomainX) $ 0 .. (floor canvasSize.width)
+
+  changeInGradient = map f'' defaultRange
+
+  points = map toCanvasPoint $ concat $ zipWith toRange changeInGradient defaultRange
 
   lines = zipWith (\a b -> { a, b }) points (fromMaybe [] (tail points))
 
-  toCanvasPoint :: Number -> Position
-  toCanvasPoint canvasX = { x: canvasX, y: canvasY }
+  toRange :: Number -> Number -> Array Number
+  toRange deltaGradient value =
+    if deltaGradient < (canvasSize.width / rangeX) then
+      [ value ]
+    else
+      map (accurate <<< toNumber) $ -10 .. 10
     where
-    x = ((canvasX * rangeX) / canvasSize.width) + bounds.xBounds.lower
+    accurate :: Number -> Number
+    accurate x = value + ((x * rangeX) / (canvasSize.width * 10.0))
 
-    y = func x
+  toCanvasX :: Number -> Number
+  toCanvasX x = ((x - bounds.xBounds.lower) * canvasSize.width) / rangeX
+
+  toDomainX :: Number -> Number
+  toDomainX canvasX = ((canvasX * rangeX) / canvasSize.width) + bounds.xBounds.lower
+
+  toCanvasPoint :: Number -> Position
+  toCanvasPoint x = { x: toCanvasX x, y: canvasY }
+    where
+    y = f x
 
     canvasY = canvasSize.height - (((y - bounds.yBounds.lower) * canvasSize.height) / rangeY)
 
