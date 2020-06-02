@@ -6,7 +6,6 @@ import Prelude
 
 import Data.Either (Either(..))
 import Expression.Error (Expect)
-import Expression.Simplifier (simplify)
 import Expression.Parser (parse)
 import Expression.Syntax (Expression)
 import Test.Unit (TestSuite, suite, test)
@@ -37,7 +36,7 @@ parseTests =
         -- then
         expectedResult = "x+y"
       equal expectedResult result
-    test "SHOULD parse as 'x+4' WHEN input is 'x+(2+1+1)'" do
+    test "SHOULD parse as 'x+((2+1)+1)' WHEN input is 'x+(2+1+1)'" do
       let
         -- given
         input = "x+(2+1+1)"
@@ -46,7 +45,7 @@ parseTests =
         result = fromExpect $ parse input
 
         -- then
-        expectedResult = "x+4"
+        expectedResult = "x+((2+1)+1)"
       equal expectedResult result
     test "SHOULD parse as '1+(sin(x/2))' WHEN input is '1+sin(x/2)'" do
       let
@@ -83,6 +82,6 @@ parseTests =
       equal expectedResult result
 
 fromExpect :: Expect Expression -> String
-fromExpect (Right expression) = show $ simplify expression
+fromExpect (Right expression) = show expression
 
 fromExpect (Left error) = show error
