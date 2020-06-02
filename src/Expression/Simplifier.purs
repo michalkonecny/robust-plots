@@ -1,6 +1,7 @@
 module Expression.Simplifier where
 
 import Prelude
+
 import Control.Alt ((<|>))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
@@ -14,6 +15,8 @@ simplify (ExpressionUnary operation expression) = case simplify expression, oper
 simplify (ExpressionBinary Power leftExpression (ExpressionLiteral 1.0)) = simplify leftExpression
 
 simplify (ExpressionBinary Power _ (ExpressionLiteral 0.0)) = ExpressionLiteral 1.0
+
+simplify (ExpressionBinary Power (ExpressionVariable "e") rightExpression) = ExpressionUnary Exp $ simplify rightExpression
 
 simplify (ExpressionBinary operation leftExpression rightExpression) =
   fromMaybe (ExpressionBinary operation simplifiedLeftExpression simplifiedRightExpression)

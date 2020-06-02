@@ -78,6 +78,8 @@ differentiateUnaryOperation (Sqrt) expression = ExpressionBinary Divide f' (Expr
 
   f' = differentiate f
 
+differentiateUnaryOperation (Exp) (ExpressionLiteral value) = ExpressionUnary Exp (ExpressionLiteral value)
+
 differentiateUnaryOperation (Exp) expression = ExpressionBinary Times (differentiate expression) (ExpressionUnary Exp expression)
 
 differentiateUnaryOperation (Log) expression = ExpressionBinary Divide (differentiate expression) (expression)
