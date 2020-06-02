@@ -40,9 +40,9 @@ differentiateBinaryOperation (Divide) topExpression bottomExpression = Expressio
 
   g' = differentiate g
 
-differentiateBinaryOperation (Power) (ExpressionVariable "e") (ExpressionLiteral value) = ExpressionBinary Power (ExpressionVariable "e") (ExpressionLiteral value)
+differentiateBinaryOperation (Power) (ExpressionVariable "e") (ExpressionLiteral value) = ExpressionUnary Exp (ExpressionLiteral value)
 
-differentiateBinaryOperation (Power) (ExpressionVariable "e") exponentExpression = ExpressionBinary Times (differentiate exponentExpression) (ExpressionBinary Power (ExpressionVariable "e") exponentExpression)
+differentiateBinaryOperation (Power) (ExpressionVariable "e") exponentExpression = ExpressionBinary Times (differentiate exponentExpression) (ExpressionUnary Exp exponentExpression)
 
 differentiateBinaryOperation (Power) mantisaExpression (ExpressionLiteral value) = ExpressionBinary Times (ExpressionLiteral value) (ExpressionBinary Power mantisaExpression (ExpressionLiteral (value - 1.0)))
 
