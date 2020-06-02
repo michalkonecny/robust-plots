@@ -67,23 +67,24 @@ plotSimpleLine canvasSize bounds f f'' = for_ lines (\l -> drawPlotLine l.a l.b)
     if deltaGradient < (canvasSize.width / rangeX) then
       [ value ]
     else
-      map (accurate <<< toNumber) $ -10 .. 10
+      map (toSubRange <<< toNumber) $ -10 .. 10
     where
-    accurate :: Number -> Number
-    accurate x = value + ((x * rangeX) / (canvasSize.width * 10.0))
+    toSubRange :: Number -> Number
+    toSubRange x = value + ((x * rangeX) / (canvasSize.width * 10.0))
 
   toCanvasX :: Number -> Number
   toCanvasX x = ((x - bounds.xBounds.lower) * canvasSize.width) / rangeX
+
+  toCanvasY :: Number -> Number
+  toCanvasY y = canvasSize.height - (((y - bounds.yBounds.lower) * canvasSize.height) / rangeY)
 
   toDomainX :: Number -> Number
   toDomainX canvasX = ((canvasX * rangeX) / canvasSize.width) + bounds.xBounds.lower
 
   toCanvasPoint :: Number -> Position
-  toCanvasPoint x = { x: toCanvasX x, y: canvasY }
+  toCanvasPoint x = { x: toCanvasX x, y: toCanvasY y }
     where
     y = f x
-
-    canvasY = canvasSize.height - (((y - bounds.yBounds.lower) * canvasSize.height) / rangeY)
 
 toMaybePlotCommand :: PlotCommand -> Maybe PlotCommand
 toMaybePlotCommand (Empty _) = Nothing
