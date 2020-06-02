@@ -26,6 +26,39 @@ simplifyTests =
         -- then
         expectedResult = "1"
       equal expectedResult result
+    test "ASSERT simplified f(x) = x WHEN f(x) = x" do
+      let
+        -- given
+        rawExpression = "x"
+
+        -- when
+        result = fromExpect $ parseAndSimplify rawExpression
+
+        -- then
+        expectedResult = "x"
+      equal expectedResult result
+    test "ASSERT simplified f(x) = x+9 WHEN f(x) = x+(2+3+4)" do
+      let
+        -- given
+        rawExpression = "x+(2+3+4)"
+
+        -- when
+        result = fromExpect $ parseAndSimplify rawExpression
+
+        -- then
+        expectedResult = "x+9"
+      equal expectedResult result
+    test "ASSERT simplified f(x) = x+9 WHEN f(x) = (x+2)+(3+4)" do
+      let
+        -- given
+        rawExpression = "(x+2)+(3+4)"
+
+        -- when
+        result = fromExpect $ parseAndSimplify rawExpression
+
+        -- then
+        expectedResult = "x+9"
+      equal expectedResult result
 
 parseAndSimplify :: String -> Expect Expression
 parseAndSimplify rawExpression = valueOrEvaluationError

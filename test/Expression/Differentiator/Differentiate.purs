@@ -22,7 +22,7 @@ differentiateTests =
         rawExpression = "1"
 
         -- when
-        result = fromExpect $ parseAndEvaluate rawExpression
+        result = fromExpect $ parseAndDifferentiate rawExpression
 
         -- then
         expectedResult = "0"
@@ -33,7 +33,7 @@ differentiateTests =
         rawExpression = "x"
 
         -- when
-        result = fromExpect $ parseAndEvaluate rawExpression
+        result = fromExpect $ parseAndDifferentiate rawExpression
 
         -- then
         expectedResult = "1"
@@ -44,7 +44,7 @@ differentiateTests =
         rawExpression = "x^2"
 
         -- when
-        result = fromExpect $ parseAndEvaluate rawExpression
+        result = fromExpect $ parseAndDifferentiate rawExpression
 
         -- then
         expectedResult = "2*x"
@@ -55,14 +55,14 @@ differentiateTests =
         rawExpression = "6 * (x^2)"
 
         -- when
-        result = fromExpect $ parseAndEvaluate rawExpression
+        result = fromExpect $ parseAndDifferentiate rawExpression
 
         -- then
         expectedResult = "12*x"
       equal expectedResult result
 
-parseAndEvaluate :: String -> Expect Expression
-parseAndEvaluate rawExpression = valueOrEvaluationError
+parseAndDifferentiate :: String -> Expect Expression
+parseAndDifferentiate rawExpression = valueOrEvaluationError
   where
   expressionOrParseError = parse rawExpression
 

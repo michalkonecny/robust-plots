@@ -47,6 +47,17 @@ parseTests =
         -- then
         expectedResult = "x+((2+1)+1)"
       equal expectedResult result
+    test "SHOULD parse as '(x+2)+(3+4)' WHEN input is '(x+2)+(3+4)'" do
+      let
+        -- given
+        input = "(x+2)+(3+4)"
+
+        -- when
+        result = fromExpect $ parse input
+
+        -- then
+        expectedResult = "(x+2)+(3+4)"
+      equal expectedResult result
     test "SHOULD parse as '1+(sin(x/2))' WHEN input is '1+sin(x/2)'" do
       let
         -- given
