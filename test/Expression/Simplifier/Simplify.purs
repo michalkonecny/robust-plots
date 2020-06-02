@@ -114,6 +114,83 @@ simplifyTests =
         -- then
         expectedResult = "1"
       equal expectedResult result
+    test "ASSERT simplified f(x) = 0 WHEN f(x) = x*0" do
+      let
+        -- given
+        rawExpression = "x*0"
+
+        -- when
+        result = fromExpect $ parseAndSimplify rawExpression
+
+        -- then
+        expectedResult = "0"
+      equal expectedResult result
+    test "ASSERT simplified f(x) = 0 WHEN f(x) = 0*x" do
+      let
+        -- given
+        rawExpression = "0*x"
+
+        -- when
+        result = fromExpect $ parseAndSimplify rawExpression
+
+        -- then
+        expectedResult = "0"
+      equal expectedResult result
+    test "ASSERT simplified f(x) = x WHEN f(x) = 0+x" do
+      let
+        -- given
+        rawExpression = "0+x"
+
+        -- when
+        result = fromExpect $ parseAndSimplify rawExpression
+
+        -- then
+        expectedResult = "x"
+      equal expectedResult result
+    test "ASSERT simplified f(x) = x WHEN f(x) = x+0" do
+      let
+        -- given
+        rawExpression = "x+0"
+
+        -- when
+        result = fromExpect $ parseAndSimplify rawExpression
+
+        -- then
+        expectedResult = "x"
+      equal expectedResult result
+    test "ASSERT simplified f(x) = x WHEN f(x) = x-0" do
+      let
+        -- given
+        rawExpression = "x-0"
+
+        -- when
+        result = fromExpect $ parseAndSimplify rawExpression
+
+        -- then
+        expectedResult = "x"
+      equal expectedResult result
+    test "ASSERT simplified f(x) = -x WHEN f(x) = 0-x" do
+      let
+        -- given
+        rawExpression = "0-x"
+
+        -- when
+        result = fromExpect $ parseAndSimplify rawExpression
+
+        -- then
+        expectedResult = "-x"
+      equal expectedResult result
+    test "ASSERT simplified f(x) = 0 WHEN f(x) = 0/x" do
+      let
+        -- given
+        rawExpression = "0/x"
+
+        -- when
+        result = fromExpect $ parseAndSimplify rawExpression
+
+        -- then
+        expectedResult = "0"
+      equal expectedResult result
 
 parseAndSimplify :: String -> Expect Expression
 parseAndSimplify rawExpression = valueOrEvaluationError
