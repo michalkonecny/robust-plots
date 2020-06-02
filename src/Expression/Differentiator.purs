@@ -1,7 +1,6 @@
 module Expression.Differentiator (differentiate, secondDifferentiate) where
 
 import Prelude
-
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 
 secondDifferentiate :: Expression -> Expression
@@ -87,4 +86,13 @@ differentiateUnaryOperation (Sine) expression = ExpressionBinary Times (differen
 
 differentiateUnaryOperation (Cosine) expression = ExpressionUnary Neg $ (ExpressionBinary Times (differentiate expression) (ExpressionUnary Sine expression))
 
-differentiateUnaryOperation (Tan) expression = ExpressionBinary Divide (ExpressionBinary Times (differentiate expression) (ExpressionUnary Sine expression)) (ExpressionUnary Cosine expression)
+differentiateUnaryOperation (Tan) expression = ExpressionBinary Times f' (ExpressionBinary Plus (ExpressionLiteral 1.0) k)
+  -- tan(f)' = f' * (1 + tan^2(f)) 
+  -- tan(f)' = f' * (1 + k)
+  where
+  f = expression
+
+  f' = differentiate f
+
+  -- k = tan^2(f)
+  k = ExpressionBinary Power (ExpressionUnary Tan f) (ExpressionLiteral 2.0)
