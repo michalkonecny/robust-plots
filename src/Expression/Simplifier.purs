@@ -17,7 +17,7 @@ simplify (ExpressionBinary Power _ (ExpressionLiteral 0.0)) = ExpressionLiteral 
 
 simplify (ExpressionBinary operation leftExpression rightExpression) =
   fromMaybe (ExpressionBinary operation simplifiedLeftExpression simplifiedRightExpression)
-    $ trimZeroLeafNodes simplifiedLeftExpression simplifiedRightExpression operation
+    $ trimSimpleNodes simplifiedLeftExpression simplifiedRightExpression operation
     <|> trimConstantLeafNodes simplifiedLeftExpression simplifiedRightExpression operation
     <|> trimTimesOperations simplifiedLeftExpression simplifiedRightExpression operation
     <|> trimPlusOperations simplifiedLeftExpression simplifiedRightExpression operation
@@ -28,10 +28,12 @@ simplify (ExpressionBinary operation leftExpression rightExpression) =
 
 simplify expression = expression
 
-trimZeroLeafNodes :: Expression -> Expression -> BinaryOperation -> Maybe Expression
-trimZeroLeafNodes simplifiedLeftExpression simplifiedRightExpression operation = case simplifiedLeftExpression, simplifiedRightExpression, operation of
+trimSimpleNodes :: Expression -> Expression -> BinaryOperation -> Maybe Expression
+trimSimpleNodes simplifiedLeftExpression simplifiedRightExpression operation = case simplifiedLeftExpression, simplifiedRightExpression, operation of
   ExpressionLiteral 0.0, _, Times -> Just $ ExpressionLiteral 0.0
   _, ExpressionLiteral 0.0, Times -> Just $ ExpressionLiteral 0.0
+  ExpressionLiteral 1.0, _, Times -> Just $ simplifiedRightExpression
+  _, ExpressionLiteral 1.0, Times -> Just $ simplifiedLeftExpression
   ExpressionLiteral 0.0, _, Plus -> Just $ simplifiedRightExpression
   _, ExpressionLiteral 0.0, Plus -> Just $ simplifiedLeftExpression
   ExpressionLiteral 0.0, _, Minus -> Just $ ExpressionUnary Neg simplifiedRightExpression
