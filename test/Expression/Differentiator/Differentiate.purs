@@ -93,7 +93,7 @@ differentiateTests =
         -- then
         expectedResult = "3*(e^(3*x))"
       equal expectedResult result
-    test "ASSERT f(x)' = e^3 WHEN f(x) = e^3" do
+    test "ASSERT f(x)' = 0 WHEN f(x) = e^3" do
       let
         -- given
         rawExpression = "e^3"
@@ -102,7 +102,7 @@ differentiateTests =
         result = fromExpect $ parseAndDifferentiate rawExpression
 
         -- then
-        expectedResult = "e^3"
+        expectedResult = "0"
       equal expectedResult result
     test "ASSERT f(x)' = 2*(cos(2*x)) WHEN f(x) = sin(2*x)" do
       let

@@ -40,7 +40,7 @@ differentiateBinaryOperation (Divide) topExpression bottomExpression = Expressio
 
   g' = differentiate g
 
-differentiateBinaryOperation (Power) (ExpressionVariable "e") (ExpressionLiteral value) = ExpressionUnary Exp (ExpressionLiteral value)
+differentiateBinaryOperation (Power) (ExpressionVariable "e") (ExpressionLiteral value) = ExpressionLiteral 0.0
 
 differentiateBinaryOperation (Power) (ExpressionVariable "e") exponentExpression = ExpressionBinary Times (differentiate exponentExpression) (ExpressionUnary Exp exponentExpression)
 
@@ -78,7 +78,7 @@ differentiateUnaryOperation (Sqrt) expression = ExpressionBinary Divide f' (Expr
 
   f' = differentiate f
 
-differentiateUnaryOperation (Exp) (ExpressionLiteral value) = ExpressionUnary Exp (ExpressionLiteral value)
+differentiateUnaryOperation (Exp) (ExpressionLiteral value) = ExpressionLiteral 0.0
 
 differentiateUnaryOperation (Exp) expression = ExpressionBinary Times (differentiate expression) (ExpressionUnary Exp expression)
 
