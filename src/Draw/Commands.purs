@@ -1,6 +1,7 @@
 module Draw.Commands where
 
 import Control.Monad.Free (Free)
+import Draw.Color (Color)
 import Types (Position, Polygon)
 
 type DrawCommand
@@ -8,7 +9,7 @@ type DrawCommand
 
 data DrawCommandF n
   = ClearCanvas n
-  | DrawText String Number Position n
+  | DrawText Color String Number Position n
   | DrawXGridLine Number Number Number n
   | DrawYGridLine Number Number Number n
   | DrawPolygon Polygon n

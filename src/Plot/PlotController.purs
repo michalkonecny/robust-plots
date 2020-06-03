@@ -1,6 +1,7 @@
 module Plot.PlotController where
 
 import Prelude
+
 import Data.Array (concat, fold, length, tail, zipWith, (!!), (..), mapWithIndex, filter)
 import Data.Either (Either(..))
 import Data.Int (floor, toNumber)
@@ -8,6 +9,7 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Traversable (for_, sum)
 import Data.Tuple (Tuple(..))
 import Draw.Actions (drawPlotLine, drawText)
+import Draw.Color (rgba)
 import Draw.Commands (DrawCommand)
 import Effect (Effect)
 import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
@@ -61,9 +63,11 @@ isWithinCanvas :: Size -> Position -> Boolean
 isWithinCanvas canvasSize point = point.x >= 0.0 && point.x < canvasSize.width && point.y >= 0.0 && point.y < canvasSize.height
 
 label :: Expression -> Array Position -> Int -> Int -> DrawCommand Unit
-label expression points numberOfPlots index = drawText ("f(x)=" <> (show expression)) 20.0 labelPosition
+label expression points numberOfPlots index = drawText color ("f(x)=" <> (show expression)) 20.0 labelPosition
   where
   pointIndex = (length points) / (numberOfPlots + 1)
+
+  color = rgba 255.0 0.0 0.0 1.0
 
   labelPosition = fromMaybe { x: 0.0, y: 0.0 } $ points !! (pointIndex * index)
 

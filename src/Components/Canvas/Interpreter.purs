@@ -14,7 +14,7 @@ runDrawCommands drawContext = foldFree interpret
   interpret :: DrawCommandF ~> Effect
   interpret (ClearCanvas n) = const n <$> clearCanvas drawContext
 
-  interpret (DrawText text size pos n) = const n <$> drawText text size pos drawContext
+  interpret (DrawText color text size pos n) = const n <$> drawText color text size pos drawContext
 
   interpret (DrawXGridLine x value range n) = const n <$> drawXGridLine x value range drawContext
 

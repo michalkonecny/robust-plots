@@ -3,14 +3,15 @@ module Draw.Actions where
 import Prelude
 
 import Control.Monad.Free (liftF)
+import Draw.Color (Color)
 import Draw.Commands (DrawCommand, DrawCommandF(..))
 import Types (Position, Polygon)
 
 clearCanvas :: DrawCommand Unit
 clearCanvas = liftF $ ClearCanvas unit
 
-drawText :: String -> Number -> Position -> DrawCommand Unit
-drawText text height pos = liftF $ DrawText text height pos unit
+drawText :: Color -> String -> Number -> Position -> DrawCommand Unit
+drawText color text height pos = liftF $ DrawText color text height pos unit
 
 drawXGridLine :: Number -> Number -> Number -> DrawCommand Unit
 drawXGridLine x value range = liftF $ DrawXGridLine x value range unit
