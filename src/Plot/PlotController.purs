@@ -60,7 +60,7 @@ runCommand canvasSize numberOfPlots index (Plot bounds expression) = drawCommand
   drawCommands = fold [ drawPlot points, label expression points numberOfPlots index ]
 
 isWithinCanvas :: Size -> Position -> Boolean
-isWithinCanvas canvasSize point = point.x >= 0.0 && point.x < canvasSize.width && point.y >= 0.0 && point.y < canvasSize.height
+isWithinCanvas canvasSize point = point.x >= 0.0 && point.x <= canvasSize.width + 1.0 && point.y >= 0.0 && point.y <= canvasSize.height + 1.0
 
 label :: Expression -> Array Position -> Int -> Int -> DrawCommand Unit
 label expression points numberOfPlots index = drawText color ("f(x)=" <> (show expression)) 20.0 labelPosition
