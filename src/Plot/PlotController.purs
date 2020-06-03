@@ -1,6 +1,7 @@
 module Plot.PlotController where
 
 import Prelude
+
 import Data.Array (fold, tail, zipWith, (..), concat)
 import Data.Either (Either(..))
 import Data.Int (floor, toNumber)
@@ -15,6 +16,7 @@ import Expression.Differentiator (secondDifferentiate)
 import Expression.Evaluator (evaluate, presetConstants)
 import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
+import Math (abs)
 import Plot.Commands (PlotCommand(..))
 import Plot.GridLines (clearAndDrawGridLines)
 import Types (Size, XYBounds, Position)
@@ -64,10 +66,10 @@ plotSimpleLine canvasSize bounds f f'' = for_ lines (\l -> drawPlotLine l.a l.b)
 
   toRange :: Number -> Number -> Array Number
   toRange deltaGradient value =
-    if deltaGradient < (canvasSize.width / rangeX) then
+    if (abs deltaGradient) < (canvasSize.width / rangeX) then
       [ value ]
     else
-      map (toSubRange <<< toNumber) $ -10 .. 10
+      map (toSubRange <<< toNumber) $ -5 .. 5
     where
     toSubRange :: Number -> Number
     toSubRange x = value + ((x * rangeX) / (canvasSize.width * 10.0))
