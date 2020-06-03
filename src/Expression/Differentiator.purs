@@ -44,16 +44,16 @@ differentiateBinaryOperation (Power) (ExpressionVariable "e") (ExpressionLiteral
 
 differentiateBinaryOperation (Power) (ExpressionVariable "e") exponentExpression = ExpressionBinary Times (differentiate exponentExpression) (ExpressionUnary Exp exponentExpression)
 
-differentiateBinaryOperation (Power) mantisaExpression (ExpressionLiteral value) = ExpressionBinary Times (ExpressionLiteral value) (ExpressionBinary Power mantisaExpression (ExpressionLiteral (value - 1.0)))
+differentiateBinaryOperation (Power) baseExpression (ExpressionLiteral value) = ExpressionBinary Times (ExpressionLiteral value) (ExpressionBinary Power baseExpression (ExpressionLiteral (value - 1.0)))
 
-differentiateBinaryOperation (Power) mantisaExpression exponentExpression = ExpressionBinary Times k (ExpressionBinary Plus j l)
+differentiateBinaryOperation (Power) baseExpression exponentExpression = ExpressionBinary Times k (ExpressionBinary Plus j l)
   -- (g^f)' = g^(f-1) * ((f*g')+(g*f'*log(g)))
   -- (g^f)' = k * (j + l)
   -- source: https://www.wolframalpha.com/input/?i=(f%5E(g))%27
   where
   f = exponentExpression
 
-  g = mantisaExpression
+  g = baseExpression
 
   f' = differentiate f
 
