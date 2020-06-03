@@ -16,7 +16,7 @@ differentiate = case _ of
 differentiateBinaryOperation :: BinaryOperation -> Expression -> Expression -> Expression
 differentiateBinaryOperation (Plus) leftExpression rightExpression = ExpressionBinary Plus (differentiate leftExpression) (differentiate rightExpression)
 
-differentiateBinaryOperation (Minus) leftExpression rightExpression = ExpressionBinary Plus (differentiate leftExpression) (differentiate rightExpression)
+differentiateBinaryOperation (Minus) leftExpression rightExpression = ExpressionBinary Minus (differentiate leftExpression) (differentiate rightExpression)
 
 differentiateBinaryOperation (Times) leftExpression rightExpression = ExpressionBinary Plus (ExpressionBinary Times u v') (ExpressionBinary Times u' v)
   -- Product rule
