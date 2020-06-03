@@ -8,12 +8,14 @@ import Prelude
 import Data.BigInt (abs)
 import Data.Foldable (intercalate)
 import Data.Maybe (Maybe(..))
+import Data.Ratio (denominator, numerator)
+import Data.Typelevel.Undefined (undefined)
 import Effect.Exception.Unsafe (unsafeThrow)
 import FFI.BigInt (bitLength)
 import IntervalArith.Dyadic (Dyadic, (:^))
 import IntervalArith.Dyadic as Dyadic
 import IntervalArith.Extended (Extended(..))
-import IntervalArith.Misc (class ToRational, Integer, big, scale, shift, toRational)
+import IntervalArith.Misc (Rational, class ToRational, Integer, big, scale, shift, toRational)
 
 -- | A type synonym. Used to denote number of bits after binary point.
 type Precision
@@ -243,3 +245,85 @@ fromDyadic (m :^ s) = approxAutoMB m (big 0) s
 -- |Turns a 'Dyadic' number into an exact approximation.
 fromDyadicMB :: Int -> Dyadic -> Approx
 fromDyadicMB mb (m :^ s) = approxMB mb m (big 0) s
+
+fromInt :: Int -> Approx
+fromInt i = approxAutoMB (big i) (big 0) 0
+
+fromInteger :: Integer -> Approx
+fromInteger i = approxAutoMB i (big 0) 0
+
+fromIntegerMB :: Int -> Integer -> Approx
+fromIntegerMB mb i = approxMB mb i (big 0) 0
+
+fromRationalPrec :: Precision -> Rational -> Approx
+fromRationalPrec t r = approxAutoMB m e (-t - 1)
+  where
+  p = numerator r
+
+  q = denominator r
+
+  -- r_scaled_rounded = round (r*2^^t)
+  p_shifted = shift p (t + 1)
+
+  q_shifted = shift q 1
+
+  r_scaled_rounded = (p_shifted + q) `div` q_shifted
+
+  -- m = 2 * r_scaled_rounded
+  m = (shift r_scaled_rounded 1)
+
+  rounding_occurred = p_shifted `mod` q_shifted == (big 0)
+
+  e
+    | rounding_occurred = big 0
+    | otherwise = big 1
+
+instance semiringApprox :: Semiring Approx where
+  zero = fromInt 0
+  one = fromInt 1
+  add (Approx mb1 m e s) (Approx mb2 n f t)
+    | s >= t =
+      let
+        k = s - t
+      in
+        approxMB2 mb1 mb2 (shift m k + n) (shift e k + f) t
+    | s < t =
+      let
+        k = t - s
+      in
+        approxMB2 mb1 mb2 (m + shift n k) (e + shift f k) s
+  add _ _ = Bottom
+  mul (Approx mb1 m e s) (Approx mb2 n f t) = result
+    where
+    result
+      | am >= e && an >= f && a > zero = approxMB2 mb1 mb2 (a + d) (ab + ac) u
+      | am >= e && an >= f && a < zero = approxMB2 mb1 mb2 (a - d) (ab + ac) u
+      | am < e && n >= f = approxMB2 mb1 mb2 (a + b) (ac + d) u
+      | am < e && -n >= f = approxMB2 mb1 mb2 (a - b) (ac + d) u
+      | m >= e && an < f = approxMB2 mb1 mb2 (a + c) (ab + d) u
+      | -m >= e && an < f = approxMB2 mb1 mb2 (a - c) (ab + d) u
+      | a == zero = approxMB2 mb1 mb2 zero (ab + ac + d) u
+      | am < e && an < f && a > zero && ab > ac = approxMB2 mb1 mb2 (a + ac) (ab + d) u
+      | am < e && an < f && a > zero && ab <= ac = approxMB2 mb1 mb2 (a + ab) (ac + d) u
+      | am < e && an < f && a < zero && ab > ac = approxMB2 mb1 mb2 (a - ac) (ab + d) u
+      | am < e && an < f && a < zero && ab <= ac = approxMB2 mb1 mb2 (a - ab) (ac + d) u
+      | otherwise = undefined
+
+    am = (abs m)
+
+    an = (abs n)
+
+    a = m * n
+
+    b = m * f
+
+    c = n * e
+
+    d = e * f
+
+    ab = (abs b)
+
+    ac = (abs c)
+
+    u = s + t
+  mul _ _ = Bottom
