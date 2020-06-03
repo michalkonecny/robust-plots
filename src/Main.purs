@@ -181,7 +181,7 @@ handleAction action = do
       H.put state { input { operations = drawCommands }, bounds = newBounds }
     ResetBounds -> do
       drawCommands <- lift $ computePlots state.input.size initialBounds state.plots
-      H.put state { input { operations = drawCommands }, bounds = newBounds }
+      H.put state { input { operations = drawCommands }, bounds = initialBounds }
     HandleScroll _ event -> do
       let
         changeInY = WE.deltaY event
