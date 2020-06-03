@@ -3,6 +3,7 @@ module Test.Expression.Parser.Parse
   ) where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Expression.Error (Expect)
 import Expression.Parser (parse)
@@ -35,7 +36,7 @@ parseTests =
         -- then
         expectedResult = "x+y"
       equal expectedResult result
-    test "SHOULD parse as 'x+4' WHEN input is 'x+(2+1+1)'" do
+    test "SHOULD parse as 'x+((2+1)+1)' WHEN input is 'x+(2+1+1)'" do
       let
         -- given
         input = "x+(2+1+1)"
@@ -44,7 +45,18 @@ parseTests =
         result = fromExpect $ parse input
 
         -- then
-        expectedResult = "x+4"
+        expectedResult = "x+((2+1)+1)"
+      equal expectedResult result
+    test "SHOULD parse as '(x+2)+(3+4)' WHEN input is '(x+2)+(3+4)'" do
+      let
+        -- given
+        input = "(x+2)+(3+4)"
+
+        -- when
+        result = fromExpect $ parse input
+
+        -- then
+        expectedResult = "(x+2)+(3+4)"
       equal expectedResult result
     test "SHOULD parse as '1+(sin(x/2))' WHEN input is '1+sin(x/2)'" do
       let

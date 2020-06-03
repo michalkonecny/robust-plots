@@ -1,6 +1,7 @@
 module Expression.Parser where
 
 import Prelude
+
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Either (Either(..))
@@ -74,21 +75,7 @@ table =
 expressionParser :: P Expression
 expressionParser = fix (\p -> buildExprParser table (term p))
 
-foldConstants :: Expression -> Expression
-foldConstants (ExpressionUnary operation expression) = case foldConstants expression, operation of
-  ExpressionLiteral value, Neg -> ExpressionLiteral (-value)
-  foldedExpression, _ -> ExpressionUnary operation foldedExpression
-
-foldConstants (ExpressionBinary operation leftExpression rightExpression) = case foldConstants leftExpression, foldConstants rightExpression, operation of
-  ExpressionLiteral leftValue, ExpressionLiteral rightValue, Plus -> ExpressionLiteral (leftValue + rightValue)
-  ExpressionLiteral leftValue, ExpressionLiteral rightValue, Minus -> ExpressionLiteral (leftValue - rightValue)
-  ExpressionLiteral leftValue, ExpressionLiteral rightValue, Times -> ExpressionLiteral (leftValue * rightValue)
-  ExpressionLiteral leftValue, ExpressionLiteral rightValue, Divide -> ExpressionLiteral (leftValue / rightValue)
-  foldedLeftExpression, foldedRightExpression, _ -> ExpressionBinary operation foldedLeftExpression foldedRightExpression
-
-foldConstants expression = expression
-
 parse :: String -> Expect Expression
 parse input = case runParser input expressionParser of
   Left error -> parseError $ parseErrorMessage error
-  Right experssion -> pure $ foldConstants experssion
+  Right experssion -> pure $ experssion

@@ -5,9 +5,13 @@ module Test.Expression
 import Prelude
 import Test.Expression.Evaluator (evaluatorTests)
 import Test.Expression.Parser (parserTests)
+import Test.Expression.Differentiator (differentiatorTests)
+import Test.Expression.Simplifier (simplifierTests)
 import Test.Unit (TestSuite)
 
 expressionTests :: TestSuite
 expressionTests = do
   parserTests
   evaluatorTests
+  differentiatorTests
+  simplifierTests
