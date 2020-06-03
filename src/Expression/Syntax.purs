@@ -24,7 +24,7 @@ derive instance unaryOperationOrd :: Ord UnaryOperation
 instance unaryOperationShow :: Show UnaryOperation where
   show Neg = "-"
   show Sqrt = "sqrt"
-  show Exp = "exp"
+  show Exp = "e^"
   show Log = "log"
   show Sine = "sin"
   show Cosine = "cos"
