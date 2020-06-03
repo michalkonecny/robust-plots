@@ -1,14 +1,13 @@
 module Plot.PlotController where
 
 import Prelude
-
-import Data.Array (fold, tail, zipWith, (..), concat)
+import Data.Array (concat, fold, length, tail, zipWith, (!!), (..), mapWithIndex, filter)
 import Data.Either (Either(..))
 import Data.Int (floor, toNumber)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Traversable (for_)
+import Data.Traversable (for_, sum)
 import Data.Tuple (Tuple(..))
-import Draw.Actions (drawPlotLine)
+import Draw.Actions (drawPlotLine, drawText)
 import Draw.Commands (DrawCommand)
 import Effect (Effect)
 import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
@@ -17,7 +16,7 @@ import Expression.Evaluator (evaluate, presetConstants)
 import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
 import Math (abs)
-import Plot.Commands (PlotCommand(..))
+import Plot.Commands (PlotCommand(..), isPlotExpression)
 import Plot.GridLines (clearAndDrawGridLines)
 import Types (Size, XYBounds, Position)
 
@@ -29,7 +28,12 @@ runComputation canvasSize commands callback = do
   callback $ Right result
   pure nonCanceler
   where
-  result = fold $ map (runCommand canvasSize) commands
+  numberOfPlots = countPlots commands
+
+  result = fold $ mapWithIndex (runCommand canvasSize numberOfPlots) commands
+
+countPlots :: Array PlotCommand -> Int
+countPlots commands = sum $ map (isPlotExpression >>> (\isPlot -> if isPlot then 1 else 0)) commands
 
 evaluateWithX :: Expression -> Number -> Number
 evaluateWithX expression x = value
@@ -40,17 +44,31 @@ evaluateWithX expression x = value
     Left _ -> 0.0
     Right v -> v
 
-runCommand :: Size -> PlotCommand -> DrawCommand Unit
-runCommand canvasSize (Empty bounds) = clearAndDrawGridLines bounds
+runCommand :: Size -> Int -> Int -> PlotCommand -> DrawCommand Unit
+runCommand _ _ _ (Empty bounds) = clearAndDrawGridLines bounds
 
-runCommand canvasSize (Plot bounds expression) = plotSimpleLine canvasSize bounds f f''
+runCommand canvasSize numberOfPlots index (Plot bounds expression) = drawCommands
   where
   f = evaluateWithX expression
 
   f'' = evaluateWithX $ simplify $ secondDifferentiate expression
 
-plotSimpleLine :: Size -> XYBounds -> (Number -> Number) -> (Number -> Number) -> DrawCommand Unit
-plotSimpleLine canvasSize bounds f f'' = for_ lines (\l -> drawPlotLine l.a l.b)
+  points = filter (isWithinCanvas canvasSize) $ plotPoints canvasSize bounds f f''
+
+  drawCommands = fold [ drawPlot points, label expression points numberOfPlots index ]
+
+isWithinCanvas :: Size -> Position -> Boolean
+isWithinCanvas canvasSize point = point.x >= 0.0 && point.x < canvasSize.width && point.y >= 0.0 && point.y < canvasSize.height
+
+label :: Expression -> Array Position -> Int -> Int -> DrawCommand Unit
+label expression points numberOfPlots index = drawText ("f(x)=" <> (show expression)) 20.0 labelPosition
+  where
+  pointIndex = (length points) / (numberOfPlots + 1)
+
+  labelPosition = fromMaybe { x: 0.0, y: 0.0 } $ points !! (pointIndex * index)
+
+plotPoints :: Size -> XYBounds -> (Number -> Number) -> (Number -> Number) -> Array Position
+plotPoints canvasSize bounds f f'' = points
   where
   rangeX = bounds.xBounds.upper - bounds.xBounds.lower
 
@@ -61,8 +79,6 @@ plotSimpleLine canvasSize bounds f f'' = for_ lines (\l -> drawPlotLine l.a l.b)
   changeInGradient = map f'' defaultRange
 
   points = map toCanvasPoint $ concat $ zipWith toRange changeInGradient defaultRange
-
-  lines = zipWith (\a b -> { a, b }) points (fromMaybe [] (tail points))
 
   toRange :: Number -> Number -> Array Number
   toRange deltaGradient value =
@@ -87,6 +103,11 @@ plotSimpleLine canvasSize bounds f f'' = for_ lines (\l -> drawPlotLine l.a l.b)
   toCanvasPoint x = { x: toCanvasX x, y: toCanvasY y }
     where
     y = f x
+
+drawPlot :: Array Position -> DrawCommand Unit
+drawPlot points = for_ lines (\l -> drawPlotLine l.a l.b)
+  where
+  lines = zipWith (\a b -> { a, b }) points (fromMaybe [] (tail points))
 
 toMaybePlotCommand :: PlotCommand -> Maybe PlotCommand
 toMaybePlotCommand (Empty _) = Nothing
