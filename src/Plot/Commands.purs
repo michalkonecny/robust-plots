@@ -12,3 +12,7 @@ plotExpression bounds expression = Plot bounds expression
 
 clear :: XYBounds -> PlotCommand
 clear = Empty
+
+isPlotExpression :: PlotCommand -> Boolean
+isPlotExpression (Plot _ _) = true
+isPlotExpression (Empty _) = false

@@ -61,6 +61,7 @@ data Action
   | HandleCanvas CanvasMessage
   | HandleBoundsInput BoundsInputMessage
   | AddPlot
+  | ResetBounds
 
 type ChildSlots
   = ( canvas :: CanvasSlot Int
@@ -97,7 +98,7 @@ ui =
             , height: 500.0
             }
         }
-    , bounds: xyBounds (-1.0) (1.0) (-1.0) (1.0)
+    , bounds: initialBounds
     , plots:
         [ newPlot 1
         ]
@@ -117,6 +118,9 @@ ui =
             [ HE.onClick $ toActionEvent Clear ]
             [ HH.text "Clear plots" ]
         , HH.slot _boundsInput 1 boundsInputComponent state.bounds (Just <<< HandleBoundsInput)
+        , HH.button
+            [ HE.onClick $ toActionEvent $ ResetBounds ]
+            [ HH.text "Reset" ]
         , HH.button
             [ HE.onClick $ toActionEvent $ Pan Left ]
             [ HH.text "◄" ]
@@ -175,6 +179,9 @@ handleAction action = do
         newBounds = zoomBounds state.bounds isZoomIn
       drawCommands <- lift $ computePlots state.input.size newBounds state.plots
       H.put state { input { operations = drawCommands }, bounds = newBounds }
+    ResetBounds -> do
+      drawCommands <- lift $ computePlots state.input.size initialBounds state.plots
+      H.put state { input { operations = drawCommands }, bounds = initialBounds }
     HandleScroll _ event -> do
       let
         changeInY = WE.deltaY event
@@ -206,6 +213,9 @@ updatePlot id expression text plot =
     { expressionText: text, expression: Just expression, id }
   else
     plot
+
+initialBounds :: XYBounds
+initialBounds = xyBounds (-1.0) (1.0) (-1.0) (1.0)
 
 computePlots :: Size -> XYBounds -> Array ExpressionPlot -> ReaderT Config Aff (DrawCommand Unit)
 computePlots canvasSize newBounds plots = lift $ computePlotAsync canvasSize computedPlot
