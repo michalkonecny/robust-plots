@@ -1,7 +1,6 @@
 module Test.Order where
 
 import Prelude
-
 import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Combinators ((&=&), (==>), (|=|))
 import Test.TestUtils (SuiteOrdParams1)
@@ -76,7 +75,6 @@ connexity { suitePrefix, valuesName, fromArbitraryValue, leqOpWithInput, leqOpSy
           leqOp = leqOpWithInput [ a, b ]
         in
           (a `leqOp` b) |=| (b `leqOp` a)
-
 
 antisymmetry ::
   forall at t. Arbitrary at => SuiteOrdParams1 at t -> TestSuite

@@ -1,5 +1,5 @@
 module Test.IntervalArith.Approx.ShowA
-  ( showATests
+  ( approxTests_showA
   ) where
 
 import Prelude
@@ -12,8 +12,8 @@ import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
 import Test.Unit.QuickCheck (quickCheck)
 
-showATests :: TestSuite
-showATests =
+approxTests_showA :: TestSuite
+approxTests_showA =
   suite "IntervalArith.Approx - showA" do
     test "SHOULD show '1' WHEN Approx 1 1 0 0" do
       let
