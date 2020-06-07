@@ -241,7 +241,7 @@ approximatedBy r d =
 better :: Approx -> Approx -> Boolean
 better d e = (lowerBound e <= lowerBound d) && (upperBound d <= upperBound e)
 
-infix 4 better as ⊑ 
+infix 4 better as ⊑
 
 -- |Turns a 'Dyadic' number into an exact approximation.
 fromDyadic :: Dyadic -> Approx
