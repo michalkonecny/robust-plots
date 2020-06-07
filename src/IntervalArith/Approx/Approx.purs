@@ -84,7 +84,10 @@ data Approx
   = Approx Int Integer Integer Int
   | Bottom
 
-instance approxShow :: Show Approx where
+-- | Syntactic equality
+derive instance eqApprox :: Eq Approx
+
+instance showApprox :: Show Approx where
   show (Approx b m e s) = intercalate " " [ "Approx", show b, "(", show m, ") (", show e, ")", show s ]
   show Bottom = "Bottom"
 
@@ -237,6 +240,8 @@ approximatedBy r d =
 -- the second if it is a sub-interval of the second.
 better :: Approx -> Approx -> Boolean
 better d e = (lowerBound e <= lowerBound d) && (upperBound d <= upperBound e)
+
+infix 4 better as ⊑ 
 
 -- |Turns a 'Dyadic' number into an exact approximation.
 fromDyadic :: Dyadic -> Approx
