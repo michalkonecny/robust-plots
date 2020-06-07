@@ -27,7 +27,7 @@ partialOrderTests params =
 preOrderTests ::
   forall at t. Arbitrary at => SuiteOrdParams1 at t -> TestSuite
 preOrderTests params =
-  suite (params.suitePrefix <> " is a partial order") do
+  suite (params.suitePrefix <> " is a pre-order") do
     reflexivity params
     transitivity params
 
