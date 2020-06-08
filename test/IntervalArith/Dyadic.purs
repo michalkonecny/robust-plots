@@ -24,7 +24,7 @@ instance arbitraryDyadic :: Arbitrary ArbitraryDyadic where
 
 dyadicTests :: TestSuite
 dyadicTests =
-  suite "IntervalArith.Misc - Dyadic arithmetic" do
+  suite "IntervalArith.Dyadic - arithmetic" do
     dyadicTests_Order
     dyadicTests_Ring
     dyadicTests_Scaling
@@ -32,7 +32,7 @@ dyadicTests =
 
 dyadicTests_Scaling :: TestSuite
 dyadicTests_Scaling =
-  suite "IntervalArith.Misc - Dyadic scaling by powers of 2" do
+  suite "IntervalArith.Dyadic - scaling by powers of 2" do
     test "SHOULD HOLD n = scale (scale n i) (-i) FOR ALL integers n and i>=0"
       $ quickCheck \dPre iPre ->
           let
@@ -69,7 +69,7 @@ dyadicTests_Order = totalOrderTests dyadicOrdParams
 
 dyadicTests_ToRational :: TestSuite
 dyadicTests_ToRational =
-  suite "IntervalArith.Misc - Dyadic conversion to Rational" do
+  suite "IntervalArith.Dyadic - conversion to Rational" do
     test "SHOULD HOLD Q(d1 + d2) = Q(d1) + Q(d2) FOR ALL dyadic numbers d1, d2"
       $ quickCheck \d1Pre d2Pre ->
           let
@@ -88,7 +88,7 @@ dyadicTests_ToRational =
 
 dyadicOrdParams :: SuiteOrdParams1 ArbitraryDyadic Dyadic
 dyadicOrdParams =
-  { suitePrefix: "IntervalArith.Misc - Dyadic <="
+  { suitePrefix: "IntervalArith.Dyadic - <="
   , valuesName: "dyadic numbers"
   , fromArbitraryValue: \(ArbitraryDyadic d) -> d
   , leqOpWithInput: (assertOpWithInput (<=) " <= ")
@@ -102,7 +102,7 @@ dyadicTests_Ring = commutativeRingTests dyadicEqParams
 
 dyadicEqParams :: SuiteEqParams1 ArbitraryDyadic Dyadic
 dyadicEqParams =
-  { suitePrefix: "IntervalArith.Misc - Dyadic"
+  { suitePrefix: "IntervalArith.Dyadic -"
   , valuesName: "dyadic numbers"
   , fromArbitraryValue: \(ArbitraryDyadic d) -> d
   , eqOpWithInput: (assertOpWithInput (==) " == ")
