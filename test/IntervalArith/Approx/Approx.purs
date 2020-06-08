@@ -1,15 +1,18 @@
 module Test.IntervalArith.Approx
-  ( approxTests
+  ( approxTests, ArbitraryApprox(..), randomSampleApprox
   ) where
 
 import Prelude
+
+import Effect (Effect)
 import IntervalArith.Approx (Approx, approxMB, (⊑))
+import IntervalArith.Approx.ShowA (showA)
 import IntervalArith.Misc (big)
 import Test.IntervalArith.Approx.ShowA (approxTests_showA)
 import Test.IntervalArith.Misc (ArbitraryInteger(..))
 import Test.Order (preOrderTests)
 import Test.QuickCheck (class Arbitrary, arbitrary)
-import Test.QuickCheck.Gen (chooseInt, sized)
+import Test.QuickCheck.Gen (Size, chooseInt, randomSample', sized)
 import Test.TestUtils (SuiteOrdParams1, assertOpWithInput)
 import Test.Unit (TestSuite)
 
@@ -21,8 +24,12 @@ instance arbitraryApprox :: Arbitrary ArbitraryApprox where
     sized \size -> do
       (ArbitraryInteger m) <- arbitrary
       s <- chooseInt (-2 * size) (2 * size)
-      mb <- chooseInt 2 (10 + 2 * size)
+      mb <- chooseInt 10 (10 + 2 * size)
       pure $ ArbitraryApprox $ approxMB mb m (big 0) s
+
+randomSampleApprox :: Size -> Effect (Array String)
+randomSampleApprox size = 
+  randomSample' size (map (\(ArbitraryApprox a) -> a) arbitrary) >>= \as -> pure (map showA as)
 
 approxTests :: TestSuite
 approxTests = do
