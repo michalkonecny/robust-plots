@@ -5,10 +5,12 @@
 module IntervalArith.Approx where
 
 import Prelude
+import Control.Biapply (biapply)
 import Data.BigInt (abs)
 import Data.Foldable (intercalate)
 import Data.Maybe (Maybe(..))
 import Data.Ratio (denominator, numerator)
+import Data.Tuple (Tuple(..))
 import Data.Typelevel.Undefined (undefined)
 import Effect.Exception.Unsafe (unsafeThrow)
 import FFI.BigInt (bitLength)
@@ -181,6 +183,16 @@ upperBound :: Approx -> Extended Dyadic
 upperBound (Approx _ m e s) = Finite ((m + e) :^ s)
 
 upperBound Bottom = PosInf
+
+bounds :: Approx -> Tuple (Extended Dyadic) (Extended Dyadic)
+bounds (Approx _ m e s) = Tuple (Finite ((m - e) :^ s)) (Finite ((m + e) :^ s))
+
+bounds Bottom = Tuple NegInf PosInf
+
+boundsR :: Approx -> Tuple (Extended Rational) (Extended Rational)
+boundsR a = biapply (Tuple f f) (bounds a)
+  where
+  f = map toRational
 
 -- |Gives the lower bound of an 'Approx' as an exact 'Approx'.
 lowerA :: Approx -> Approx
