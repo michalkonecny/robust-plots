@@ -31,9 +31,9 @@ instance euclideanRingEvaluationResult :: EuclideanRing EvaluationResult where
   mod (Rational a) (Number b) = Number $ mod (rationalToNumber a) b
   mod (Number a) (Number b) = Number $ mod a b
 
-instance commutativeRingDyadic :: CommutativeRing EvaluationResult
+instance commutativeRingEvaluationResult :: CommutativeRing EvaluationResult
 
-instance ringDyadic :: Ring EvaluationResult where
+instance ringEvaluationResult :: Ring EvaluationResult where
   sub (Rational a) (Rational b) = Rational $ a - b
   sub (Number a) (Rational b) = Number $ a - (rationalToNumber b)
   sub (Rational a) (Number b) = Number $ (rationalToNumber a) - b
