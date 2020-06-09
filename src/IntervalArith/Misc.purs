@@ -1,7 +1,6 @@
 module IntervalArith.Misc where
 
 import Prelude
-
 import Data.BigInt (BigInt)
 import Data.BigInt as BigInt
 import Data.Int as Int
@@ -40,6 +39,11 @@ shift x n = BigInt.shl x (Int.toNumber n)
 bit :: Int -> Integer
 bit n = shift (big 1) n
 
+-- | testBit b n is true iff the n'th bit of of b is 1.
+testBit :: Integer -> Int -> Boolean
+testBit b n = (BigInt.and b (bit n)) /= zero
+
+
 {-- Rational --}
 type Rational
   = Ratio BigInt
@@ -54,8 +58,20 @@ instance toRationalInteger :: ToRational BigInt where
   toRational n = n % (big 1)
 
 rationalToNumber :: Rational -> Number
-rationalToNumber q = 
-  (BigInt.toNumber (numerator q)) / (BigInt.toNumber (denominator q))
+rationalToNumber q = (BigInt.toNumber (numerator q)) / (BigInt.toNumber (denominator q))
+
+roundRational :: Rational -> Integer
+roundRational r =
+  let
+    p = numerator r
+
+    q = denominator r
+
+    p2 = shift p 1
+
+    q2 = shift q 1
+  in
+    (p2 + q) `div` q2
 
 {-- Scalable --}
 -- | 'Scalable' allows scaling numerical data types by powers of 2.
