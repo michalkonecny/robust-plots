@@ -92,7 +92,7 @@ simplifyTests =
         -- then
         expectedResult = "-2"
       equal expectedResult result
-    test "ASSERT simplified f(x) = 25 WHEN f(x) = (2+3)^2" do
+    test "ASSERT simplified f(x) = 5^2 WHEN f(x) = (2+3)^2" do
       let
         -- given
         rawExpression = "(2+3)^2"
@@ -101,7 +101,7 @@ simplifyTests =
         result = fromExpect $ parseAndSimplify rawExpression
 
         -- then
-        expectedResult = "25"
+        expectedResult = "5^2"
       equal expectedResult result
     test "ASSERT simplified f(x) = 1 WHEN f(x) = x^0" do
       let

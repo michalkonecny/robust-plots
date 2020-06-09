@@ -1,7 +1,6 @@
 module Expression.Simplifier where
 
 import Prelude
-
 import Control.Alt ((<|>))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Ratio (denominator, numerator)
@@ -29,86 +28,103 @@ simplify (ExpressionBinary operation leftExpression rightExpression) =
 simplify expression = expression
 
 trimTimesNodes :: Expression -> Expression -> Maybe Expression
-trimTimesNodes (ExpressionLiteral leftValue) (ExpressionLiteral rightValue) = 
-  if (big 0) == leftNumerator || (big 0) == rightNumerator
-    then Just $ ExpressionLiteral (toRational 0)
-    else Nothing
-  where
-    leftNumerator = numerator leftValue
-    rightNumerator = numerator rightValue
-trimTimesNodes (ExpressionLiteral leftValue) rightExpression  = 
-  if leftNumerator == leftDenominator
-    then Just $ rightExpression
-    else Nothing
-  where
-    leftNumerator = numerator leftValue
-    leftDenominator = denominator leftValue
-trimTimesNodes leftExpression (ExpressionLiteral rightValue) = 
-  if rightNumerator == rightDenominator
-    then Just $ leftExpression
-    else Nothing
-  where
-    rightNumerator = numerator rightValue
-    rightDenominator = denominator rightValue
+trimTimesNodes (ExpressionLiteral leftValue) (ExpressionLiteral rightValue) =
+  if (toRational 0) == leftValue || (toRational 0) == rightValue then
+    Just $ ExpressionLiteral (toRational 0)
+  else
+    Nothing
+
+trimTimesNodes (ExpressionLiteral leftValue) rightExpression =
+  if (toRational 1) == leftValue then
+    Just $ rightExpression
+  else
+    if (toRational 0) == leftValue then
+      Just $ ExpressionLiteral (toRational 0)
+    else
+      Nothing
+
+trimTimesNodes leftExpression (ExpressionLiteral rightValue) =
+  if (toRational 1) == rightValue then
+    Just $ leftExpression
+  else
+    if (toRational 0) == rightValue then
+      Just $ ExpressionLiteral (toRational 0)
+    else
+      Nothing
+
 trimTimesNodes _ _ = Nothing
 
 trimPlusNodes :: Expression -> Expression -> Maybe Expression
-trimPlusNodes (ExpressionLiteral leftValue) rightExpression  = 
-  if (big 0) == leftNumerator 
-    then Just $ rightExpression
-    else Nothing
-  where
-    leftNumerator = numerator leftValue
-trimPlusNodes leftExpression (ExpressionLiteral rightValue) = 
-  if (big 0) == rightNumerator
-    then Just $ leftExpression
-    else Nothing
-  where
-    rightNumerator = numerator rightValue
-trimPlusNodes _ _ = Nothing 
+trimPlusNodes (ExpressionLiteral leftValue) rightExpression =
+  if (toRational 0) == leftValue then
+    Just $ rightExpression
+  else
+    Nothing
+
+trimPlusNodes leftExpression (ExpressionLiteral rightValue) =
+  if (toRational 0) == rightValue then
+    Just $ leftExpression
+  else
+    Nothing
+
+trimPlusNodes _ _ = Nothing
 
 trimMinusNodes :: Expression -> Expression -> Maybe Expression
-trimMinusNodes (ExpressionLiteral leftValue) rightExpression  = 
-  if (big 0) == leftNumerator 
-    then Just $ ExpressionUnary Neg rightExpression
-    else Nothing
+trimMinusNodes (ExpressionLiteral leftValue) rightExpression =
+  if (big 0) == leftNumerator then
+    Just $ ExpressionUnary Neg rightExpression
+  else
+    Nothing
   where
-    leftNumerator = numerator leftValue
-trimMinusNodes leftExpression (ExpressionLiteral rightValue) = 
-  if (big 0) == rightNumerator
-    then Just $ leftExpression
-    else Nothing
+  leftNumerator = numerator leftValue
+
+trimMinusNodes leftExpression (ExpressionLiteral rightValue) =
+  if (big 0) == rightNumerator then
+    Just $ leftExpression
+  else
+    Nothing
   where
-    rightNumerator = numerator rightValue
-trimMinusNodes _ _ = Nothing 
+  rightNumerator = numerator rightValue
+
+trimMinusNodes _ _ = Nothing
 
 trimDivideNodes :: Expression -> Expression -> Maybe Expression
-trimDivideNodes (ExpressionLiteral leftValue) rightExpression  = 
-  if (big 0) == leftNumerator 
-    then Just $ ExpressionLiteral $ toRational 0
-    else Nothing
+trimDivideNodes (ExpressionLiteral leftValue) rightExpression =
+  if (big 0) == leftNumerator then
+    Just $ ExpressionLiteral $ toRational 0
+  else
+    Nothing
   where
-    leftNumerator = numerator leftValue
-trimDivideNodes _ _ = Nothing 
+  leftNumerator = numerator leftValue
+
+trimDivideNodes _ _ = Nothing
 
 trimPowerNodes :: Expression -> Expression -> Maybe Expression
-trimPowerNodes leftExpression (ExpressionLiteral rightValue) = 
-  if rightNumerator == (big 0)
-    then Just $ ExpressionLiteral $ toRational 1
-    else if rightNumerator == rightDenominator
-        then Just $ leftExpression
-        else Nothing
+trimPowerNodes leftExpression (ExpressionLiteral rightValue) =
+  if rightNumerator == (big 0) then
+    Just $ ExpressionLiteral $ toRational 1
+  else
+    if rightNumerator == rightDenominator then
+      Just $ leftExpression
+    else
+      Nothing
   where
-    rightNumerator = numerator rightValue
-    rightDenominator = denominator rightValue
-trimPowerNodes _ _ = Nothing 
+  rightNumerator = numerator rightValue
+
+  rightDenominator = denominator rightValue
+
+trimPowerNodes _ _ = Nothing
 
 trimSimpleNodes :: Expression -> Expression -> BinaryOperation -> Maybe Expression
 trimSimpleNodes leftExpression rightExpresson Times = trimTimesNodes leftExpression rightExpresson
+
 trimSimpleNodes leftExpression rightExpresson Plus = trimPlusNodes leftExpression rightExpresson
+
 trimSimpleNodes leftExpression rightExpresson Minus = trimMinusNodes leftExpression rightExpresson
+
+trimSimpleNodes leftExpression rightExpresson Divide = trimDivideNodes leftExpression rightExpresson
+
 trimSimpleNodes leftExpression rightExpresson Power = trimPowerNodes leftExpression rightExpresson
-trimSimpleNodes _ _ _ = Nothing
 
 trimConstantLeafNodes :: Expression -> Expression -> BinaryOperation -> Maybe Expression
 trimConstantLeafNodes simplifiedLeftExpression simplifiedRightExpression operation = case simplifiedLeftExpression, simplifiedRightExpression, operation of
