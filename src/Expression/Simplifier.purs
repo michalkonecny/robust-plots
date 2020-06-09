@@ -3,9 +3,8 @@ module Expression.Simplifier where
 import Prelude
 import Control.Alt ((<|>))
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Ratio (denominator, numerator)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
-import IntervalArith.Misc (big, toRational)
+import IntervalArith.Misc (toRational)
 
 simplify :: Expression -> Expression
 simplify (ExpressionUnary operation expression) = case simplify expression, operation of
@@ -71,47 +70,37 @@ trimPlusNodes _ _ = Nothing
 
 trimMinusNodes :: Expression -> Expression -> Maybe Expression
 trimMinusNodes (ExpressionLiteral leftValue) rightExpression =
-  if (big 0) == leftNumerator then
+  if (toRational 0) == leftValue then
     Just $ ExpressionUnary Neg rightExpression
   else
     Nothing
-  where
-  leftNumerator = numerator leftValue
 
 trimMinusNodes leftExpression (ExpressionLiteral rightValue) =
-  if (big 0) == rightNumerator then
+  if (toRational 0) == rightValue then
     Just $ leftExpression
   else
     Nothing
-  where
-  rightNumerator = numerator rightValue
 
 trimMinusNodes _ _ = Nothing
 
 trimDivideNodes :: Expression -> Expression -> Maybe Expression
 trimDivideNodes (ExpressionLiteral leftValue) rightExpression =
-  if (big 0) == leftNumerator then
+  if (toRational 0) == leftValue then
     Just $ ExpressionLiteral $ toRational 0
   else
     Nothing
-  where
-  leftNumerator = numerator leftValue
 
 trimDivideNodes _ _ = Nothing
 
 trimPowerNodes :: Expression -> Expression -> Maybe Expression
 trimPowerNodes leftExpression (ExpressionLiteral rightValue) =
-  if rightNumerator == (big 0) then
+  if (toRational 0) == rightValue then
     Just $ ExpressionLiteral $ toRational 1
   else
-    if rightNumerator == rightDenominator then
+    if (toRational 1) == rightValue then
       Just $ leftExpression
     else
       Nothing
-  where
-  rightNumerator = numerator rightValue
-
-  rightDenominator = denominator rightValue
 
 trimPowerNodes _ _ = Nothing
 
