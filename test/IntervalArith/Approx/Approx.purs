@@ -4,7 +4,7 @@ module Test.IntervalArith.Approx
 
 import Prelude
 import Effect (Effect)
-import IntervalArith.Approx (Approx(..), approxMB, setMB, (⊑))
+import IntervalArith.Approx (Approx(..), approxMB, consistent, setMB, (⊑))
 import IntervalArith.Approx.ShowA (showA)
 import IntervalArith.Misc (big)
 import Test.IntervalArith.Approx.ShowA (approxTests_showA)
@@ -36,6 +36,7 @@ approxTests = do
   approxTests_showA
   approxTests_setMBworse
   approxTests_Order
+  approxTests_Consistent
 
 approxTests_setMBworse :: TestSuite
 approxTests_setMBworse =
@@ -69,6 +70,34 @@ approxTests_Order =
         expected = result
       equal expected result
     preOrderTests approxOrdParams
+
+approxTests_Consistent :: TestSuite
+approxTests_Consistent =
+  suite "IntervalArith.Approx - consistency check (`consistent`)" do
+    test "SHOULD HOLD consistent (Approx 4 12 1 3 = 96±8) (Approx 4 13 1 3 = 104±8)" do
+      let
+        -- given
+        input1 = Approx 4 (big 12) (big 1) 3
+
+        input2 = Approx 4 (big 12) (big 1) 3
+
+        -- when
+        result = consistent input1 input2
+      -- then
+      equal result true
+    test "SHOULD HOLD consistent a b WHEN a ⊑ b FOR ALL approx a b"
+      $ quickCheck \aPre bPre ->
+          let
+            -- given
+            (ArbitraryApprox b) = bPre
+
+            (ArbitraryApprox a1) = aPre
+
+            -- when
+            a = approxOrdParams.makeLeq b a1
+          -- then
+          in
+            assertOp consistent " `consistent` " a b
 
 approxOrdParams :: SuiteOrdParams1 ArbitraryApprox Approx
 approxOrdParams =

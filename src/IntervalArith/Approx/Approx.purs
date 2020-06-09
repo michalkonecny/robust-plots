@@ -264,6 +264,13 @@ better d e = (lowerBound e <= lowerBound d) && (upperBound d <= upperBound e)
 worse :: Approx -> Approx -> Boolean
 worse = flip better
 
+consistent :: Approx -> Approx -> Boolean
+consistent Bottom _ = true
+consistent _ Bottom = true
+consistent d e = 
+  not $ (upperBound e < lowerBound d) || (upperBound d < lowerBound e)
+
+
 infix 4 worse as ⊑
 
 infix 4 better as ⊒
