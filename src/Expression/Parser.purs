@@ -1,20 +1,22 @@
 module Expression.Parser where
 
 import Prelude
-
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Either (Either(..))
+import Data.Enum (fromEnum)
+import Data.Foldable (foldr)
 import Data.Identity (Identity)
-import Data.Int (toNumber)
+import Data.Ratio (denominator, (%))
 import Expression.Error (Expect, parseError)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
+import IntervalArith.Misc (Rational, Integer, big, toRational)
 import Text.Parsing.Parser (Parser, parseErrorMessage, runParser, fail)
-import Text.Parsing.Parser.Combinators (lookAhead)
+import Text.Parsing.Parser.Combinators (lookAhead, notFollowedBy, many1Till)
 import Text.Parsing.Parser.Expr (OperatorTable, Assoc(..), Operator(..), buildExprParser)
 import Text.Parsing.Parser.Language (emptyDef)
-import Text.Parsing.Parser.String (string)
-import Text.Parsing.Parser.Token (TokenParser, makeTokenParser)
+import Text.Parsing.Parser.String (string, char)
+import Text.Parsing.Parser.Token (TokenParser, digit, makeTokenParser)
 
 token :: TokenParser
 token = makeTokenParser emptyDef
@@ -31,13 +33,31 @@ reservedOp = token.reservedOp
 identifier :: P String
 identifier = token.identifier
 
-literal :: P Expression
-literal = ExpressionLiteral <$> toLiteral <$> token.naturalOrFloat
+literal :: P Expression -> P Expression
+literal p = do
+  interger <- token.natural
+  let
+    rationalInteger = toRational interger
+  (lookAhead (char '.') *> asRational rationalInteger) <|> (pure $ ExpressionLiteral rationalInteger)
+  where
+  asRational :: Rational -> P Expression
+  asRational wholeNumber = do
+    _ <- token.dot
+    decimalPlaces <- many1Till digitToRational isNotDigit
+    pure $ ExpressionLiteral $ wholeNumber + (foldr foldIntoRational (toRational 0) decimalPlaces)
 
-toLiteral :: Either Int Number -> Number
-toLiteral (Right number) = number
+  digitToRational :: P Integer
+  digitToRational = do
+    digitChar <- digit
+    pure $ big $ fromEnum digitChar
 
-toLiteral (Left integer) = toNumber integer
+  isNotDigit :: P Unit
+  isNotDigit = notFollowedBy $ digit
+
+  foldIntoRational :: Integer -> Rational -> Rational
+  foldIntoRational element accumulator = accumulator + (element % newDenominator)
+    where
+    newDenominator = (big 10) * denominator accumulator
 
 variableOrUnaryFunctionCall :: P Expression -> P Expression
 variableOrUnaryFunctionCall p = do
@@ -45,6 +65,7 @@ variableOrUnaryFunctionCall p = do
   (lookAhead (string "(") *> functionCall idString)
     <|> (pure (ExpressionVariable idString))
   where
+  functionCall :: String -> P Expression
   functionCall idString = do
     expr <- brackets p
     case idString of
@@ -57,7 +78,7 @@ variableOrUnaryFunctionCall p = do
       _ -> fail ("Unknown function: " <> idString)
 
 term :: P Expression -> P Expression
-term p = literal <|> brackets p <|> variableOrUnaryFunctionCall p
+term p = literal p <|> brackets p <|> variableOrUnaryFunctionCall p
 
 table :: OperatorTable Identity String Expression
 table =
