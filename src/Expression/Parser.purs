@@ -15,7 +15,7 @@ import Text.Parsing.Parser (Parser, parseErrorMessage, runParser, fail)
 import Text.Parsing.Parser.Combinators (lookAhead, notFollowedBy, many1Till)
 import Text.Parsing.Parser.Expr (OperatorTable, Assoc(..), Operator(..), buildExprParser)
 import Text.Parsing.Parser.Language (emptyDef)
-import Text.Parsing.Parser.String (string, char)
+import Text.Parsing.Parser.String (char)
 import Text.Parsing.Parser.Token (TokenParser, digit, makeTokenParser)
 
 token :: TokenParser
@@ -60,7 +60,7 @@ literal = do
 variableOrUnaryFunctionCall :: P Expression -> P Expression
 variableOrUnaryFunctionCall p = do
   idString <- identifier
-  (lookAhead (string "(") *> functionCall idString) <|> (pure (ExpressionVariable idString))
+  (lookAhead (char '(') *> functionCall idString) <|> (pure (ExpressionVariable idString))
   where
   functionCall :: String -> P Expression
   functionCall idString = do
