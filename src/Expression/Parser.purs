@@ -43,13 +43,11 @@ literal p = do
   asRational :: Rational -> P Expression
   asRational wholeNumber = do
     _ <- token.dot
-    decimalPlaces <- many1Till digitToRational isNotDigit
+    decimalPlaces <- many1Till digitToInteger isNotDigit
     pure $ ExpressionLiteral $ wholeNumber + (foldr foldIntoRational (toRational 0) decimalPlaces)
 
-  digitToRational :: P Integer
-  digitToRational = do
-    digitChar <- digit
-    pure $ big $ fromEnum digitChar
+  digitToInteger :: P Integer
+  digitToInteger = digit >>= fromEnum >>> big >>> pure
 
   isNotDigit :: P Unit
   isNotDigit = notFollowedBy $ digit
@@ -62,8 +60,7 @@ literal p = do
 variableOrUnaryFunctionCall :: P Expression -> P Expression
 variableOrUnaryFunctionCall p = do
   idString <- identifier
-  (lookAhead (string "(") *> functionCall idString)
-    <|> (pure (ExpressionVariable idString))
+  (lookAhead (string "(") *> functionCall idString) <|> (pure (ExpressionVariable idString))
   where
   functionCall :: String -> P Expression
   functionCall idString = do
