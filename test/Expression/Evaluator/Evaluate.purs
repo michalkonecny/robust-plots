@@ -10,7 +10,7 @@ import Expression.Error (Expect, throw)
 import Expression.VariableMap (VariableMap)
 import Expression.Evaluator (evaluate, presetConstants)
 import Expression.Parser (parse)
-import Expression.EvaluationResult (EvaluateResult(..), toNumber) as ER
+import Expression.EvaluationResult (EvaluationResult(..), toNumber) as ER
 import Test.QuickCheck ((===))
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
@@ -408,7 +408,7 @@ evaluateTests =
         expectedResult = "Unknown value: a | Unknown value: b"
       equal expectedResult result
 
-parseAndEvaluate :: VariableMap ER.EvaluateResult -> String -> Expect ER.EvaluateResult
+parseAndEvaluate :: VariableMap ER.EvaluationResult -> String -> Expect ER.EvaluationResult
 parseAndEvaluate variables rawExpression = result
   where
   expressionOrParseError = parse rawExpression
@@ -419,7 +419,7 @@ parseAndEvaluate variables rawExpression = result
 
   result = valueOrEvaluationError
 
-fromExpect :: Expect ER.EvaluateResult -> String
+fromExpect :: Expect ER.EvaluationResult -> String
 fromExpect (Right value) = show $ ER.toNumber value
 
 fromExpect (Left error) = show error

@@ -14,7 +14,7 @@ import Draw.Commands (DrawCommand)
 import Effect (Effect)
 import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
 import Expression.Differentiator (secondDifferentiate)
-import Expression.EvaluationResult (EvaluateResult(..), toNumber) as ER
+import Expression.EvaluationResult (EvaluationResult(..), toNumber) as ER
 import Expression.Evaluator (evaluate, presetConstants)
 import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
