@@ -33,8 +33,8 @@ reservedOp = token.reservedOp
 identifier :: P String
 identifier = token.identifier
 
-literal :: P Expression -> P Expression
-literal p = do
+literal :: P Expression
+literal = do
   interger <- token.natural
   let
     rationalInteger = toRational interger
@@ -75,7 +75,7 @@ variableOrUnaryFunctionCall p = do
       _ -> fail ("Unknown function: " <> idString)
 
 term :: P Expression -> P Expression
-term p = literal p <|> brackets p <|> variableOrUnaryFunctionCall p
+term p = literal <|> brackets p <|> variableOrUnaryFunctionCall p
 
 table :: OperatorTable Identity String Expression
 table =
