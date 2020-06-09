@@ -19,195 +19,195 @@ commutativeRingTests params =
 -- distributiveRules params
 commutativeMonoidAddition ::
   forall at t. Arbitrary at => Semiring t => SuiteEqParams1 at t -> TestSuite
-commutativeMonoidAddition { suitePrefix, valuesName, fromArbitraryValue, eqOpWithInput, eqOpSymbol } =
-  suite (suitePrefix <> " forms a commutative monoid under addition") do
+commutativeMonoidAddition p =
+  suite (p.suitePrefix <> " forms a commutative monoid under addition") do
     test
       ( "SHOULD HOLD associativity: (a + b) + c "
-          <> eqOpSymbol
+          <> p.eqOpSymbol
           <> " a + (b + c) FOR ALL "
-          <> valuesName
+          <> p.valuesName
           <> " a, b, c"
       )
       $ quickCheck \aA bA cA ->
           let
-            a = fromArbitraryValue aA
+            a = p.fromArbitraryValue aA
 
-            b = fromArbitraryValue bA
+            b = p.fromArbitraryValue bA
 
-            c = fromArbitraryValue cA
+            c = p.fromArbitraryValue cA
 
-            eqOp = eqOpWithInput [ a, b, c ]
+            eqOp = p.eqOpWithInput [ a, b, c ]
           in
             ((a + b) + c) `eqOp` (a + (b + c))
     test
       ( "SHOULD HOLD identity: zero + a "
-          <> eqOpSymbol
+          <> p.eqOpSymbol
           <> " a + zero "
-          <> eqOpSymbol
+          <> p.eqOpSymbol
           <> " a "
           <> "FOR ALL "
-          <> valuesName
+          <> p.valuesName
           <> " a"
       )
       $ quickCheck \aA ->
           let
-            a = fromArbitraryValue aA
+            a = p.fromArbitraryValue aA
 
-            eqOp = eqOpWithInput [ a ]
+            eqOp = p.eqOpWithInput [ a ]
           in
             ((a + zero) `eqOp` a)
               &=& (a `eqOp` (a + zero))
     test
       ( "SHOULD HOLD commutativity: a + b "
-          <> eqOpSymbol
+          <> p.eqOpSymbol
           <> " b + a "
           <> "FOR ALL "
-          <> valuesName
+          <> p.valuesName
           <> " a, b"
       )
       $ quickCheck \aA bA ->
           let
-            a = fromArbitraryValue aA
+            a = p.fromArbitraryValue aA
 
-            b = fromArbitraryValue bA
+            b = p.fromArbitraryValue bA
 
-            eqOp = eqOpWithInput [ a, b ]
+            eqOp = p.eqOpWithInput [ a, b ]
           in
             (a + b) `eqOp` (b + a)
 
 commutativeMonoidMultiplication ::
   forall at t. Arbitrary at => CommutativeRing t => SuiteEqParams1 at t -> TestSuite
-commutativeMonoidMultiplication { suitePrefix, valuesName, fromArbitraryValue, eqOpWithInput, eqOpSymbol } =
-  suite (suitePrefix <> " forms a commutative monoid under multiplication") do
+commutativeMonoidMultiplication p =
+  suite (p.suitePrefix <> " forms a commutative monoid under multiplication") do
     test
       ( "SHOULD HOLD associativity: (a * b) * c "
-          <> eqOpSymbol
+          <> p.eqOpSymbol
           <> " a * (b * c) FOR ALL "
-          <> valuesName
+          <> p.valuesName
           <> " a, b, c"
       )
       $ quickCheck \aA bA cA ->
           let
-            a = fromArbitraryValue aA
+            a = p.fromArbitraryValue aA
 
-            b = fromArbitraryValue bA
+            b = p.fromArbitraryValue bA
 
-            c = fromArbitraryValue cA
+            c = p.fromArbitraryValue cA
 
-            eqOp = eqOpWithInput [ a, b, c ]
+            eqOp = p.eqOpWithInput [ a, b, c ]
           in
             ((a * b) * c) `eqOp` (a * (b * c))
     test
       ( "SHOULD HOLD identity: one * a "
-          <> eqOpSymbol
+          <> p.eqOpSymbol
           <> " a * one "
-          <> eqOpSymbol
+          <> p.eqOpSymbol
           <> " a "
           <> "FOR ALL "
-          <> valuesName
+          <> p.valuesName
           <> " a"
       )
       $ quickCheck \aA ->
           let
-            a = fromArbitraryValue aA
+            a = p.fromArbitraryValue aA
 
-            eqOp = eqOpWithInput [ a ]
+            eqOp = p.eqOpWithInput [ a ]
           in
             ((a * one) `eqOp` a)
               &=& (a `eqOp` (a * one))
     test
       ( "SHOULD HOLD commutativity: a * b "
-          <> eqOpSymbol
+          <> p.eqOpSymbol
           <> " b * a "
           <> "FOR ALL "
-          <> valuesName
+          <> p.valuesName
           <> " a, b"
       )
       $ quickCheck \aA bA ->
           let
-            a = fromArbitraryValue aA
+            a = p.fromArbitraryValue aA
 
-            b = fromArbitraryValue bA
+            b = p.fromArbitraryValue bA
 
-            eqOp = eqOpWithInput [ a, b ]
+            eqOp = p.eqOpWithInput [ a, b ]
           in
             (a * b) `eqOp` (b * a)
 
 distributiveLaws ::
   forall at t. Arbitrary at => Semiring t => SuiteEqParams1 at t -> TestSuite
-distributiveLaws { suitePrefix, valuesName, fromArbitraryValue, eqOpWithInput, eqOpSymbol } =
-  suite (suitePrefix <> " satisfies semiring distributive laws") do
+distributiveLaws p =
+  suite (p.suitePrefix <> " satisfies semiring distributive laws") do
     test
       ( "SHOULD HOLD left distributivity: a * (b + c) "
-          <> eqOpSymbol
+          <> p.eqOpSymbol
           <> " (a * b) + (a * c) FOR ALL "
-          <> valuesName
+          <> p.valuesName
           <> " a, b, c"
       )
       $ quickCheck \aA bA cA ->
           let
-            a = fromArbitraryValue aA
+            a = p.fromArbitraryValue aA
 
-            b = fromArbitraryValue bA
+            b = p.fromArbitraryValue bA
 
-            c = fromArbitraryValue cA
+            c = p.fromArbitraryValue cA
 
-            eqOp = eqOpWithInput [ a, b, c ]
+            eqOp = p.eqOpWithInput [ a, b, c ]
           in
             (a * (b + c)) `eqOp` ((a * b) + (a * c))
     test
       ( "SHOULD HOLD right distributivity: (a + b) * c "
-          <> eqOpSymbol
+          <> p.eqOpSymbol
           <> " (a * c) + (b * c) FOR ALL "
-          <> valuesName
+          <> p.valuesName
           <> " a, b, c"
       )
       $ quickCheck \aA bA cA ->
           let
-            a = fromArbitraryValue aA
+            a = p.fromArbitraryValue aA
 
-            b = fromArbitraryValue bA
+            b = p.fromArbitraryValue bA
 
-            c = fromArbitraryValue cA
+            c = p.fromArbitraryValue cA
 
-            eqOp = eqOpWithInput [ a, b, c ]
+            eqOp = p.eqOpWithInput [ a, b, c ]
           in
             ((a + b) * c) `eqOp` ((a * c) + (b * c))
 
 otherLaws ::
   forall at t. Arbitrary at => CommutativeRing t => SuiteEqParams1 at t -> TestSuite
-otherLaws { suitePrefix, valuesName, fromArbitraryValue, eqOpWithInput, eqOpSymbol } =
-  suite (suitePrefix <> " satisfies other ring laws") do
+otherLaws p =
+  suite (p.suitePrefix <> " satisfies other ring laws") do
     test
       ( "SHOULD HOLD additive inverse: a - a "
-          <> eqOpSymbol
+          <> p.eqOpSymbol
           <> " (zero - a) + a "
-          <> eqOpSymbol
+          <> p.eqOpSymbol
           <> " zero "
           <> "FOR ALL "
-          <> valuesName
+          <> p.valuesName
           <> " a"
       )
       $ quickCheck \aA ->
           let
-            a = fromArbitraryValue aA
+            a = p.fromArbitraryValue aA
 
-            eqOp = eqOpWithInput [ a ]
+            eqOp = p.eqOpWithInput [ a ]
           in
             ((a - a) `eqOp` zero)
               &=& (((zero - a) + a) `eqOp` zero)
     test
       ( "SHOULD HOLD annihilation: zero * a "
-          <> eqOpSymbol
+          <> p.eqOpSymbol
           <> " zero "
           <> "FOR ALL "
-          <> valuesName
+          <> p.valuesName
           <> " a"
       )
       $ quickCheck \aA ->
           let
-            a = fromArbitraryValue aA
+            a = p.fromArbitraryValue aA
 
-            eqOp = eqOpWithInput [ a ]
+            eqOp = p.eqOpWithInput [ a ]
           in
             (zero * a) `eqOp` zero
