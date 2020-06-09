@@ -1,15 +1,16 @@
 module Test.IntervalArith.Dyadic where
 
 import Prelude
-import IntervalArith.Dyadic (Dyadic, fromInteger, (:^))
-import IntervalArith.Misc (big, scale, toRational)
+import IntervalArith.Dyadic (Dyadic, dyadicToNumber, fromInt, fromInteger, (:^))
+import IntervalArith.Misc (big, scale, toRational, (^))
 import Test.IntervalArith.Misc (ArbitraryInteger(..), ArbitraryPositiveExponent(..))
 import Test.Order (totalOrderTests)
 import Test.QuickCheck (class Arbitrary, arbitrary)
 import Test.QuickCheck.Gen (chooseInt, sized)
 import Test.Ring (commutativeRingTests)
-import Test.TestUtils (SuiteEqParams1, SuiteOrdParams1, assertOpWithInput, eqWithInput)
+import Test.TestUtils (SuiteEqParams1, SuiteOrdParams1, assertOpWithInput, eqWithInput, leqWithInput)
 import Test.Unit (TestSuite, suite, test)
+import Test.Unit.Assert (equal)
 import Test.Unit.QuickCheck (quickCheck)
 
 newtype ArbitraryDyadic
@@ -29,6 +30,7 @@ dyadicTests =
     dyadicTests_Ring
     dyadicTests_Scaling
     dyadicTests_ToRational
+    dyadicTests_ToNumber
 
 dyadicTests_Scaling :: TestSuite
 dyadicTests_Scaling =
@@ -86,6 +88,51 @@ dyadicTests_ToRational =
           in
             eqWithInput [ d1, d2 ] left right
 
+dyadicTests_ToNumber :: TestSuite
+dyadicTests_ToNumber =
+  suite "IntervalArith.Dyadic - conversion to Number" do
+    test "SHOULD GET 1.0 WHEN converting dyadic 1 to Number" do
+      let
+        -- given
+        input = fromInt 1
+
+        -- when
+        result = dyadicToNumber input
+
+        -- then
+        expected = 1.0
+      equal expected result
+    test "SHOULD GET Infinity WHEN converting dyadic 10^400 to Number" do
+      let
+        -- given
+        input = fromInteger ((big 10) ^ 400)
+
+        -- when
+        result = dyadicToNumber input
+
+        -- then
+        expected = 1.0 / 0.0
+      equal expected result
+    test "SHOULD HOLD d1 <= d2 ==> N(d1) <= N(d2) FOR ALL dyadic numbers d1, d2"
+      $ quickCheck \d1Pre d2Pre ->
+          let
+            -- given
+            (ArbitraryDyadic d1) = d1Pre :: ArbitraryDyadic
+
+            (ArbitraryDyadic d2) = d2Pre :: ArbitraryDyadic
+
+            d1' = min d1 d2
+
+            d2' = max d1 d2
+
+            -- when
+            d1N = dyadicToNumber d1'
+
+            d2N = dyadicToNumber d2'
+          -- then
+          in
+            leqWithInput [ d1', d2' ] d1N d2N
+
 dyadicOrdParams :: SuiteOrdParams1 ArbitraryDyadic Dyadic
 dyadicOrdParams =
   { suitePrefix: "IntervalArith.Dyadic - <="
@@ -95,7 +142,7 @@ dyadicOrdParams =
   , leqOpSymbol: "<="
   , eqOpWithInput: (assertOpWithInput (==) " == ")
   , eqOpSymbol: "="
-  , makeLeq: \ a b -> b
+  , makeLeq: \a b -> b
   }
 
 dyadicTests_Ring :: TestSuite

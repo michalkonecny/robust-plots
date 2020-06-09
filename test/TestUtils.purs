@@ -52,3 +52,6 @@ assertOpWithInput op opString input = assertOpMoreHelp op opString moreHelp
 
 eqWithInput :: forall t1 t2. Eq t2 => Show t2 => Show t1 => Array t1 -> t2 -> t2 -> Result
 eqWithInput = assertOpWithInput (==) " == "
+
+leqWithInput :: forall t1 t2. Ord t2 => Show t2 => Show t1 => Array t1 -> t2 -> t2 -> Result
+leqWithInput = assertOpWithInput (<=) " <= "
