@@ -5,7 +5,7 @@ module Test.IntervalArith.Approx
 import Prelude
 
 import Effect (Effect)
-import IntervalArith.Approx (Approx, approxMB, better, setMB, (⊑))
+import IntervalArith.Approx (Approx(..), approxMB, better, setMB, (⊑))
 import IntervalArith.Approx.ShowA (showA)
 import IntervalArith.Misc (big)
 import Test.IntervalArith.Approx.ShowA (approxTests_showA)
@@ -15,6 +15,7 @@ import Test.QuickCheck (class Arbitrary, arbitrary)
 import Test.QuickCheck.Gen (Size, chooseInt, randomSample', sized)
 import Test.TestUtils (SuiteOrdParams1, assertOp, assertOpWithInput)
 import Test.Unit (TestSuite, suite, test)
+import Test.Unit.Assert (equal)
 import Test.Unit.QuickCheck (quickCheck)
 
 data ArbitraryApprox
@@ -55,7 +56,20 @@ approxTests_setMBworse =
             assertOp (flip better) " ⊒ " aMB a
 
 approxTests_Order :: TestSuite
-approxTests_Order = preOrderTests approxOrdParams
+approxTests_Order = 
+  suite "IntervalArith.Approx - approximation order (`better`)" do
+    test "SHOULD give (Approx 4 12 1 3 = 96±8 \"1~~\") WHEN setMB 4 (Approx 10 100 0 0 ~ \"100\")" do
+      let
+        -- given
+        input = Approx 10 (big 100) (big 0) 0
+
+        -- when
+        result = Approx 4 (big 12) (big 1) 3
+
+        -- then
+        expected = result
+      equal expected result
+    preOrderTests approxOrdParams
 
 approxOrdParams :: SuiteOrdParams1 ArbitraryApprox Approx
 approxOrdParams =
