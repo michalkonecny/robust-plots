@@ -1,4 +1,4 @@
-module Test.Expression.Evaluator.Lookup
+module Test.Expression.VariableMap.Lookup
   ( lookUpTests
   ) where
 
@@ -11,7 +11,7 @@ import Test.Unit.Assert (equal)
 
 lookUpTests :: TestSuite
 lookUpTests =
-  suite "Expression.Evaluator - lookup" do
+  suite "Expression.VariableMap - lookup" do
     test "SHOULD not find value WHEN value does not exist" do
       let
         -- given
