@@ -95,6 +95,7 @@ dyadicOrdParams =
   , leqOpSymbol: "<="
   , eqOpWithInput: (assertOpWithInput (==) " == ")
   , eqOpSymbol: "="
+  , makeLeq: \ a b -> b
   }
 
 dyadicTests_Ring :: TestSuite

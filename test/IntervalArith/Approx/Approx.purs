@@ -3,9 +3,8 @@ module Test.IntervalArith.Approx
   ) where
 
 import Prelude
-
 import Effect (Effect)
-import IntervalArith.Approx (Approx(..), approxMB, better, setMB, (⊑))
+import IntervalArith.Approx (Approx(..), approxMB, setMB, (⊑))
 import IntervalArith.Approx.ShowA (showA)
 import IntervalArith.Misc (big)
 import Test.IntervalArith.Approx.ShowA (approxTests_showA)
@@ -41,7 +40,7 @@ approxTests = do
 approxTests_setMBworse :: TestSuite
 approxTests_setMBworse =
   suite "IntervalArith.Approx - setMB" do
-    test "SHOULD HOLD setMB mb a ⊒ a FOR ALL approx a and integer mb>=0"
+    test "SHOULD HOLD setMB mb a ⊑ a FOR ALL approx a and integer mb>=0"
       $ quickCheck \aPre mbPre ->
           let
             -- given
@@ -53,10 +52,10 @@ approxTests_setMBworse =
             aMB = setMB mb a
           -- then
           in
-            assertOp (flip better) " ⊒ " aMB a
+            assertOp (⊑) " ⊑ " aMB a
 
 approxTests_Order :: TestSuite
-approxTests_Order = 
+approxTests_Order =
   suite "IntervalArith.Approx - approximation order (`better`)" do
     test "SHOULD give (Approx 4 12 1 3 = 96±8 \"1~~\") WHEN setMB 4 (Approx 10 100 0 0 ~ \"100\")" do
       let
@@ -80,4 +79,8 @@ approxOrdParams =
   , leqOpSymbol: "⊑"
   , eqOpWithInput: (assertOpWithInput (==) " == ")
   , eqOpSymbol: "="
+  , makeLeq:
+      \a b -> case b of
+        (Approx mb _ _ _) -> setMB mb a
+        Bottom -> Bottom
   }
