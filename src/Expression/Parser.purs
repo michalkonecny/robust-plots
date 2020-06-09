@@ -35,7 +35,7 @@ identifier = token.identifier
 
 literal :: P Expression
 literal = do
-  interger <- token.natural
+  interger <- token.integer
   let
     rationalInteger = toRational interger
   (lookAhead (char '.') *> asRational rationalInteger) <|> (pure $ ExpressionLiteral rationalInteger)
@@ -47,7 +47,12 @@ literal = do
     pure $ ExpressionLiteral $ wholeNumber + (foldr foldIntoRational (toRational 0) decimalPlaces)
 
   digitToInteger :: P Integer
-  digitToInteger = digit >>= fromEnum >>> big >>> pure
+  digitToInteger = digit >>= fromChar >>> big >>> pure
+
+  -- | Note: `fromEnum` returns the ASCII code for the character. So subtract the code for 
+  -- | `0` to retrieve the actual integer value
+  fromChar :: Char -> Int
+  fromChar char = (fromEnum char) - (fromEnum '0')
 
   isNotDigit :: P Unit
   isNotDigit = notFollowedBy $ digit

@@ -73,7 +73,7 @@ showLiteral value =
   if isInteger then
     show integerValue
   else
-    show value
+    show numberValue
   where
   numberValue = rationalToNumber value
 

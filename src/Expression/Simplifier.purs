@@ -30,11 +30,9 @@ simplify expression = expression
 
 trimTimesNodes :: Expression -> Expression -> Maybe Expression
 trimTimesNodes (ExpressionLiteral leftValue) (ExpressionLiteral rightValue) = 
-  if (big 0) == leftNumerator 
+  if (big 0) == leftNumerator || (big 0) == rightNumerator
     then Just $ ExpressionLiteral (toRational 0)
-    else if (big 0) == rightNumerator
-      then Just $ ExpressionLiteral (toRational 0)
-      else Nothing
+    else Nothing
   where
     leftNumerator = numerator leftValue
     rightNumerator = numerator rightValue
