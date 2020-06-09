@@ -3,7 +3,7 @@ module Test.Expression.Evaluator.Lookup
   ) where
 
 import Prelude
-import Expression.Evaluator (VariableMap, lookup)
+import Expression.VariableMap (VariableMap, lookup)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Test.Unit (TestSuite, suite, test)
