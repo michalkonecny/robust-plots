@@ -1,6 +1,8 @@
 module Expression.Differentiator (differentiate, secondDifferentiate) where
 
 import Prelude
+
+import Expression.SubExpression (removeSubExpressions)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 import IntervalArith.Misc (toRational)
 
@@ -13,7 +15,7 @@ differentiate = case _ of
   ExpressionVariable _ -> ExpressionLiteral $ toRational 1
   ExpressionBinary operation leftExpression rightExpression -> differentiateBinaryOperation operation leftExpression rightExpression
   ExpressionUnary operation expression -> differentiateUnaryOperation operation expression
-  ExpressionLet name expression parentExpression -> ExpressionBinary Times (differentiate expression) (differentiate parentExpression)
+  ExpressionLet name expression parentExpression -> differentiate $ removeSubExpressions $ ExpressionLet name expression parentExpression
 
 differentiateBinaryOperation :: BinaryOperation -> Expression -> Expression -> Expression
 differentiateBinaryOperation (Plus) leftExpression rightExpression = ExpressionBinary Plus (differentiate leftExpression) (differentiate rightExpression)
