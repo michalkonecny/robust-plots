@@ -2,10 +2,10 @@ module Expression.SubExpression where
 
 import Prelude
 
-import Data.Array (find, delete, sortBy, filter)
+import Data.Array (delete, filter, find, foldr, mapWithIndex, reverse, sortBy)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Expression.Syntax (Expression(..))
+import Expression.Syntax (Expression(..), VariableName)
 import Expression.VariableMap (VariableMap, lookup)
 
 removeSubExpressions :: Expression -> Expression
@@ -19,6 +19,27 @@ removeSubExpressions = removeSubExpressionsWithMap []
     ExpressionLet name expression parentExpression -> removeSubExpressionsWithMap (variableMap <> [ (Tuple name expression) ]) parentExpression
     expression -> expression
 
+addSubExpressions :: VariableExpression -> Expression -> Expression
+addSubExpressions target parentExpression = ExpressionLet target.name target.expression (cleanParent target parentExpression)
+
+cleanParent :: VariableExpression -> Expression -> Expression
+cleanParent target expression =
+  if expression == target.expression then
+    ExpressionVariable target.name
+  else case expression of
+    ExpressionUnary unaryOperation e -> ExpressionUnary unaryOperation $ cleanParent target e
+    ExpressionBinary binaryOperation el er -> ExpressionBinary binaryOperation (cleanParent target el) (cleanParent target er)
+    -- If the expression is not the target and not a binary or unary operation then it is already clean.
+    _ -> expression
+
+joinCommonSubExpressions :: Expression -> Expression
+joinCommonSubExpressions expression = withCommonSubExpressions
+  where
+  withCommonSubExpressions = foldr addSubExpressions (expression) $ mapWithIndex assignVariableName $ reverse $ sortByOccurances $ filterSingleOccurances $ countOccurances expression
+
+assignVariableName :: Int -> SubExpressionCount -> VariableExpression
+assignVariableName index { expression } = { expression, name: "$" <> (show (index + 1)) }
+
 countOccurances :: Expression -> SubExpressionCounter
 countOccurances = countOccurancesWithMap []
   where
@@ -26,19 +47,25 @@ countOccurances = countOccurancesWithMap []
   countOccurancesWithMap counter = case _ of
     ExpressionUnary unaryOperation expression -> countOccurancesWithMap newCounter expression
       where
-        newCounter = add counter (ExpressionUnary unaryOperation expression)
+      newCounter = addExpressionToCounter counter (ExpressionUnary unaryOperation expression)
     ExpressionBinary binaryOperation leftExpression rightExpression -> mergeCounters newCounter (mergeCounters leftCounter rightCounter)
       where
-        newCounter = add counter (ExpressionBinary binaryOperation leftExpression rightExpression)
-        leftCounter = countOccurances leftExpression
-        rightCounter = countOccurances rightExpression
+      newCounter = addExpressionToCounter counter (ExpressionBinary binaryOperation leftExpression rightExpression)
 
+      leftCounter = countOccurances leftExpression
+
+      rightCounter = countOccurances rightExpression
     -- We dont want to count literals or variables
     expression -> counter
 
-type SubExpressionCount = { expression :: Expression, occurances :: Int }
+type VariableExpression
+  = { expression :: Expression, name :: VariableName }
 
-type SubExpressionCounter = Array SubExpressionCount
+type SubExpressionCount
+  = { expression :: Expression, occurances :: Int }
+
+type SubExpressionCounter
+  = Array SubExpressionCount
 
 mergeCounters :: SubExpressionCounter -> SubExpressionCounter -> SubExpressionCounter
 mergeCounters otherCounter = map (mergeWith otherCounter)
@@ -46,12 +73,12 @@ mergeCounters otherCounter = map (mergeWith otherCounter)
 mergeWith :: SubExpressionCounter -> SubExpressionCount -> SubExpressionCount
 mergeWith otherCounter count = count { occurances = count.occurances + countInOther }
   where
-    countInOther = getOccurances otherCounter count.expression
+  countInOther = getOccurances otherCounter count.expression
 
 filterSingleOccurances :: SubExpressionCounter -> SubExpressionCounter
 filterSingleOccurances = filter (\count -> count.occurances == 1)
 
-sortByOccurances :: SubExpressionCounter -> SubExpressionCounter 
+sortByOccurances :: SubExpressionCounter -> SubExpressionCounter
 sortByOccurances = sortBy compareOccurances
 
 compareOccurances :: SubExpressionCount -> SubExpressionCount -> Ordering
@@ -59,11 +86,11 @@ compareOccurances a b = compare (a.occurances) (b.occurances)
 
 getOccurances :: SubExpressionCounter -> Expression -> Int
 getOccurances counter expression = case lookupCount counter expression of
-    Just count -> count.occurances
-    _ -> 0
+  Just count -> count.occurances
+  _ -> 0
 
-add :: SubExpressionCounter -> Expression -> SubExpressionCounter
-add counter expression = case lookupCount counter expression of
+addExpressionToCounter :: SubExpressionCounter -> Expression -> SubExpressionCounter
+addExpressionToCounter counter expression = case lookupCount counter expression of
   Just count -> (delete count counter) <> [ ({ expression, occurances: count.occurances + 1 }) ]
   Nothing -> counter <> [ { expression, occurances: 0 } ]
 
