@@ -86,7 +86,7 @@ mergeWith otherCounter count = count { occurances = count.occurances + countInOt
   countInOther = getOccurances otherCounter count.expression
 
 filterSingleOccurances :: SubExpressionCounter -> SubExpressionCounter
-filterSingleOccurances = filter (\count -> count.occurances == 0)
+filterSingleOccurances = filter (\count -> count.occurances == 1)
 
 sortByOccurances :: SubExpressionCounter -> SubExpressionCounter
 sortByOccurances = sortBy compareOccurances
