@@ -28,14 +28,11 @@ joinCommonSubExpressions expression = addSubExpressionsUntilConvergence variable
 addSubExpressionsUntilConvergence :: Array VariableExpression -> Expression -> Expression
 addSubExpressionsUntilConvergence variableDefinitions expression = case uncons variableDefinitions of 
   Nothing -> expression
-  Just { head, tail } -> result
+  Just { head, tail } -> ExpressionLet head.name head.expression result
     where 
-      addedHeadVariable = addSubExpressions head expression
+      addedHeadVariable = substitute head expression 
       newVariableDefinitions = map (\target -> target { expression = substitute head target.expression }) tail
       result = addSubExpressionsUntilConvergence newVariableDefinitions addedHeadVariable
-
-addSubExpressions :: VariableExpression -> Expression -> Expression
-addSubExpressions target parentExpression = ExpressionLet target.name target.expression (substitute target parentExpression)
 
 substitute :: VariableExpression -> Expression -> Expression
 substitute target expression =
