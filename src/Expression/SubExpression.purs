@@ -2,7 +2,7 @@ module Expression.SubExpression where
 
 import Prelude
 
-import Data.Array (delete, filter, find, foldr, mapWithIndex, reverse, sortBy)
+import Data.Array (delete, filter, find, mapWithIndex, reverse, sortBy, uncons)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Expression.Syntax (Expression(..), VariableName)
@@ -20,22 +20,30 @@ removeSubExpressions = removeSubExpressionsWithMap []
     expression -> expression
 
 joinCommonSubExpressions :: Expression -> Expression
-joinCommonSubExpressions expression = withCommonSubExpressions
+joinCommonSubExpressions expression = addSubExpressionsUntilConvergence variableDefinitions expression
   where
   commonSubExpressionsOrderedByOccurances = reverse $ sortByOccurances $ filterSingleOccurances $ countOccurances expression
   variableDefinitions = mapWithIndex assignVariableName commonSubExpressionsOrderedByOccurances
-  withCommonSubExpressions = foldr addSubExpressions (expression) variableDefinitions 
+
+addSubExpressionsUntilConvergence :: Array VariableExpression -> Expression -> Expression
+addSubExpressionsUntilConvergence variableDefinitions expression = case uncons variableDefinitions of 
+  Nothing -> expression
+  Just { head, tail } -> result
+    where 
+      addedHeadVariable = addSubExpressions head expression
+      newVariableDefinitions = map (\target -> target { expression = substitute head target.expression }) tail
+      result = addSubExpressionsUntilConvergence newVariableDefinitions addedHeadVariable
 
 addSubExpressions :: VariableExpression -> Expression -> Expression
-addSubExpressions target parentExpression = ExpressionLet target.name target.expression (cleanParent target parentExpression)
+addSubExpressions target parentExpression = ExpressionLet target.name target.expression (substitute target parentExpression)
 
-cleanParent :: VariableExpression -> Expression -> Expression
-cleanParent target expression =
+substitute :: VariableExpression -> Expression -> Expression
+substitute target expression =
   if expression == target.expression then
     ExpressionVariable target.name
   else case expression of
-    ExpressionUnary unaryOperation nestedExpression -> ExpressionUnary unaryOperation $ cleanParent target nestedExpression
-    ExpressionBinary binaryOperation leftExpression rightExpression -> ExpressionBinary binaryOperation (cleanParent target leftExpression) (cleanParent target rightExpression)
+    ExpressionUnary unaryOperation nestedExpression -> ExpressionUnary unaryOperation $ substitute target nestedExpression
+    ExpressionBinary binaryOperation leftExpression rightExpression -> ExpressionBinary binaryOperation (substitute target leftExpression) (substitute target rightExpression)
     -- If the expression is not the target and not a binary or unary operation then it is already clean.
     _ -> expression
 
@@ -78,7 +86,7 @@ mergeWith otherCounter count = count { occurances = count.occurances + countInOt
   countInOther = getOccurances otherCounter count.expression
 
 filterSingleOccurances :: SubExpressionCounter -> SubExpressionCounter
-filterSingleOccurances = filter (\count -> count.occurances == 1)
+filterSingleOccurances = filter (\count -> count.occurances == 0)
 
 sortByOccurances :: SubExpressionCounter -> SubExpressionCounter
 sortByOccurances = sortBy compareOccurances
