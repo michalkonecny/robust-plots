@@ -2,8 +2,8 @@ module Expression.SubExpression where
 
 import Prelude
 
-import Data.Array (delete, filter, find, mapWithIndex, reverse, sortBy, uncons)
-import Data.Maybe (Maybe(..))
+import Data.Array (delete, filter, find, mapWithIndex, reverse, sortBy, uncons, partition)
+import Data.Maybe (Maybe(..), isJust)
 import Data.Tuple (Tuple(..))
 import Expression.Syntax (Expression(..), VariableName)
 import Expression.VariableMap (VariableMap, lookup)
@@ -78,7 +78,10 @@ type SubExpressionCounter
   = Array SubExpressionCount
 
 mergeCounters :: SubExpressionCounter -> SubExpressionCounter -> SubExpressionCounter
-mergeCounters otherCounter = map (mergeWith otherCounter)
+mergeCounters a b = (map (mergeWith aInB) bInA) <> justInA <> justInB
+  where
+    { yes: aInB, no: justInA } = partition (\aTarget -> isJust (find (isThisExpression aTarget.expression) b)) a
+    { yes: bInA, no: justInB } = partition (\bTarget -> isJust (find (isThisExpression bTarget.expression) a)) b
 
 mergeWith :: SubExpressionCounter -> SubExpressionCount -> SubExpressionCount
 mergeWith otherCounter count = count { occurances = count.occurances + countInOther }
