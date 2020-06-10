@@ -21,6 +21,9 @@ evaluate variableMap = case _ of
     _ -> unknownValue name
   ExpressionBinary operation leftExpression rightExpression -> evaluateBinaryOperation operation variableMap leftExpression rightExpression
   ExpressionUnary operation expression -> evaluateUnaryOperation operation variableMap expression
+  ExpressionLet name expression parentExpression -> case evaluate variableMap expression of
+      Right value -> evaluate (variableMap <> [ (Tuple name value) ]) parentExpression
+      Left error -> Left error
 
 evaluateBinaryOperation :: BinaryOperation -> VariableMap Number -> Expression -> Expression -> Expect Number
 evaluateBinaryOperation Plus = evaluateArithmeticBinaryOperation add

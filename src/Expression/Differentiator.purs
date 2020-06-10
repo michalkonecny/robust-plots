@@ -13,6 +13,7 @@ differentiate = case _ of
   ExpressionVariable _ -> ExpressionLiteral $ toRational 1
   ExpressionBinary operation leftExpression rightExpression -> differentiateBinaryOperation operation leftExpression rightExpression
   ExpressionUnary operation expression -> differentiateUnaryOperation operation expression
+  ExpressionLet name expression parentExpression -> ExpressionBinary Times (differentiate expression) (differentiate parentExpression)
 
 differentiateBinaryOperation :: BinaryOperation -> Expression -> Expression -> Expression
 differentiateBinaryOperation (Plus) leftExpression rightExpression = ExpressionBinary Plus (differentiate leftExpression) (differentiate rightExpression)
