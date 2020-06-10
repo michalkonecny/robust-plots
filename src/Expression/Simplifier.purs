@@ -27,12 +27,6 @@ simplify (ExpressionBinary operation leftExpression rightExpression) =
 simplify expression = expression
 
 trimTimesNodes :: Expression -> Expression -> Maybe Expression
-trimTimesNodes (ExpressionLiteral leftValue) (ExpressionLiteral rightValue) =
-  if (toRational 0) == leftValue || (toRational 0) == rightValue then
-    Just $ ExpressionLiteral (toRational 0)
-  else
-    Nothing
-
 trimTimesNodes (ExpressionLiteral leftValue) rightExpression =
   if (toRational 1) == leftValue then
     Just $ rightExpression

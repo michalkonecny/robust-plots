@@ -10,10 +10,10 @@ type VariableMap a
   = Array (Tuple VariableName a)
 
 lookup :: forall a. VariableMap a -> VariableName -> Maybe a
-lookup variableMap variableName = toMaybeValue $ find search variableMap
+lookup variableMap variableName = toMaybeValue $ find isThisVariable variableMap
   where
-  search :: Tuple VariableName a -> Boolean
-  search (Tuple name _) = name == variableName
+  isThisVariable :: Tuple VariableName a -> Boolean
+  isThisVariable (Tuple name _) = name == variableName
 
   toMaybeValue :: Maybe (Tuple VariableName a) -> Maybe a
   toMaybeValue (Just (Tuple _ value)) = Just value
