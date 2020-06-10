@@ -89,7 +89,7 @@ mergeWith otherCounter count = count { occurances = count.occurances + countInOt
   countInOther = getOccurances otherCounter count.expression
 
 filterSingleOccurances :: SubExpressionCounter -> SubExpressionCounter
-filterSingleOccurances = filter (\count -> count.occurances == 1)
+filterSingleOccurances = filter (\count -> count.occurances > 1)
 
 sortByOccurances :: SubExpressionCounter -> SubExpressionCounter
 sortByOccurances = sortBy compareOccurances
@@ -105,7 +105,7 @@ getOccurances counter expression = case lookupCount counter expression of
 addExpressionToCounter :: SubExpressionCounter -> Expression -> SubExpressionCounter
 addExpressionToCounter counter expression = case lookupCount counter expression of
   Just count -> (delete count counter) <> [ ({ expression, occurances: count.occurances + 1 }) ]
-  Nothing -> counter <> [ { expression, occurances: 0 } ]
+  Nothing -> counter <> [ { expression, occurances: 1 } ]
 
 lookupCount :: SubExpressionCounter -> Expression -> Maybe SubExpressionCount
 lookupCount counter expression = find (isThisExpression expression) counter
