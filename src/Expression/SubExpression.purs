@@ -44,11 +44,12 @@ substitute target expression =
   else case expression of
     ExpressionUnary unaryOperation nestedExpression -> ExpressionUnary unaryOperation $ substitute target nestedExpression
     ExpressionBinary binaryOperation leftExpression rightExpression -> ExpressionBinary binaryOperation (substitute target leftExpression) (substitute target rightExpression)
+    ExpressionLet name variableExpression parentExpression -> ExpressionLet name variableExpression (substitute target parentExpression)
     -- If the expression is not the target and not a binary or unary operation then it is already clean.
     _ -> expression
 
 assignVariableName :: Int -> SubExpressionCount -> VariableExpression
-assignVariableName index { expression } = { expression, name: "$" <> (show (index + 1)) }
+assignVariableName index { expression } = { expression, name: "$v" <> (show (index + 1)) }
 
 countOccurances :: Expression -> SubExpressionCounter
 countOccurances = countOccurancesWithMap []

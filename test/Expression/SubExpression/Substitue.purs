@@ -14,50 +14,50 @@ import Test.Unit.Assert (equal)
 substituteTests :: TestSuite
 substituteTests =
   suite "Expression.SubExpression - substitute" do
-    test "ASSERT f(x) = ((sin(sin$1))+(sin$1))+$1 WHEN f(x) = sin(sin(sin(x)))+sin(sin(x))+sin(x) AND $1 = sin(x)" do
+    test "ASSERT f(x) = ((sin(sin$v1))+(sin$v1))+$v1 WHEN f(x) = sin(sin(sin(x)))+sin(sin(x))+sin(x) AND $v1 = sin(x)" do
       let
         -- given
         rawExpression = "sin(sin(sin(x))) + sin(sin(x)) + sin(x)"
 
         rawSubstitueExpression = "sin(x)"
 
-        name = "$1"
+        name = "$v1"
 
         -- when
         result = fromExpect $ parseAndSubstitute name rawExpression rawSubstitueExpression
 
         -- then
-        expectedResult = "((sin(sin$1))+(sin$1))+$1"
+        expectedResult = "((sin(sin$v1))+(sin$v1))+$v1"
       equal expectedResult result
-    test "ASSERT f(x) = $1+$1 WHEN f(x) = sin(x)+sin(x) AND $1 = sin(x)" do
+    test "ASSERT f(x) = $v1+$v1 WHEN f(x) = sin(x)+sin(x) AND $v1 = sin(x)" do
       let
         -- given
         rawExpression = "sin(x) + sin(x)"
 
         rawSubstitueExpression = "sin(x)"
 
-        name = "$1"
+        name = "$v1"
 
         -- when
         result = fromExpect $ parseAndSubstitute name rawExpression rawSubstitueExpression
 
         -- then
-        expectedResult = "$1+$1"
+        expectedResult = "$v1+$v1"
       equal expectedResult result
-    test "ASSERT f(x) = $1^$1 WHEN f(x) = (2*x)^(2*x) AND $1 = 2*x" do
+    test "ASSERT f(x) = $v1^$v1 WHEN f(x) = (2*x)^(2*x) AND $v1 = 2*x" do
       let
         -- given
         rawExpression = "(2*x)^(2*x)"
 
         rawSubstitueExpression = "2*x"
 
-        name = "$1"
+        name = "$v1"
 
         -- when
         result = fromExpect $ parseAndSubstitute name rawExpression rawSubstitueExpression
 
         -- then
-        expectedResult = "$1^$1"
+        expectedResult = "$v1^$v1"
       equal expectedResult result
 
 parseAndSubstitute :: String -> String -> String -> Expect Expression

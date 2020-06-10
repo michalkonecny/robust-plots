@@ -14,7 +14,7 @@ import Test.Unit.Assert (equal)
 joinCommonSubExpressionsTests :: TestSuite
 joinCommonSubExpressionsTests =
   suite "Expression.SubExpression - joinCommonSubExpressions" do
-    test "ASSERT f(x) = 9.0 WHEN f(x) = sin(sin(sin(x))) + sin(sin(x)) + sin(x)" do
+    test "ASSERT f(x) = let $v2 = sin$v1 in let $v1 = sinx in ((sin$v2)+$v2)+$v1 WHEN f(x) = sin(sin(sin(x))) + sin(sin(x)) + sin(x)" do
       let
         -- given
         rawExpression = "sin(sin(sin(x))) + sin(sin(x)) + sin(x)"
@@ -23,7 +23,7 @@ joinCommonSubExpressionsTests =
         result = fromExpect $ parseAndJoinCommonSubExpressions rawExpression
 
         -- then
-        expectedResult = show 9.0
+        expectedResult = "let $v2 = sin$v1 in let $v1 = sinx in ((sin$v2)+$v2)+$v1"
       equal expectedResult result
 
 parseAndJoinCommonSubExpressions :: String -> Expect Expression
