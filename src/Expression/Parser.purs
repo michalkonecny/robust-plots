@@ -1,20 +1,22 @@
 module Expression.Parser where
 
 import Prelude
-
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Either (Either(..))
+import Data.Enum (fromEnum)
+import Data.Foldable (foldr)
 import Data.Identity (Identity)
-import Data.Int (toNumber)
+import Data.Ratio (denominator, (%))
 import Expression.Error (Expect, parseError)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
+import IntervalArith.Misc (Rational, Integer, big, toRational)
 import Text.Parsing.Parser (Parser, parseErrorMessage, runParser, fail)
-import Text.Parsing.Parser.Combinators (lookAhead)
+import Text.Parsing.Parser.Combinators (lookAhead, notFollowedBy, many1Till)
 import Text.Parsing.Parser.Expr (OperatorTable, Assoc(..), Operator(..), buildExprParser)
 import Text.Parsing.Parser.Language (emptyDef)
-import Text.Parsing.Parser.String (string)
-import Text.Parsing.Parser.Token (TokenParser, makeTokenParser)
+import Text.Parsing.Parser.String (char)
+import Text.Parsing.Parser.Token (TokenParser, digit, makeTokenParser)
 
 token :: TokenParser
 token = makeTokenParser emptyDef
@@ -32,19 +34,40 @@ identifier :: P String
 identifier = token.identifier
 
 literal :: P Expression
-literal = ExpressionLiteral <$> toLiteral <$> token.naturalOrFloat
+literal = do
+  interger <- token.integer
+  let
+    rationalInteger = toRational interger
+  (lookAhead (char '.') *> asRational rationalInteger) <|> (pure $ ExpressionLiteral rationalInteger)
+  where
+  asRational :: Rational -> P Expression
+  asRational wholeNumber = do
+    _ <- token.dot
+    decimalPlaces <- many1Till digitToInteger isNotDigit
+    pure $ ExpressionLiteral $ wholeNumber + (foldr foldIntoRational (toRational 0) decimalPlaces)
 
-toLiteral :: Either Int Number -> Number
-toLiteral (Right number) = number
+  digitToInteger :: P Integer
+  digitToInteger = digit >>= fromChar >>> big >>> pure
 
-toLiteral (Left integer) = toNumber integer
+  -- | Note: `fromEnum` returns the ASCII code for the character. So subtract the code for 
+  -- | `0` to retrieve the actual integer value
+  fromChar :: Char -> Int
+  fromChar char = (fromEnum char) - (fromEnum '0')
+
+  isNotDigit :: P Unit
+  isNotDigit = notFollowedBy $ digit
+
+  foldIntoRational :: Integer -> Rational -> Rational
+  foldIntoRational element accumulator = accumulator + (element % newDenominator)
+    where
+    newDenominator = (big 10) * denominator accumulator
 
 variableOrUnaryFunctionCall :: P Expression -> P Expression
 variableOrUnaryFunctionCall p = do
   idString <- identifier
-  (lookAhead (string "(") *> functionCall idString)
-    <|> (pure (ExpressionVariable idString))
+  (lookAhead (char '(') *> functionCall idString) <|> (pure (ExpressionVariable idString))
   where
+  functionCall :: String -> P Expression
   functionCall idString = do
     expr <- brackets p
     case idString of

@@ -1,9 +1,9 @@
-module Test.Expression.Evaluator.Lookup
+module Test.Expression.VariableMap.Lookup
   ( lookUpTests
   ) where
 
 import Prelude
-import Expression.Evaluator (VariableMap, lookup)
+import Expression.VariableMap (VariableMap, lookup)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Test.Unit (TestSuite, suite, test)
@@ -11,7 +11,7 @@ import Test.Unit.Assert (equal)
 
 lookUpTests :: TestSuite
 lookUpTests =
-  suite "Expression.Evaluator - lookup" do
+  suite "Expression.VariableMap - lookup" do
     test "SHOULD not find value WHEN value does not exist" do
       let
         -- given

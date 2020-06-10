@@ -7,6 +7,7 @@ module Expression.Syntax
 
 import Prelude
 import Data.Int (round, toNumber)
+import IntervalArith.Misc (Rational, rationalToNumber)
 
 data UnaryOperation
   = Neg
@@ -48,11 +49,12 @@ instance binaryOperationShow :: Show BinaryOperation where
   show Divide = "/"
   show Power = "^"
 
-type VariableName = String
+type VariableName
+  = String
 
 data Expression
   = ExpressionVariable VariableName
-  | ExpressionLiteral Number
+  | ExpressionLiteral Rational
   | ExpressionUnary UnaryOperation Expression
   | ExpressionBinary BinaryOperation Expression Expression
 
@@ -66,16 +68,18 @@ instance expressionShow :: Show Expression where
   show (ExpressionUnary unaryOperation expression) = (show unaryOperation) <> (showNestedExpression expression)
   show (ExpressionBinary binaryOperation leftExpression rightExpression) = (showNestedExpression leftExpression) <> (show binaryOperation) <> (showNestedExpression rightExpression)
 
-showLiteral :: Number -> String
+showLiteral :: Rational -> String
 showLiteral value =
   if isInteger then
     show integerValue
   else
-    show value
+    show numberValue
   where
-  integerValue = round value
+  numberValue = rationalToNumber value
 
-  isInteger = value == toNumber integerValue
+  integerValue = round $ numberValue
+
+  isInteger = numberValue == toNumber integerValue
 
 showNestedExpression :: Expression -> String
 showNestedExpression (ExpressionVariable name) = show $ ExpressionVariable name

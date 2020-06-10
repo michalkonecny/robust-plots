@@ -2,6 +2,7 @@ module IntervalArith.Misc where
 
 import Prelude
 import Data.BigInt (BigInt, fromInt, shl)
+import Data.BigInt as BigInt
 import Data.Int as Int
 import Data.Monoid (power)
 import Data.Monoid.Multiplicative (Multiplicative(..))
@@ -73,3 +74,7 @@ instance scalableRational :: Scalable (Ratio BigInt) where
     result
       | n >= 0 = shift a n % b
       | otherwise = a % shift b (-n)
+
+rationalToNumber :: Rational -> Number
+rationalToNumber q = 
+ (BigInt.toNumber (numerator q)) / (BigInt.toNumber (denominator q))

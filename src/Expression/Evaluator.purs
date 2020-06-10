@@ -1,33 +1,21 @@
 module Expression.Evaluator where
 
-import Prelude
-
-import Data.Array (find)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Expression.Error (Expect, unknownValue, multipleErrors, throw)
-import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..), VariableName)
+import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
+import Expression.VariableMap (VariableMap, lookup)
+import IntervalArith.Misc (rationalToNumber)
 import Math (cos, exp, log, pow, sin, sqrt, tan, e, pi)
-
-type VariableMap a = Array (Tuple VariableName a)
-
-lookup :: forall a. VariableMap a -> VariableName -> Maybe a
-lookup variableMap variableName = toMaybeValue $ find search variableMap
-  where 
-    search :: Tuple VariableName a -> Boolean
-    search (Tuple name _) = name == variableName
-
-    toMaybeValue :: Maybe (Tuple VariableName a) -> Maybe a
-    toMaybeValue (Just (Tuple _ value)) = Just value
-    toMaybeValue _ = Nothing
+import Prelude (add, div, mul, negate, pure, show, sub, ($), (<>))
 
 presetConstants :: Array (Tuple String Number)
 presetConstants = [ (Tuple "pi" pi), (Tuple "e" e) ]
 
 evaluate :: VariableMap Number -> Expression -> Expect Number
 evaluate variableMap = case _ of
-  ExpressionLiteral value -> pure value
+  ExpressionLiteral value -> pure $ rationalToNumber value
   ExpressionVariable name -> case lookup variableMap name of
     Just value -> pure value
     _ -> unknownValue name
@@ -36,9 +24,13 @@ evaluate variableMap = case _ of
 
 evaluateBinaryOperation :: BinaryOperation -> VariableMap Number -> Expression -> Expression -> Expect Number
 evaluateBinaryOperation Plus = evaluateArithmeticBinaryOperation add
+
 evaluateBinaryOperation Minus = evaluateArithmeticBinaryOperation sub
+
 evaluateBinaryOperation Times = evaluateArithmeticBinaryOperation mul
+
 evaluateBinaryOperation Divide = evaluateArithmeticBinaryOperation div
+
 evaluateBinaryOperation Power = evaluateArithmeticBinaryOperation pow
 
 evaluateArithmeticBinaryOperation :: (Number -> Number -> Number) -> VariableMap Number -> Expression -> Expression -> Expect Number
@@ -49,12 +41,18 @@ evaluateArithmeticBinaryOperation operation variableMap leftExpression rightExpr
   _, Left rightError -> throw rightError
 
 evaluateUnaryOperation :: UnaryOperation -> VariableMap Number -> Expression -> Expect Number
-evaluateUnaryOperation (Neg) = evaluateNegate 
+evaluateUnaryOperation (Neg) = evaluateNegate
+
 evaluateUnaryOperation (Sqrt) = evaluateFunction sqrt
+
 evaluateUnaryOperation (Exp) = evaluateFunction exp
+
 evaluateUnaryOperation (Log) = evaluateFunction log
+
 evaluateUnaryOperation (Sine) = evaluateFunction sin
+
 evaluateUnaryOperation (Cosine) = evaluateFunction cos
+
 evaluateUnaryOperation (Tan) = evaluateFunction tan
 
 evaluateFunction :: (Number -> Number) -> VariableMap Number -> Expression -> Expect Number
