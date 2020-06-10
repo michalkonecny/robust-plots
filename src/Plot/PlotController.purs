@@ -14,7 +14,6 @@ import Draw.Commands (DrawCommand)
 import Effect (Effect)
 import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
 import Expression.Differentiator (secondDifferentiate)
-import Expression.EvaluationResult (EvaluationResult(..), toNumber) as ER
 import Expression.Evaluator (evaluate, presetConstants)
 import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
@@ -41,11 +40,11 @@ countPlots commands = sum $ map (isPlotExpression >>> (\isPlot -> if isPlot then
 evaluateWithX :: Expression -> Number -> Number
 evaluateWithX expression x = value
   where
-  variableMap = presetConstants <> [ Tuple "x" (ER.Number x) ]
+  variableMap = presetConstants <> [ Tuple "x" x ]
 
   value = case evaluate variableMap expression of
     Left _ -> 0.0
-    Right v -> ER.toNumber v
+    Right v -> v
 
 runCommand :: Size -> Int -> Int -> PlotCommand -> DrawCommand Unit
 runCommand _ _ _ (Empty bounds) = clearAndDrawGridLines bounds

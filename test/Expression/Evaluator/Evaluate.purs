@@ -10,7 +10,6 @@ import Expression.Error (Expect, throw)
 import Expression.VariableMap (VariableMap)
 import Expression.Evaluator (evaluate, presetConstants)
 import Expression.Parser (parse)
-import Expression.EvaluationResult (EvaluationResult(..), toNumber) as ER
 import Test.QuickCheck ((===))
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
@@ -311,7 +310,7 @@ evaluateTests =
         -- given
         x = 5.0
 
-        variables = [ (Tuple "x" (ER.Number x)) ] <> presetConstants
+        variables = [ (Tuple "x" x) ] <> presetConstants
 
         rawExpression = "x"
 
@@ -326,7 +325,7 @@ evaluateTests =
         -- given
         x = 2.0
 
-        variables = [ (Tuple "x" (ER.Number x)) ] <> presetConstants
+        variables = [ (Tuple "x" x) ] <> presetConstants
 
         rawExpression = "2.0*x"
 
@@ -341,7 +340,7 @@ evaluateTests =
         -- given
         x = 2.0
 
-        variables = [ (Tuple "x" (ER.Number x)) ] <> presetConstants
+        variables = [ (Tuple "x" x) ] <> presetConstants
 
         rawExpression = "2.0*x"
 
@@ -356,7 +355,7 @@ evaluateTests =
         -- given
         x = 0.0
 
-        variables = [ (Tuple "x" (ER.Number x)) ] <> presetConstants
+        variables = [ (Tuple "x" x) ] <> presetConstants
 
         rawExpression = "1 / (1 + (100 * (x ^ 2)))"
 
@@ -371,7 +370,7 @@ evaluateTests =
         -- given
         x = 0.1
 
-        variables = [ (Tuple "x" (ER.Number x)) ] <> presetConstants
+        variables = [ (Tuple "x" x) ] <> presetConstants
 
         rawExpression = "1 / (1 + (100 * (x ^ 2)))"
 
@@ -408,7 +407,7 @@ evaluateTests =
         expectedResult = "Unknown value: a | Unknown value: b"
       equal expectedResult result
 
-parseAndEvaluate :: VariableMap ER.EvaluationResult -> String -> Expect ER.EvaluationResult
+parseAndEvaluate :: VariableMap Number -> String -> Expect Number
 parseAndEvaluate variables rawExpression = result
   where
   expressionOrParseError = parse rawExpression
@@ -419,7 +418,7 @@ parseAndEvaluate variables rawExpression = result
 
   result = valueOrEvaluationError
 
-fromExpect :: Expect ER.EvaluationResult -> String
-fromExpect (Right value) = show $ ER.toNumber value
+fromExpect :: Expect Number -> String
+fromExpect (Right value) = show value
 
 fromExpect (Left error) = show error
