@@ -19,6 +19,13 @@ removeSubExpressions = removeSubExpressionsWithMap []
     ExpressionLet name expression parentExpression -> removeSubExpressionsWithMap (variableMap <> [ (Tuple name expression) ]) parentExpression
     expression -> expression
 
+joinCommonSubExpressions :: Expression -> Expression
+joinCommonSubExpressions expression = withCommonSubExpressions
+  where
+  commonSubExpressionsOrderedByOccurances = reverse $ sortByOccurances $ filterSingleOccurances $ countOccurances expression
+  variableDefinitions = mapWithIndex assignVariableName commonSubExpressionsOrderedByOccurances
+  withCommonSubExpressions = foldr addSubExpressions (expression) variableDefinitions 
+
 addSubExpressions :: VariableExpression -> Expression -> Expression
 addSubExpressions target parentExpression = ExpressionLet target.name target.expression (cleanParent target parentExpression)
 
@@ -27,15 +34,10 @@ cleanParent target expression =
   if expression == target.expression then
     ExpressionVariable target.name
   else case expression of
-    ExpressionUnary unaryOperation e -> ExpressionUnary unaryOperation $ cleanParent target e
-    ExpressionBinary binaryOperation el er -> ExpressionBinary binaryOperation (cleanParent target el) (cleanParent target er)
+    ExpressionUnary unaryOperation nestedExpression -> ExpressionUnary unaryOperation $ cleanParent target nestedExpression
+    ExpressionBinary binaryOperation leftExpression rightExpression -> ExpressionBinary binaryOperation (cleanParent target leftExpression) (cleanParent target rightExpression)
     -- If the expression is not the target and not a binary or unary operation then it is already clean.
     _ -> expression
-
-joinCommonSubExpressions :: Expression -> Expression
-joinCommonSubExpressions expression = withCommonSubExpressions
-  where
-  withCommonSubExpressions = foldr addSubExpressions (expression) $ mapWithIndex assignVariableName $ reverse $ sortByOccurances $ filterSingleOccurances $ countOccurances expression
 
 assignVariableName :: Int -> SubExpressionCount -> VariableExpression
 assignVariableName index { expression } = { expression, name: "$" <> (show (index + 1)) }
