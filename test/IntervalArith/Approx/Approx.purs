@@ -3,6 +3,7 @@ module Test.IntervalArith.Approx
   ) where
 
 import Prelude
+
 import Effect (Effect)
 import IntervalArith.Approx (Approx(..), approxMB, consistent, setMB, (⊑))
 import IntervalArith.Approx.ShowA (showA)
@@ -12,7 +13,8 @@ import Test.IntervalArith.Misc (ArbitraryInteger(..), ArbitraryPositiveExponent(
 import Test.Order (preOrderTests)
 import Test.QuickCheck (class Arbitrary, arbitrary)
 import Test.QuickCheck.Gen (Size, chooseInt, randomSample', sized)
-import Test.TestUtils (SuiteOrdParams1, assertOp, assertOpWithInput)
+import Test.Ring (commutativeRingTests)
+import Test.TestUtils (SuiteOrdParams1, SuiteEqParams1, assertOp, assertOpWithInput)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
 import Test.Unit.QuickCheck (quickCheck)
@@ -37,6 +39,7 @@ approxTests = do
   approxTests_setMBworse
   approxTests_Order
   approxTests_Consistent
+  approxTests_Ring
 
 approxTests_setMBworse :: TestSuite
 approxTests_setMBworse =
@@ -99,6 +102,9 @@ approxTests_Consistent =
           in
             assertOp consistent " `consistent` " a b
 
+approxTests_Ring :: TestSuite
+approxTests_Ring = commutativeRingTests approxEqParams
+
 approxOrdParams :: SuiteOrdParams1 ArbitraryApprox Approx
 approxOrdParams =
   { suitePrefix: "IntervalArith.Approx ⊑"
@@ -112,4 +118,13 @@ approxOrdParams =
       \a b -> case b of
         (Approx mb _ _ _) -> setMB mb a
         Bottom -> Bottom
+  }
+
+approxEqParams :: SuiteEqParams1 ArbitraryApprox Approx
+approxEqParams =
+  { suitePrefix: "IntervalArith.Approx - "
+  , valuesName: "interval approximations"
+  , fromArbitraryValue: \(ArbitraryApprox d) -> d
+  , eqOpWithInput: (assertOpWithInput consistent " ~ ")
+  , eqOpSymbol: "~"
   }
