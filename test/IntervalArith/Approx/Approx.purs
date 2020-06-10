@@ -3,7 +3,6 @@ module Test.IntervalArith.Approx
   ) where
 
 import Prelude
-
 import Effect (Effect)
 import IntervalArith.Approx (Approx(..), approxMB, consistent, setMB, (⊑))
 import IntervalArith.Approx.ShowA (showA)
