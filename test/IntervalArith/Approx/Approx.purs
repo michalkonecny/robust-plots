@@ -8,12 +8,12 @@ import Effect (Effect)
 import IntervalArith.Approx (Approx(..), approxMB, consistent, setMB, (⊑))
 import IntervalArith.Approx.ShowA (showA)
 import IntervalArith.Misc (big)
+import Test.Field (fieldTests)
 import Test.IntervalArith.Approx.ShowA (approxTests_showA)
 import Test.IntervalArith.Misc (ArbitraryInteger(..), ArbitraryPositiveExponent(..))
 import Test.Order (preOrderTests)
 import Test.QuickCheck (class Arbitrary, arbitrary)
 import Test.QuickCheck.Gen (Size, chooseInt, randomSample', sized)
-import Test.Ring (commutativeRingTests)
 import Test.TestUtils (SuiteOrdParams1, SuiteEqParams1, assertOp, assertOpWithInput)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
@@ -39,7 +39,7 @@ approxTests = do
   approxTests_setMBworse
   approxTests_Order
   approxTests_Consistent
-  approxTests_Ring
+  approxTests_Field
 
 approxTests_setMBworse :: TestSuite
 approxTests_setMBworse =
@@ -102,8 +102,8 @@ approxTests_Consistent =
           in
             assertOp consistent " `consistent` " a b
 
-approxTests_Ring :: TestSuite
-approxTests_Ring = commutativeRingTests approxEqParams
+approxTests_Field :: TestSuite
+approxTests_Field = fieldTests approxEqParams
 
 approxOrdParams :: SuiteOrdParams1 ArbitraryApprox Approx
 approxOrdParams =
