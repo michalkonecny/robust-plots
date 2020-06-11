@@ -2,106 +2,144 @@ module Test.Order where
 
 import Prelude
 import Test.QuickCheck (class Arbitrary)
-import Test.QuickCheck.Combinators ((&=&), (==>))
+import Test.QuickCheck.Combinators ((&=&), (==>), (|=|))
 import Test.TestUtils (SuiteOrdParams1)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.QuickCheck (quickCheck)
 
 totalOrderTests ::
-  forall at t. Arbitrary at => CommutativeRing t => SuiteOrdParams1 at t -> TestSuite
+  forall at t. Arbitrary at => SuiteOrdParams1 at t -> TestSuite
 totalOrderTests params = do
   suite (params.suitePrefix <> " is a total order") do
-    reflexivity params
+    connexity params
     transitivity params
     antisymmetry params
 
 partialOrderTests ::
-  forall at t. Arbitrary at => CommutativeRing t => SuiteOrdParams1 at t -> TestSuite
+  forall at t. Arbitrary at => SuiteOrdParams1 at t -> TestSuite
 partialOrderTests params =
   suite (params.suitePrefix <> " is a partial order") do
     reflexivity params
     transitivity params
+    antisymmetry params
+
+preOrderTests ::
+  forall at t. Arbitrary at => SuiteOrdParams1 at t -> TestSuite
+preOrderTests params =
+  suite (params.suitePrefix <> " is a pre-order") do
+    reflexivity params
+    transitivity params
 
 reflexivity ::
-  forall at t. Arbitrary at => CommutativeRing t => SuiteOrdParams1 at t -> TestSuite
-reflexivity { suitePrefix, valuesName, fromArbitraryValue, leqOpWithInput, leqOpSymbol, eqOpWithInput, eqOpSymbol } =
+  forall at t. Arbitrary at => SuiteOrdParams1 at t -> TestSuite
+reflexivity p =
   test
     ( "SHOULD HOLD reflexivity: "
         <> "a"
-        <> leqOpSymbol
+        <> p.leqOpSymbol
         <> "a"
         <> " FOR ALL "
-        <> valuesName
+        <> p.valuesName
         <> " a"
     )
     $ quickCheck \aA ->
         let
-          a = fromArbitraryValue aA
+          a = p.fromArbitraryValue aA
 
-          leqOp = leqOpWithInput [ a ]
+          leqOp = p.leqOpWithInput [ a ]
         in
-          (a) `leqOp` (a)
+          a `leqOp` a
 
-antisymmetry ::
-  forall at t. Arbitrary at => CommutativeRing t => SuiteOrdParams1 at t -> TestSuite
-antisymmetry { suitePrefix, valuesName, fromArbitraryValue, leqOpWithInput, leqOpSymbol, eqOpWithInput, eqOpSymbol } =
+connexity ::
+  forall at t. Arbitrary at => SuiteOrdParams1 at t -> TestSuite
+connexity p =
   test
-    ( "SHOULD HOLD antisymmetry: "
+    ( "SHOULD HOLD connexity: "
         <> "a"
-        <> leqOpSymbol
+        <> p.leqOpSymbol
         <> "b"
-        <> " and "
+        <> " or "
         <> "b"
-        <> leqOpSymbol
+        <> p.leqOpSymbol
         <> "a"
-        <> " implies "
-        <> "a"
-        <> eqOpSymbol
-        <> "b"
         <> " FOR ALL "
-        <> valuesName
+        <> p.valuesName
         <> " a,b"
     )
     $ quickCheck \aA bA ->
         let
-          a = fromArbitraryValue aA
+          a = p.fromArbitraryValue aA
 
-          b = fromArbitraryValue bA
+          b = p.fromArbitraryValue bA
 
-          eqOp = eqOpWithInput [ a, b ]
+          leqOp = p.leqOpWithInput [ a, b ]
+        in
+          (a `leqOp` b) |=| (b `leqOp` a)
 
-          leqOp = leqOpWithInput [ a, b ]
+antisymmetry ::
+  forall at t. Arbitrary at => SuiteOrdParams1 at t -> TestSuite
+antisymmetry p =
+  test
+    ( "SHOULD HOLD antisymmetry: "
+        <> "a"
+        <> p.leqOpSymbol
+        <> "b"
+        <> " and "
+        <> "b"
+        <> p.leqOpSymbol
+        <> "a"
+        <> " implies "
+        <> "a"
+        <> p.eqOpSymbol
+        <> "b"
+        <> " FOR ALL "
+        <> p.valuesName
+        <> " a,b"
+    )
+    $ quickCheck \aA bA ->
+        let
+          a = p.fromArbitraryValue aA
+
+          b1 = p.fromArbitraryValue bA
+
+          b2 = p.makeLeq a b1
+
+          b = p.makeLeq b1 b2
+
+          eqOp = p.eqOpWithInput [ a, b ]
+
+          leqOp = p.leqOpWithInput [ a, b ]
         in
           ((a `leqOp` b) &=& (b `leqOp` a)) ==> (a `eqOp` b)
 
 transitivity ::
-  forall at t. Arbitrary at => CommutativeRing t => SuiteOrdParams1 at t -> TestSuite
-transitivity { suitePrefix, valuesName, fromArbitraryValue, leqOpWithInput, leqOpSymbol, eqOpWithInput, eqOpSymbol } =
+  forall at t. Arbitrary at => SuiteOrdParams1 at t -> TestSuite
+transitivity p =
   test
     ( "SHOULD HOLD transitivity: "
         <> "a"
-        <> leqOpSymbol
+        <> p.leqOpSymbol
         <> "b"
         <> " and "
         <> "b"
-        <> leqOpSymbol
+        <> p.leqOpSymbol
         <> "c"
         <> " implies "
         <> "a"
-        <> leqOpSymbol
+        <> p.leqOpSymbol
         <> "c"
         <> " FOR ALL "
-        <> valuesName
+        <> p.valuesName
         <> " a,b,c"
     )
     $ quickCheck \aA bA cA ->
         let
-          a = fromArbitraryValue aA
+          c = p.fromArbitraryValue cA
 
-          b = fromArbitraryValue bA
+          b = p.makeLeq c $ p.fromArbitraryValue bA
 
-          c = fromArbitraryValue cA
+          a = p.makeLeq b $ p.fromArbitraryValue aA
 
-          leqOp = leqOpWithInput [ a, b, c ]
+          leqOp = p.leqOpWithInput [ a, b, c ]
         in
           ((a `leqOp` b) &=& (b `leqOp` c)) ==> (a `leqOp` c)
