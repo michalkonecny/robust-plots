@@ -22,9 +22,9 @@ removeSubExpressions = removeSubExpressionsWithMap []
 joinCommonSubExpressions :: Expression -> Expression
 joinCommonSubExpressions expression = addSubExpressionsUntilConvergence variableDefinitions expression
   where
-  commonSubExpressionsOrderedByOccurances = sortByOccurances $ fromFoldable $ splitSubExpressions expression
+  commonSubExpressionsOrderedByDependency = sortByDependency $ fromFoldable $ splitSubExpressions expression
 
-  variableDefinitions = mapWithIndex assignVariableName commonSubExpressionsOrderedByOccurances
+  variableDefinitions = mapWithIndex assignVariableName commonSubExpressionsOrderedByDependency
 
 addSubExpressionsUntilConvergence :: Array VariableExpression -> Expression -> Expression
 addSubExpressionsUntilConvergence variableDefinitions expression = case uncons variableDefinitions of
@@ -72,11 +72,11 @@ splitSubExpressions = splitSubExpressionsWithMap empty
 type VariableExpression
   = { expression :: Expression, name :: VariableName }
 
-sortByOccurances :: Array Expression -> Array Expression
-sortByOccurances = sortBy compareOccurances
+sortByDependency :: Array Expression -> Array Expression
+sortByDependency = sortBy compareDependency
 
-compareOccurances :: Expression -> Expression -> Ordering
-compareOccurances a b = if isASubExpressionOf a b then GT else EQ
+compareDependency :: Expression -> Expression -> Ordering
+compareDependency a b = if isASubExpressionOf a b then GT else EQ
 
 isASubExpressionOf :: Expression -> Expression -> Boolean
 isASubExpressionOf target expression =
