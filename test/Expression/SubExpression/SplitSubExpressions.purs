@@ -18,12 +18,23 @@ import Test.Unit.Assert (equal)
 splitSubExpressionsTests :: TestSuite
 splitSubExpressionsTests =
   suite "Expression.SubExpression - splitSubExpressions" do
-    test "ASSERT count occuances correctly WHEN f(x) = sin(x)+sin(x)" do
+    test "ASSERT order sub expression dependencies WHEN f(x) = sin(x)+sin(x)" do
       let
         -- given
         rawExpression = "sin(x)+sin(x)"
 
         expected = "[sinx,(sinx)+(sinx)]"
+      -- when
+      expectValue (parseAndMergeCounters rawExpression splitSubExpressions)
+        $ \subExpressions -> do
+            -- then
+            equal expected (show $ fromFoldable subExpressions)
+    test "ASSERT order sub expression dependencies WHEN f(x) = sin(sin(x))+sin(x)" do
+      let
+        -- given
+        rawExpression = "sin(sin(x))+sin(x)"
+
+        expected = "[sinx,sin(sinx),(sin(sinx))+(sinx)]"
       -- when
       expectValue (parseAndMergeCounters rawExpression splitSubExpressions)
         $ \subExpressions -> do

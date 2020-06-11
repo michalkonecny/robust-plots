@@ -84,5 +84,4 @@ isASubExpressionOf target expression =
     || case expression of
         ExpressionUnary _ nestedExpression -> isASubExpressionOf target nestedExpression
         ExpressionBinary _ leftExpression rightExpression -> (isASubExpressionOf target leftExpression) || (isASubExpressionOf target rightExpression)
-        -- We dont want to count literals or variables
         _ -> false
