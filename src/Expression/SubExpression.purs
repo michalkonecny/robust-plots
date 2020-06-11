@@ -1,9 +1,9 @@
 module Expression.SubExpression where
 
 import Prelude
-
-import Data.Array (delete, filter, find, mapWithIndex, reverse, sortBy, uncons)
+import Data.Array (fromFoldable, mapWithIndex, sortBy, uncons)
 import Data.Maybe (Maybe(..))
+import Data.Set (Set, empty, insert)
 import Data.Tuple (Tuple(..))
 import Expression.Syntax (Expression(..), VariableName)
 import Expression.VariableMap (VariableMap, lookup)
@@ -22,17 +22,20 @@ removeSubExpressions = removeSubExpressionsWithMap []
 joinCommonSubExpressions :: Expression -> Expression
 joinCommonSubExpressions expression = addSubExpressionsUntilConvergence variableDefinitions expression
   where
-  commonSubExpressionsOrderedByOccurances = reverse $ sortByOccurances $ filterSingleOccurances $ countOccurances expression
+  commonSubExpressionsOrderedByOccurances = sortByOccurances $ fromFoldable $ splitSubExpressions expression
+
   variableDefinitions = mapWithIndex assignVariableName commonSubExpressionsOrderedByOccurances
 
 addSubExpressionsUntilConvergence :: Array VariableExpression -> Expression -> Expression
-addSubExpressionsUntilConvergence variableDefinitions expression = case uncons variableDefinitions of 
+addSubExpressionsUntilConvergence variableDefinitions expression = case uncons variableDefinitions of
   Nothing -> expression
   Just { head, tail } -> ExpressionLet head.name head.expression result
-    where 
-      addedHeadVariable = substitute head expression 
-      newVariableDefinitions = map (\target -> target { expression = substitute head target.expression }) tail
-      result = addSubExpressionsUntilConvergence newVariableDefinitions addedHeadVariable
+    where
+    addedHeadVariable = substitute head expression
+
+    newVariableDefinitions = map (\target -> target { expression = substitute head target.expression }) tail
+
+    result = addSubExpressionsUntilConvergence newVariableDefinitions addedHeadVariable
 
 substitute :: VariableExpression -> Expression -> Expression
 substitute target expression =
@@ -45,52 +48,41 @@ substitute target expression =
     -- If the expression is not the target and not a binary or unary operation then it is already clean.
     _ -> expression
 
-assignVariableName :: Int -> SubExpressionCount -> VariableExpression
-assignVariableName index { expression } = { expression, name: "$v" <> (show (index + 1)) }
+assignVariableName :: Int -> Expression -> VariableExpression
+assignVariableName index expression = { expression, name: "$v" <> (show (index + 1)) }
 
-countOccurances :: Expression -> SubExpressionCounter
-countOccurances = countOccurancesWithMap []
+splitSubExpressions :: Expression -> Set Expression
+splitSubExpressions = splitSubExpressionsWithMap empty
   where
-  countOccurancesWithMap :: SubExpressionCounter -> Expression -> SubExpressionCounter
-  countOccurancesWithMap counter = case _ of
-    ExpressionUnary unaryOperation expression -> countOccurancesWithMap newCounter expression
+  splitSubExpressionsWithMap :: Set Expression -> Expression -> Set Expression
+  splitSubExpressionsWithMap counter = case _ of
+    ExpressionUnary unaryOperation expression -> splitSubExpressionsWithMap newCounter expression
       where
-      newCounter = addExpressionToCounter counter (ExpressionUnary unaryOperation expression)
+      newCounter = insert (ExpressionUnary unaryOperation expression) counter
     ExpressionBinary binaryOperation leftExpression rightExpression -> rightCounter
       where
-      newCounter = addExpressionToCounter counter (ExpressionBinary binaryOperation leftExpression rightExpression)
+      newCounter = insert (ExpressionBinary binaryOperation leftExpression rightExpression) counter
 
-      leftCounter = countOccurancesWithMap newCounter leftExpression
+      leftCounter = splitSubExpressionsWithMap newCounter leftExpression
 
-      rightCounter = countOccurancesWithMap leftCounter rightExpression
+      rightCounter = splitSubExpressionsWithMap leftCounter rightExpression
     -- We dont want to count literals or variables
     expression -> counter
 
 type VariableExpression
   = { expression :: Expression, name :: VariableName }
 
-type SubExpressionCount
-  = { expression :: Expression, occurances :: Int }
-
-type SubExpressionCounter
-  = Array SubExpressionCount
-
-filterSingleOccurances :: SubExpressionCounter -> SubExpressionCounter
-filterSingleOccurances = filter (\count -> count.occurances > 1)
-
-sortByOccurances :: SubExpressionCounter -> SubExpressionCounter
+sortByOccurances :: Array Expression -> Array Expression
 sortByOccurances = sortBy compareOccurances
 
-compareOccurances :: SubExpressionCount -> SubExpressionCount -> Ordering
-compareOccurances a b = compare (a.occurances) (b.occurances)
+compareOccurances :: Expression -> Expression -> Ordering
+compareOccurances a b = if isASubExpressionOf a b then GT else EQ
 
-addExpressionToCounter :: SubExpressionCounter -> Expression -> SubExpressionCounter
-addExpressionToCounter counter expression = case lookupCount counter expression of
-  Just count -> (delete count counter) <> [ ({ expression, occurances: count.occurances + 1 }) ]
-  Nothing -> counter <> [ { expression, occurances: 1 } ]
-
-lookupCount :: SubExpressionCounter -> Expression -> Maybe SubExpressionCount
-lookupCount counter expression = find (isThisExpression expression) counter
-
-isThisExpression :: Expression -> SubExpressionCount -> Boolean
-isThisExpression target { expression, occurances } = expression == target
+isASubExpressionOf :: Expression -> Expression -> Boolean
+isASubExpressionOf target expression =
+  expression == target
+    || case expression of
+        ExpressionUnary _ nestedExpression -> isASubExpressionOf target nestedExpression
+        ExpressionBinary _ leftExpression rightExpression -> (isASubExpressionOf target leftExpression) || (isASubExpressionOf target rightExpression)
+        -- We dont want to count literals or variables
+        _ -> false
