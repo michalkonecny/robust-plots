@@ -50,7 +50,11 @@ orderDepencencies subExpressions = orderDepencenciesWithMap [] subExpressions
 
     newRemaining = filterKeys (not <<< canExtractExpression) remaining
 
-    next = if null newExtractedValueArray then [] else orderDepencenciesWithMap newExtractedValueArray newRemaining
+    next =
+      if null newExtractedValueArray then
+        toUnfoldable remaining
+      else
+        orderDepencenciesWithMap newExtractedValueArray newRemaining
 
     canExtractExpression :: Expression -> Boolean
     canExtractExpression (ExpressionUnary _ expression) = canExtract expression
