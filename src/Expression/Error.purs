@@ -14,6 +14,8 @@ instance showError :: Show Error where
   show (UnknownValue n) = "Unknown value: " <> n
   show (MultipleErrors msg) = msg     
 
+derive instance eqError :: Eq Error
+
 type Expect a = Either Error a
 
 throw :: forall a. Error -> Expect a

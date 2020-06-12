@@ -49,7 +49,7 @@ evaluateWithX expression x = value
 runCommand :: Size -> Int -> Int -> PlotCommand -> DrawCommand Unit
 runCommand _ _ _ (Empty bounds) = clearAndDrawGridLines bounds
 
-runCommand canvasSize numberOfPlots index (Plot bounds expression) = drawCommands
+runCommand canvasSize numberOfPlots index (Plot bounds expression label) = drawCommands
   where
   f = evaluateWithX expression
 
@@ -57,13 +57,13 @@ runCommand canvasSize numberOfPlots index (Plot bounds expression) = drawCommand
 
   points = filter (isWithinCanvas canvasSize) $ plotPoints canvasSize bounds f f''
 
-  drawCommands = fold [ drawPlot points, label expression points numberOfPlots index ]
+  drawCommands = fold [ drawPlot points, drawLabel label points numberOfPlots index ]
 
 isWithinCanvas :: Size -> Position -> Boolean
 isWithinCanvas canvasSize point = point.x >= 0.0 && point.x <= canvasSize.width + 1.0 && point.y >= 0.0 && point.y <= canvasSize.height + 1.0
 
-label :: Expression -> Array Position -> Int -> Int -> DrawCommand Unit
-label expression points numberOfPlots index = drawText color ("f(x)=" <> (show expression)) 20.0 labelPosition
+drawLabel :: String -> Array Position -> Int -> Int -> DrawCommand Unit
+drawLabel label points numberOfPlots index = drawText color ("f(x)=" <> label) 20.0 labelPosition
   where
   pointIndex = (length points) / (numberOfPlots + 1)
 

@@ -232,7 +232,7 @@ computePlots canvasSize newBounds plots = lift $ computePlotAsync canvasSize com
 
 computePlot :: Size -> XYBounds -> ExpressionPlot -> Maybe PlotCommand
 computePlot size newBounds plot = case plot.expression of
-  Just expression -> Just $ plotExpression newBounds expression
+  Just expression -> Just $ plotExpression newBounds expression plot.expressionText
   Nothing -> Nothing
 
 initialConfig :: Config

@@ -57,6 +57,7 @@ data Expression
   | ExpressionLiteral Rational
   | ExpressionUnary UnaryOperation Expression
   | ExpressionBinary BinaryOperation Expression Expression
+  | ExpressionLet VariableName Expression Expression
 
 derive instance expressionEq :: Eq Expression
 
@@ -67,6 +68,7 @@ instance expressionShow :: Show Expression where
   show (ExpressionLiteral value) = showLiteral value
   show (ExpressionUnary unaryOperation expression) = (show unaryOperation) <> (showNestedExpression expression)
   show (ExpressionBinary binaryOperation leftExpression rightExpression) = (showNestedExpression leftExpression) <> (show binaryOperation) <> (showNestedExpression rightExpression)
+  show (ExpressionLet name expression parentExpression) = "let " <> name <> " = " <> (show expression) <> " in " <> (show parentExpression)
 
 showLiteral :: Rational -> String
 showLiteral value =
