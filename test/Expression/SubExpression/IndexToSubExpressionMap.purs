@@ -19,7 +19,7 @@ import Test.Unit.Assert (equal)
 indexToSubExpressionMapTests :: TestSuite
 indexToSubExpressionMapTests =
   suite "Expression.SubExpression - indexToSubExpressionMap" do
-    test "ASSERT order sub expression dependencies WHEN f(x) = sin(x)+sin(x)" do
+    test "SHOULD assign variable names to sub expressions WHEN f(x) = sin(x)+sin(x)" do
       let
         -- given
         rawExpression = "sin(x)+sin(x)"
@@ -32,7 +32,7 @@ indexToSubExpressionMapTests =
             -- then
             equal expectedKeys (show $ fromFoldable $ keys subExpressions)
             equal expectedValues (show $ fromFoldable $ values subExpressions)
-    test "ASSERT order sub expression dependencies WHEN f(x) = sin(sin(x))+sin(x)" do
+    test "SHOULD assign variable names to sub expressions WHEN f(x) = sin(sin(x))+sin(x)" do
       let
         -- given
         rawExpression = "sin(sin(x))+sin(x)"

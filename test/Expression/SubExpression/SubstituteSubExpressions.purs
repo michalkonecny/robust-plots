@@ -19,7 +19,7 @@ import Test.Unit.Assert (equal)
 substituteSubExpressionsTests :: TestSuite
 substituteSubExpressionsTests =
   suite "Expression.SubExpression - substituteSubExpressions" do
-    test "ASSERT order sub expression dependencies WHEN f(x) = sin(x)+sin(x)" do
+    test "SHOULD substitue sub expressions WHEN f(x) = sin(x)+sin(x)" do
       let
         -- given
         rawExpression = "sin(x)+sin(x)"
@@ -32,13 +32,13 @@ substituteSubExpressionsTests =
             -- then
             equal expectedKeys (show $ fromFoldable $ keys subExpressions)
             equal expectedValues (show $ fromFoldable $ values subExpressions)
-    test "ASSERT order sub expression dependencies WHEN f(x) = sin(sin(x))+sin(x)" do
+    test "SHOULD substitue sub expressions WHEN f(x) = sin(sin(x))+sin(x)" do
       let
         -- given
         rawExpression = "sin(sin(x))+sin(x)"
 
         expectedKeys = "[sin$v1,sinx,$v2+$v1]"
-        expectedValues = "[\"$v1\",\"$v2\",\"$v3\"]"
+        expectedValues = "[\"$v2\",\"$v1\",\"$v3\"]"
       -- when
       expectValue (parseAndMergeCounters rawExpression (substituteSubExpressions <<< indexToSubExpressionMap <<< splitSubExpressions))
         $ \subExpressions -> do

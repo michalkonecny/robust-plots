@@ -8,6 +8,7 @@ import Test.Expression.SubExpression.JoinCommonSubExpressions (joinCommonSubExpr
 import Test.Expression.SubExpression.SplitSubExpressions (splitSubExpressionsTests)
 import Test.Expression.SubExpression.IndexToSubExpressionMap (indexToSubExpressionMapTests)
 import Test.Expression.SubExpression.SubstituteSubExpressions (substituteSubExpressionsTests)
+import Test.Expression.SubExpression.OrderDepencencies (orderDepencenciesTests)
 
 subExpressionTests :: TestSuite
 subExpressionTests = do
@@ -15,3 +16,4 @@ subExpressionTests = do
   splitSubExpressionsTests
   indexToSubExpressionMapTests
   substituteSubExpressionsTests
+  orderDepencenciesTests

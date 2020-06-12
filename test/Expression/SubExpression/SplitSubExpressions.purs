@@ -18,7 +18,7 @@ import Test.Unit.Assert (equal)
 splitSubExpressionsTests :: TestSuite
 splitSubExpressionsTests =
   suite "Expression.SubExpression - splitSubExpressions" do
-    test "ASSERT order sub expression dependencies WHEN f(x) = sin(x)+sin(x)" do
+    test "SHOULD split expression into sub expressions WHEN f(x) = sin(x)+sin(x)" do
       let
         -- given
         rawExpression = "sin(x)+sin(x)"
@@ -29,7 +29,7 @@ splitSubExpressionsTests =
         $ \subExpressions -> do
             -- then
             equal expected (show $ fromFoldable subExpressions)
-    test "ASSERT order sub expression dependencies WHEN f(x) = sin(sin(x))+sin(x)" do
+    test "SHOULD split expression into sub expressions WHEN f(x) = sin(sin(x))+sin(x)" do
       let
         -- given
         rawExpression = "sin(sin(x))+sin(x)"
