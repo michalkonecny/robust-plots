@@ -12,8 +12,8 @@ import Test.Expression.SubExpression.OrderDepencencies (orderDepencenciesTests)
 
 subExpressionTests :: TestSuite
 subExpressionTests = do
-  joinCommonSubExpressionsTests
   splitSubExpressionsTests
   indexToSubExpressionMapTests
   substituteSubExpressionsTests
   orderDepencenciesTests
+  joinCommonSubExpressionsTests
