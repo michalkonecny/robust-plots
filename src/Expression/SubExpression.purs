@@ -1,12 +1,14 @@
 module Expression.SubExpression where
 
 import Prelude
-import Data.Array (elem, foldl, fromFoldable, null, unsnoc)
+
+import Data.Array (elem, foldr, fromFoldable, null, unsnoc)
 import Data.Map (Map, filterKeys, lookup, toUnfoldable, values)
 import Data.Maybe (Maybe(..))
 import Data.Set (Set, empty, insert)
 import Data.Tuple (Tuple(..))
-import Expression.Helper (mapMap, setToMapWithIndex)
+import Effect.Exception.Unsafe (unsafeThrow)
+import Expression.Helper (mapMapEntries, setToMapWithIndex)
 import Expression.Syntax (Expression(..), VariableName)
 import Expression.VariableMap (VariableMap, lookup) as VM
 
@@ -25,16 +27,12 @@ joinCommonSubExpressions :: Expression -> Expression
 joinCommonSubExpressions e = ((buildExpression e) <<< orderDepencencies <<< substituteSubExpressions <<< indexToSubExpressionMap <<< splitSubExpressions) e
 
 buildExpression :: Expression -> Array (Tuple Expression VariableName) -> Expression
-buildExpression originalExpression [] = originalExpression
-
-buildExpression originalExpression [ _ ] = originalExpression
-
 buildExpression originalExpression orderedSubExpressions = case unsnoc orderedSubExpressions of
   Nothing -> originalExpression
-  Just { init, last: (Tuple expression name) } -> foldl addLet expression init
+  Just { init, last: (Tuple expression name) } -> foldr addLet expression init
   where
-  addLet :: Expression -> Tuple Expression VariableName -> Expression
-  addLet subExpression (Tuple expression name) = ExpressionLet name expression subExpression
+  addLet :: Tuple Expression VariableName -> Expression -> Expression
+  addLet (Tuple expression name) subExpression = ExpressionLet name expression subExpression
 
 orderDepencencies :: Map Expression VariableName -> Array (Tuple Expression VariableName)
 orderDepencencies subExpressions = orderDepencenciesWithMap [] subExpressions
@@ -61,14 +59,14 @@ orderDepencencies subExpressions = orderDepencenciesWithMap [] subExpressions
 
     canExtractExpression (ExpressionBinary _ leftExpression rightExpression) = canExtract leftExpression && canExtract rightExpression
 
-    canExtractExpression expression = false
+    canExtractExpression expression = unsafeThrow "Invalid operation"
 
     canExtract :: Expression -> Boolean
     canExtract (ExpressionVariable n) = (elem n extracted) || not elem n allSubExpressionVariables
 
-    canExtract (ExpressionUnary _ _) = false
+    canExtract (ExpressionUnary _ _) = unsafeThrow "Invalid operation"
 
-    canExtract (ExpressionBinary _ _ _) = false
+    canExtract (ExpressionBinary _ _ _) = unsafeThrow "Invalid operation"
 
     canExtract expression = true
 
@@ -97,7 +95,7 @@ toVariableNameWithExpression :: Int -> Expression -> Tuple Expression VariableNa
 toVariableNameWithExpression index expression = Tuple expression ("$v" <> (show (index + 1)))
 
 substituteSubExpressions :: Map Expression VariableName -> Map Expression VariableName
-substituteSubExpressions subExpressions = mapMap (substitute subExpressions) subExpressions
+substituteSubExpressions subExpressions = mapMapEntries (substitute subExpressions) subExpressions
 
 substitute :: Map Expression VariableName -> Tuple Expression VariableName -> Tuple Expression VariableName
 substitute subExpressions (Tuple expression name) = Tuple e name
