@@ -70,6 +70,17 @@ joinCommonSubExpressionsTests =
         -- then
         expectedResult = "let $v1 = x+x in $v1+$v1"
       equal expectedResult result
+    test "ASSERT f(x) = let $v2 = x+x in let $v4 = $v2+$v2 in let $v1 = sin$v4 in let $v3 = $v1+$v2 in $v3+$v1 WHEN f(x) = sin((x+x)+(x+x))+(x+x)+sin((x+x)+(x+x))" do
+      let
+        -- given
+        rawExpression = "sin((x+x)+(x+x))+(x+x)+sin((x+x)+(x+x))"
+
+        -- when
+        result = fromExpect $ parseAndJoinCommonSubExpressions rawExpression
+
+        -- then
+        expectedResult = "let $v2 = x+x in let $v4 = $v2+$v2 in let $v1 = sin$v4 in let $v3 = $v1+$v2 in $v3+$v1"
+      equal expectedResult result
 
 parseAndJoinCommonSubExpressions :: String -> Expect Expression
 parseAndJoinCommonSubExpressions rawExpression = result
