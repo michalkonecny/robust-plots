@@ -90,7 +90,7 @@ handleAction controller = case _ of
         Left evaluationError -> H.modify_ _ { error = Just $ show evaluationError }
         Right _ -> do 
           H.modify_ _ { error = Nothing }
-          H.raise (Parsed id (controller.simplify expression) input)
+          H.raise (Parsed id (controller.clean expression) input)
   HandleInput input -> do
     H.modify_ _ { input = input }
     pure unit
