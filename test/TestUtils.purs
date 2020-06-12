@@ -20,6 +20,7 @@ type SuiteOrdParams1 at t
     , leqOpSymbol :: String
     , eqOpWithInput :: Array t -> (t -> t -> Result)
     , eqOpSymbol :: String
+    , makeLeq :: t -> t -> t -- ^ `(makeLeq a b) <= a` and `(makeLeq a b)` should be similar to `b`
     }
 
 -- copied from source code of purescript-quickcheck Test.QuickCheck.
@@ -51,3 +52,6 @@ assertOpWithInput op opString input = assertOpMoreHelp op opString moreHelp
 
 eqWithInput :: forall t1 t2. Eq t2 => Show t2 => Show t1 => Array t1 -> t2 -> t2 -> Result
 eqWithInput = assertOpWithInput (==) " == "
+
+leqWithInput :: forall t1 t2. Ord t2 => Show t2 => Show t1 => Array t1 -> t2 -> t2 -> Result
+leqWithInput = assertOpWithInput (<=) " <= "
