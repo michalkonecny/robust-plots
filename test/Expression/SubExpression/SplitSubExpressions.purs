@@ -25,7 +25,7 @@ splitSubExpressionsTests =
 
         expected = "[sinx,(sinx)+(sinx)]"
       -- when
-      expectValue (parseAndMergeCounters rawExpression splitSubExpressions)
+      expectValue (parseAndSplitSubExpressions rawExpression splitSubExpressions)
         $ \subExpressions -> do
             -- then
             equal expected (show $ fromFoldable subExpressions)
@@ -36,12 +36,12 @@ splitSubExpressionsTests =
 
         expected = "[sinx,sin(sinx),(sin(sinx))+(sinx)]"
       -- when
-      expectValue (parseAndMergeCounters rawExpression splitSubExpressions)
+      expectValue (parseAndSplitSubExpressions rawExpression splitSubExpressions)
         $ \subExpressions -> do
             -- then
             equal expected (show $ fromFoldable subExpressions)
 
-parseAndMergeCounters :: String -> (Expression -> Set Expression) -> Expect (Set Expression)
-parseAndMergeCounters rawExpression op = case parse rawExpression of
+parseAndSplitSubExpressions :: String -> (Expression -> Set Expression) -> Expect (Set Expression)
+parseAndSplitSubExpressions rawExpression op = case parse rawExpression of
   Right expression -> pure $ op expression
   Left error -> throw error

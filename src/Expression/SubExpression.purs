@@ -40,7 +40,7 @@ orderDepencencies subExpressions = orderDepencenciesWithMap [] subExpressions
   allSubExpressionVariables = values subExpressions
 
   orderDepencenciesWithMap :: Array VariableName -> Map Expression VariableName -> Array (Tuple Expression VariableName)
-  orderDepencenciesWithMap extracted remaining = (toUnfoldable $ newExtracted) <> next
+  orderDepencenciesWithMap extracted remaining = (toUnfoldable $ newExtracted) <> dependants
     where
     newExtracted = filterKeys canExtractExpression remaining
 
@@ -48,7 +48,7 @@ orderDepencencies subExpressions = orderDepencenciesWithMap [] subExpressions
 
     newRemaining = filterKeys (not <<< canExtractExpression) remaining
 
-    next =
+    dependants =
       if null newExtractedValueArray then
         toUnfoldable remaining
       else

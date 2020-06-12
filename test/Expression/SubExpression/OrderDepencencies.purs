@@ -25,7 +25,7 @@ orderDepencenciesTests =
 
         expectedValues = "[\"$v1\",\"$v2\"]"
       -- when
-      expectValue (parseAndMergeCounters rawExpression (orderDepencencies <<< substituteSubExpressions <<< indexToSubExpressionMap <<< splitSubExpressions))
+      expectValue (parseAndOrderDependencies rawExpression (orderDepencencies <<< substituteSubExpressions <<< indexToSubExpressionMap <<< splitSubExpressions))
         $ \subExpressions -> do
             -- then
             equal expectedKeys (show $ map fst subExpressions)
@@ -39,13 +39,13 @@ orderDepencenciesTests =
 
         expectedValues = "[\"$v1\",\"$v2\",\"$v3\"]"
       -- when
-      expectValue (parseAndMergeCounters rawExpression (orderDepencencies <<< substituteSubExpressions <<< indexToSubExpressionMap <<< splitSubExpressions))
+      expectValue (parseAndOrderDependencies rawExpression (orderDepencencies <<< substituteSubExpressions <<< indexToSubExpressionMap <<< splitSubExpressions))
         $ \subExpressions -> do
             -- then
             equal expectedKeys (show $ map fst subExpressions)
             equal expectedValues (show $ map snd subExpressions)
 
-parseAndMergeCounters :: String -> (Expression -> Array (Tuple Expression VariableName)) -> Expect (Array (Tuple Expression VariableName))
-parseAndMergeCounters rawExpression op = case parse rawExpression of
+parseAndOrderDependencies :: String -> (Expression -> Array (Tuple Expression VariableName)) -> Expect (Array (Tuple Expression VariableName))
+parseAndOrderDependencies rawExpression op = case parse rawExpression of
   Right expression -> pure $ op expression
   Left error -> throw error

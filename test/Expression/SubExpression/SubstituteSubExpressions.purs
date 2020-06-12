@@ -27,7 +27,7 @@ substituteSubExpressionsTests =
         expectedKeys = "[sinx,$v1+$v1]"
         expectedValues = "[\"$v1\",\"$v2\"]"
       -- when
-      expectValue (parseAndMergeCounters rawExpression (substituteSubExpressions <<< indexToSubExpressionMap <<< splitSubExpressions))
+      expectValue (parseAndSubstituteSubExpressions rawExpression (substituteSubExpressions <<< indexToSubExpressionMap <<< splitSubExpressions))
         $ \subExpressions -> do
             -- then
             equal expectedKeys (show $ fromFoldable $ keys subExpressions)
@@ -40,13 +40,13 @@ substituteSubExpressionsTests =
         expectedKeys = "[sin$v1,sinx,$v2+$v1]"
         expectedValues = "[\"$v2\",\"$v1\",\"$v3\"]"
       -- when
-      expectValue (parseAndMergeCounters rawExpression (substituteSubExpressions <<< indexToSubExpressionMap <<< splitSubExpressions))
+      expectValue (parseAndSubstituteSubExpressions rawExpression (substituteSubExpressions <<< indexToSubExpressionMap <<< splitSubExpressions))
         $ \subExpressions -> do
             -- then
             equal expectedKeys (show $ fromFoldable $ keys subExpressions)
             equal expectedValues (show $ fromFoldable $ values subExpressions)
 
-parseAndMergeCounters :: String -> (Expression -> Map Expression VariableName) -> Expect (Map Expression VariableName)
-parseAndMergeCounters rawExpression op = case parse rawExpression of
+parseAndSubstituteSubExpressions :: String -> (Expression -> Map Expression VariableName) -> Expect (Map Expression VariableName)
+parseAndSubstituteSubExpressions rawExpression op = case parse rawExpression of
   Right expression -> pure $ op expression
   Left error -> throw error
