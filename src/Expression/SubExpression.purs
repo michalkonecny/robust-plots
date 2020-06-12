@@ -24,7 +24,7 @@ removeSubExpressions = removeSubExpressionsWithMap []
     expression -> expression
 
 joinCommonSubExpressions :: Expression -> Expression
-joinCommonSubExpressions e = ((buildExpression e) <<< orderDepencencies <<< substituteSubExpressions <<< indexToSubExpressionMap <<< splitSubExpressions) e
+joinCommonSubExpressions e = ((buildExpression e) <<< orderDepencencies <<< substituteSubExpressions <<< subExpressionToVariableMap <<< splitSubExpressions) e
 
 buildExpression :: Expression -> Array (Tuple Expression VariableName) -> Expression
 buildExpression originalExpression orderedSubExpressions = case unsnoc orderedSubExpressions of
@@ -88,8 +88,8 @@ splitSubExpressions = splitSubExpressionsWithMap empty
     -- We dont want to count literals or variables
     expression -> subExpressions
 
-indexToSubExpressionMap :: Set Expression -> Map Expression VariableName
-indexToSubExpressionMap = setToMapWithIndex toVariableNameWithExpression
+subExpressionToVariableMap :: Set Expression -> Map Expression VariableName
+subExpressionToVariableMap = setToMapWithIndex toVariableNameWithExpression
 
 toVariableNameWithExpression :: Int -> Expression -> Tuple Expression VariableName
 toVariableNameWithExpression index expression = Tuple expression ("$v" <> (show (index + 1)))

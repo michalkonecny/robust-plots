@@ -1,5 +1,5 @@
-module Test.Expression.SubExpression.IndexToSubExpressionMap
-  ( indexToSubExpressionMapTests
+module Test.Expression.SubExpression.SubExpressionToVariableMap
+  ( subExpressionToVariableMapTests
   ) where
 
 import Prelude
@@ -10,15 +10,15 @@ import Data.Map (Map, values)
 import Data.Map.Internal (keys)
 import Expression.Error (Expect, throw)
 import Expression.Parser (parse)
-import Expression.SubExpression (splitSubExpressions, indexToSubExpressionMap)
+import Expression.SubExpression (splitSubExpressions, subExpressionToVariableMap)
 import Expression.Syntax (Expression, VariableName)
 import Test.Expression.Helper (expectValue)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
 
-indexToSubExpressionMapTests :: TestSuite
-indexToSubExpressionMapTests =
-  suite "Expression.SubExpression - indexToSubExpressionMap" do
+subExpressionToVariableMapTests :: TestSuite
+subExpressionToVariableMapTests =
+  suite "Expression.SubExpression - subExpressionToVariableMap" do
     test "SHOULD assign variable names to sub expressions WHEN f(x) = sin(x)+sin(x)" do
       let
         -- given
@@ -27,7 +27,7 @@ indexToSubExpressionMapTests =
         expectedKeys = "[sinx,(sinx)+(sinx)]"
         expectedValues = "[\"$v1\",\"$v2\"]"
       -- when
-      expectValue (parseAndBuildSubExpresionMap rawExpression (indexToSubExpressionMap <<< splitSubExpressions))
+      expectValue (parseAndBuildSubExpresionMap rawExpression (subExpressionToVariableMap <<< splitSubExpressions))
         $ \subExpressions -> do
             -- then
             equal expectedKeys (show $ fromFoldable $ keys subExpressions)
@@ -40,7 +40,7 @@ indexToSubExpressionMapTests =
         expectedKeys = "[sinx,sin(sinx),(sin(sinx))+(sinx)]"
         expectedValues = "[\"$v1\",\"$v2\",\"$v3\"]"
       -- when
-      expectValue (parseAndBuildSubExpresionMap rawExpression (indexToSubExpressionMap <<< splitSubExpressions))
+      expectValue (parseAndBuildSubExpresionMap rawExpression (subExpressionToVariableMap <<< splitSubExpressions))
         $ \subExpressions -> do
             -- then
             equal expectedKeys (show $ fromFoldable $ keys subExpressions)

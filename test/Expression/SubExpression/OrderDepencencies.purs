@@ -7,7 +7,7 @@ import Data.Either (Either(..))
 import Data.Tuple (Tuple, fst, snd)
 import Expression.Error (Expect, throw)
 import Expression.Parser (parse)
-import Expression.SubExpression (splitSubExpressions, indexToSubExpressionMap, substituteSubExpressions, orderDepencencies)
+import Expression.SubExpression (splitSubExpressions, subExpressionToVariableMap, substituteSubExpressions, orderDepencencies)
 import Expression.Syntax (Expression, VariableName)
 import Test.Expression.Helper (expectValue)
 import Test.Unit (TestSuite, suite, test)
@@ -25,7 +25,7 @@ orderDepencenciesTests =
 
         expectedValues = "[\"$v1\",\"$v2\"]"
       -- when
-      expectValue (parseAndOrderDependencies rawExpression (orderDepencencies <<< substituteSubExpressions <<< indexToSubExpressionMap <<< splitSubExpressions))
+      expectValue (parseAndOrderDependencies rawExpression (orderDepencencies <<< substituteSubExpressions <<< subExpressionToVariableMap <<< splitSubExpressions))
         $ \subExpressions -> do
             -- then
             equal expectedKeys (show $ map fst subExpressions)
@@ -39,7 +39,7 @@ orderDepencenciesTests =
 
         expectedValues = "[\"$v1\",\"$v2\",\"$v3\"]"
       -- when
-      expectValue (parseAndOrderDependencies rawExpression (orderDepencencies <<< substituteSubExpressions <<< indexToSubExpressionMap <<< splitSubExpressions))
+      expectValue (parseAndOrderDependencies rawExpression (orderDepencencies <<< substituteSubExpressions <<< subExpressionToVariableMap <<< splitSubExpressions))
         $ \subExpressions -> do
             -- then
             equal expectedKeys (show $ map fst subExpressions)

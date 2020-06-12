@@ -10,7 +10,7 @@ import Data.Map (Map, values)
 import Data.Map.Internal (keys)
 import Expression.Error (Expect, throw)
 import Expression.Parser (parse)
-import Expression.SubExpression (splitSubExpressions, indexToSubExpressionMap, substituteSubExpressions)
+import Expression.SubExpression (splitSubExpressions, subExpressionToVariableMap, substituteSubExpressions)
 import Expression.Syntax (Expression, VariableName)
 import Test.Expression.Helper (expectValue)
 import Test.Unit (TestSuite, suite, test)
@@ -27,7 +27,7 @@ substituteSubExpressionsTests =
         expectedKeys = "[sinx,$v1+$v1]"
         expectedValues = "[\"$v1\",\"$v2\"]"
       -- when
-      expectValue (parseAndSubstituteSubExpressions rawExpression (substituteSubExpressions <<< indexToSubExpressionMap <<< splitSubExpressions))
+      expectValue (parseAndSubstituteSubExpressions rawExpression (substituteSubExpressions <<< subExpressionToVariableMap <<< splitSubExpressions))
         $ \subExpressions -> do
             -- then
             equal expectedKeys (show $ fromFoldable $ keys subExpressions)
@@ -40,7 +40,7 @@ substituteSubExpressionsTests =
         expectedKeys = "[sin$v1,sinx,$v2+$v1]"
         expectedValues = "[\"$v2\",\"$v1\",\"$v3\"]"
       -- when
-      expectValue (parseAndSubstituteSubExpressions rawExpression (substituteSubExpressions <<< indexToSubExpressionMap <<< splitSubExpressions))
+      expectValue (parseAndSubstituteSubExpressions rawExpression (substituteSubExpressions <<< subExpressionToVariableMap <<< splitSubExpressions))
         $ \subExpressions -> do
             -- then
             equal expectedKeys (show $ fromFoldable $ keys subExpressions)
