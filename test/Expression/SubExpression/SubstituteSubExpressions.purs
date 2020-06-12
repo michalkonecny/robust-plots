@@ -37,7 +37,7 @@ substituteSubExpressionsTests =
         -- given
         rawExpression = "sin(sin(x))+sin(x)"
 
-        expectedKeys = "[sinx,sin($v1),$v2+$v1]"
+        expectedKeys = "[sin$v1,sinx,$v2+$v1]"
         expectedValues = "[\"$v1\",\"$v2\",\"$v3\"]"
       -- when
       expectValue (parseAndMergeCounters rawExpression (substituteSubExpressions <<< indexToSubExpressionMap <<< splitSubExpressions))

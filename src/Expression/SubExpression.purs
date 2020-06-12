@@ -100,10 +100,10 @@ substitute subExpressions (Tuple expression name) = Tuple e name
   where
   e = case expression of
     ExpressionUnary unaryOperation nestedExpression -> case lookup nestedExpression subExpressions of
-      Nothing -> nestedExpression
-      Just n -> ExpressionVariable n
+      Nothing -> expression
+      Just n -> ExpressionUnary unaryOperation $ ExpressionVariable n
     ExpressionBinary binaryOperation leftExpression rightExpression -> case lookup leftExpression subExpressions, lookup rightExpression subExpressions of
-      Nothing, Nothing -> ExpressionBinary binaryOperation leftExpression rightExpression
+      Nothing, Nothing -> expression
       Just leftName, Just rightName -> ExpressionBinary binaryOperation (ExpressionVariable leftName) (ExpressionVariable rightName)
       Just leftName, _ -> ExpressionBinary binaryOperation (ExpressionVariable leftName) rightExpression
       _, Just rightName -> ExpressionBinary binaryOperation leftExpression (ExpressionVariable rightName)
