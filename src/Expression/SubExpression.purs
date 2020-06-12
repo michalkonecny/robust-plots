@@ -1,87 +1,110 @@
 module Expression.SubExpression where
 
 import Prelude
-import Data.Array (fromFoldable, mapWithIndex, sortBy, uncons)
+import Data.Array (elem, foldl, fromFoldable, null, unsnoc)
+import Data.Map (Map, filterKeys, lookup, toUnfoldable, values)
 import Data.Maybe (Maybe(..))
 import Data.Set (Set, empty, insert)
 import Data.Tuple (Tuple(..))
+import Expression.Helper (mapMap, setToMapWithIndex)
 import Expression.Syntax (Expression(..), VariableName)
-import Expression.VariableMap (VariableMap, lookup)
+import Expression.VariableMap (VariableMap, lookup) as VM
 
 removeSubExpressions :: Expression -> Expression
 removeSubExpressions = removeSubExpressionsWithMap []
   where
-  removeSubExpressionsWithMap :: (VariableMap Expression) -> Expression -> Expression
+  removeSubExpressionsWithMap :: (VM.VariableMap Expression) -> Expression -> Expression
   removeSubExpressionsWithMap variableMap = case _ of
-    ExpressionVariable name -> case lookup variableMap name of
+    ExpressionVariable name -> case VM.lookup variableMap name of
       Just value -> value
       _ -> ExpressionVariable name
     ExpressionLet name expression parentExpression -> removeSubExpressionsWithMap (variableMap <> [ (Tuple name expression) ]) parentExpression
     expression -> expression
 
 joinCommonSubExpressions :: Expression -> Expression
-joinCommonSubExpressions expression = addSubExpressionsUntilConvergence variableDefinitions expression
+joinCommonSubExpressions e = ((buildExpression e) <<< orderDepencencies <<< substituteSubExpressions <<< indexToSubExpressionMap <<< splitSubExpressions) e
+
+buildExpression :: Expression -> Array (Tuple Expression VariableName) -> Expression
+buildExpression originalExpression [] = originalExpression
+
+buildExpression originalExpression [ _ ] = originalExpression
+
+buildExpression originalExpression orderedSubExpressions = case unsnoc orderedSubExpressions of
+  Nothing -> originalExpression
+  Just { init, last: (Tuple expression name) } -> foldl addLet expression init
   where
-  commonSubExpressionsOrderedByDependency = sortByDependency $ fromFoldable $ splitSubExpressions expression
+  addLet :: Expression -> Tuple Expression VariableName -> Expression
+  addLet subExpression (Tuple expression name) = ExpressionLet name expression subExpression
 
-  variableDefinitions = mapWithIndex assignVariableName commonSubExpressionsOrderedByDependency
+orderDepencencies :: Map Expression VariableName -> Array (Tuple Expression VariableName)
+orderDepencencies subExpressions = orderDepencenciesWithMap [] subExpressions
+  where
+  allSubExpressionVariables = values subExpressions
 
-addSubExpressionsUntilConvergence :: Array VariableExpression -> Expression -> Expression
-addSubExpressionsUntilConvergence variableDefinitions expression = case uncons variableDefinitions of
-  Nothing -> expression
-  Just { head, tail } -> ExpressionLet head.name head.expression result
+  orderDepencenciesWithMap :: Array VariableName -> Map Expression VariableName -> Array (Tuple Expression VariableName)
+  orderDepencenciesWithMap extracted remaining = (toUnfoldable $ newExtracted) <> next
     where
-    addedHeadVariable = substitute head expression
+    newExtracted = filterKeys canExtractExpression remaining
 
-    newVariableDefinitions = map (\target -> target { expression = substitute head target.expression }) tail
+    newExtractedValueArray = fromFoldable $ values $ newExtracted
 
-    result = addSubExpressionsUntilConvergence newVariableDefinitions addedHeadVariable
+    newRemaining = filterKeys (not <<< canExtractExpression) remaining
 
-substitute :: VariableExpression -> Expression -> Expression
-substitute target expression =
-  if expression == target.expression then
-    ExpressionVariable target.name
-  else case expression of
-    ExpressionUnary unaryOperation nestedExpression -> ExpressionUnary unaryOperation $ substitute target nestedExpression
-    ExpressionBinary binaryOperation leftExpression rightExpression -> ExpressionBinary binaryOperation (substitute target leftExpression) (substitute target rightExpression)
-    ExpressionLet name variableExpression parentExpression -> ExpressionLet name variableExpression (substitute target parentExpression)
-    -- If the expression is not the target and not a binary or unary operation then it is already clean.
-    _ -> expression
+    next = if null newExtractedValueArray then [] else orderDepencenciesWithMap newExtractedValueArray newRemaining
 
-assignVariableName :: Int -> Expression -> VariableExpression
-assignVariableName index expression = { expression, name: "$v" <> (show (index + 1)) }
+    canExtractExpression :: Expression -> Boolean
+    canExtractExpression (ExpressionUnary _ expression) = canExtract expression
+
+    canExtractExpression (ExpressionBinary _ leftExpression rightExpression) = canExtract leftExpression && canExtract rightExpression
+
+    canExtractExpression expression = false
+
+    canExtract :: Expression -> Boolean
+    canExtract (ExpressionVariable n) = (elem n extracted) || not elem n allSubExpressionVariables
+
+    canExtract (ExpressionUnary _ _) = false
+
+    canExtract (ExpressionBinary _ _ _) = false
+
+    canExtract expression = true
 
 splitSubExpressions :: Expression -> Set Expression
 splitSubExpressions = splitSubExpressionsWithMap empty
   where
   splitSubExpressionsWithMap :: Set Expression -> Expression -> Set Expression
-  splitSubExpressionsWithMap counter = case _ of
+  splitSubExpressionsWithMap subExpressions = case _ of
     ExpressionUnary unaryOperation expression -> splitSubExpressionsWithMap newCounter expression
       where
-      newCounter = insert (ExpressionUnary unaryOperation expression) counter
+      newCounter = insert (ExpressionUnary unaryOperation expression) subExpressions
     ExpressionBinary binaryOperation leftExpression rightExpression -> rightCounter
       where
-      newCounter = insert (ExpressionBinary binaryOperation leftExpression rightExpression) counter
+      newCounter = insert (ExpressionBinary binaryOperation leftExpression rightExpression) subExpressions
 
       leftCounter = splitSubExpressionsWithMap newCounter leftExpression
 
       rightCounter = splitSubExpressionsWithMap leftCounter rightExpression
     -- We dont want to count literals or variables
-    expression -> counter
+    expression -> subExpressions
 
-type VariableExpression
-  = { expression :: Expression, name :: VariableName }
+indexToSubExpressionMap :: Set Expression -> Map Expression VariableName
+indexToSubExpressionMap = setToMapWithIndex toVariableNameWithExpression
 
-sortByDependency :: Array Expression -> Array Expression
-sortByDependency = sortBy compareDependency
+toVariableNameWithExpression :: Int -> Expression -> Tuple Expression VariableName
+toVariableNameWithExpression index expression = Tuple expression ("$v" <> (show (index + 1)))
 
-compareDependency :: Expression -> Expression -> Ordering
-compareDependency a b = if isASubExpressionOf a b then GT else EQ
+substituteSubExpressions :: Map Expression VariableName -> Map Expression VariableName
+substituteSubExpressions subExpressions = mapMap (substitute subExpressions) subExpressions
 
-isASubExpressionOf :: Expression -> Expression -> Boolean
-isASubExpressionOf target expression =
-  expression == target
-    || case expression of
-        ExpressionUnary _ nestedExpression -> isASubExpressionOf target nestedExpression
-        ExpressionBinary _ leftExpression rightExpression -> (isASubExpressionOf target leftExpression) || (isASubExpressionOf target rightExpression)
-        _ -> false
+substitute :: Map Expression VariableName -> Tuple Expression VariableName -> Tuple Expression VariableName
+substitute subExpressions (Tuple expression name) = Tuple e name
+  where
+  e = case expression of
+    ExpressionUnary unaryOperation nestedExpression -> case lookup nestedExpression subExpressions of
+      Nothing -> nestedExpression
+      Just n -> ExpressionVariable n
+    ExpressionBinary binaryOperation leftExpression rightExpression -> case lookup leftExpression subExpressions, lookup rightExpression subExpressions of
+      Nothing, Nothing -> ExpressionBinary binaryOperation leftExpression rightExpression
+      Just leftName, Just rightName -> ExpressionBinary binaryOperation (ExpressionVariable leftName) (ExpressionVariable rightName)
+      Just leftName, _ -> ExpressionBinary binaryOperation (ExpressionVariable leftName) rightExpression
+      _, Just rightName -> ExpressionBinary binaryOperation leftExpression (ExpressionVariable rightName)
+    _ -> expression

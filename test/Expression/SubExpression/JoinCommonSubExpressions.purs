@@ -3,6 +3,7 @@ module Test.Expression.SubExpression.JoinCommonSubExpressions
   ) where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Expression.Error (Expect, throw)
 import Expression.Parser (parse)
@@ -45,7 +46,7 @@ parseAndJoinCommonSubExpressions rawExpression = result
   result = case expressionOrParseError of
     Right expression -> pure $ joinCommonSubExpressions expression
     Left error -> throw error
-
+  
 fromExpect :: Expect Expression -> String
 fromExpect (Right expression) = show expression
 

@@ -5,11 +5,13 @@ module Test.Expression.SubExpression
 import Prelude
 import Test.Unit (TestSuite)
 import Test.Expression.SubExpression.JoinCommonSubExpressions (joinCommonSubExpressionsTests)
-import Test.Expression.SubExpression.Substitute (substituteTests)
 import Test.Expression.SubExpression.SplitSubExpressions (splitSubExpressionsTests)
+import Test.Expression.SubExpression.IndexToSubExpressionMap (indexToSubExpressionMapTests)
+import Test.Expression.SubExpression.SubstituteSubExpressions (substituteSubExpressionsTests)
 
 subExpressionTests :: TestSuite
 subExpressionTests = do
   joinCommonSubExpressionsTests
-  substituteTests
   splitSubExpressionsTests
+  indexToSubExpressionMapTests
+  substituteSubExpressionsTests
