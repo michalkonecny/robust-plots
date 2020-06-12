@@ -8,7 +8,7 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Effect.Class (class MonadEffect)
 import Expression.Error (Expect)
-import Expression.Evaluator (evaluate, presetConstants)
+import Expression.Evaluator (roughEvaluate, presetConstants)
 import Expression.Syntax (Expression)
 import Halogen as H
 import Halogen.HTML as HH
@@ -96,4 +96,4 @@ handleAction controller = case _ of
     pure unit
 
 checkExpression :: Expression -> Expect Number
-checkExpression expression = evaluate (presetConstants <> [ Tuple "x" 0.0 ]) expression
+checkExpression expression = roughEvaluate (presetConstants <> [ Tuple "x" 0.0 ]) expression

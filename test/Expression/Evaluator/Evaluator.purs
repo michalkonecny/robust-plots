@@ -3,8 +3,8 @@ module Test.Expression.Evaluator
   ) where
 
 import Test.Unit (TestSuite)
-import Test.Expression.Evaluator.Evaluate (evaluateTests)
+import Test.Expression.Evaluator.RoughEvaluate (roughEvaluateTests)
 
 evaluatorTests :: TestSuite
 evaluatorTests = do
-  evaluateTests
+  roughEvaluateTests

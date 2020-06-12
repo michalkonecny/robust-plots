@@ -14,7 +14,7 @@ import Draw.Commands (DrawCommand)
 import Effect (Effect)
 import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
 import Expression.Differentiator (secondDifferentiate)
-import Expression.Evaluator (evaluate, presetConstants)
+import Expression.Evaluator (roughEvaluate, presetConstants)
 import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
 import Math (abs)
@@ -42,7 +42,7 @@ evaluateWithX expression x = value
   where
   variableMap = presetConstants <> [ Tuple "x" x ]
 
-  value = case evaluate variableMap expression of
+  value = case roughEvaluate variableMap expression of
     Left _ -> 0.0
     Right v -> v
 

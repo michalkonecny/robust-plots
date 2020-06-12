@@ -1,5 +1,5 @@
-module Test.Expression.Evaluator.Evaluate
-  ( evaluateTests
+module Test.Expression.Evaluator.RoughEvaluate
+  ( roughEvaluateTests
   ) where
 
 import Prelude
@@ -8,16 +8,16 @@ import Data.Int (toNumber)
 import Data.Tuple (Tuple(..))
 import Expression.Error (Expect, throw)
 import Expression.VariableMap (VariableMap)
-import Expression.Evaluator (evaluate, presetConstants)
+import Expression.Evaluator (roughEvaluate, presetConstants)
 import Expression.Parser (parse)
 import Test.QuickCheck ((===))
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
 import Test.Unit.QuickCheck (quickCheck)
 
-evaluateTests :: TestSuite
-evaluateTests =
-  suite "Expression.Evaluator - evaluate" do
+roughEvaluateTests :: TestSuite
+roughEvaluateTests =
+  suite "Expression.Evaluator - roughEvaluate" do
     test "ASSERT f(x) = n WHEN f(x) = n FOR ANY integer n" $ quickCheck
       $ \(n :: Int) -> do
           let
@@ -413,7 +413,7 @@ parseAndEvaluate variables rawExpression = result
   expressionOrParseError = parse rawExpression
 
   valueOrEvaluationError = case expressionOrParseError of
-    Right expression -> evaluate variables expression
+    Right expression -> roughEvaluate variables expression
     Left error -> throw error
 
   result = valueOrEvaluationError
