@@ -119,16 +119,24 @@ trimConstantLeafNodes simplifiedLeftExpression simplifiedRightExpression operati
 
 trimTimesOperations :: Expression -> Expression -> BinaryOperation -> Maybe Expression
 trimTimesOperations simplifiedLeftExpression simplifiedRightExpression operation = case simplifiedLeftExpression, simplifiedRightExpression, operation of
-  ExpressionLiteral leftValue, ExpressionBinary Times (ExpressionLiteral nestedRightValue) nestedRightExpression, Times -> Just $ ExpressionBinary Times (ExpressionLiteral (leftValue * nestedRightValue)) nestedRightExpression
-  ExpressionLiteral leftValue, ExpressionBinary Times nestedRightExpression (ExpressionLiteral nestedRightValue), Times -> Just $ ExpressionBinary Times (ExpressionLiteral (leftValue * nestedRightValue)) nestedRightExpression
-  ExpressionBinary Times nestedLeftExpression (ExpressionLiteral nestedLeftValue), ExpressionLiteral rightValue, Times -> Just $ ExpressionBinary Times nestedLeftExpression (ExpressionLiteral (rightValue * nestedLeftValue))
-  ExpressionBinary Times (ExpressionLiteral nestedLeftValue) nestedLeftExpression, ExpressionLiteral rightValue, Times -> Just $ ExpressionBinary Times nestedLeftExpression (ExpressionLiteral (rightValue * nestedLeftValue))
+  ExpressionLiteral leftValue, rightExpression, Times -> case rightExpression of
+    ExpressionBinary Times (ExpressionLiteral nestedRightValue) nestedRightExpression -> Just $ ExpressionBinary Times (ExpressionLiteral (leftValue * nestedRightValue)) nestedRightExpression
+    ExpressionBinary Times nestedRightExpression (ExpressionLiteral nestedRightValue) -> Just $ ExpressionBinary Times (ExpressionLiteral (leftValue * nestedRightValue)) nestedRightExpression
+    _ -> Nothing
+  leftExpression, ExpressionLiteral rightValue, Times -> case leftExpression of
+    ExpressionBinary Times nestedLeftExpression (ExpressionLiteral nestedLeftValue) -> Just $ ExpressionBinary Times nestedLeftExpression (ExpressionLiteral (rightValue * nestedLeftValue))
+    ExpressionBinary Times (ExpressionLiteral nestedLeftValue) nestedLeftExpression -> Just $ ExpressionBinary Times nestedLeftExpression (ExpressionLiteral (rightValue * nestedLeftValue))
+    _ -> Nothing
   _, _, _ -> Nothing
 
 trimPlusOperations :: Expression -> Expression -> BinaryOperation -> Maybe Expression
 trimPlusOperations simplifiedLeftExpression simplifiedRightExpression operation = case simplifiedLeftExpression, simplifiedRightExpression, operation of
-  ExpressionLiteral leftValue, ExpressionBinary Plus (ExpressionLiteral nestedRightValue) nestedRightExpression, Plus -> Just $ ExpressionBinary Plus (ExpressionLiteral (leftValue + nestedRightValue)) nestedRightExpression
-  ExpressionLiteral leftValue, ExpressionBinary Plus nestedRightExpression (ExpressionLiteral nestedRightValue), Plus -> Just $ ExpressionBinary Plus (ExpressionLiteral (leftValue + nestedRightValue)) nestedRightExpression
-  ExpressionBinary Plus nestedLeftExpression (ExpressionLiteral nestedLeftValue), ExpressionLiteral rightValue, Plus -> Just $ ExpressionBinary Plus nestedLeftExpression (ExpressionLiteral (rightValue + nestedLeftValue))
-  ExpressionBinary Plus (ExpressionLiteral nestedLeftValue) nestedLeftExpression, ExpressionLiteral rightValue, Plus -> Just $ ExpressionBinary Plus nestedLeftExpression (ExpressionLiteral (rightValue + nestedLeftValue))
+  ExpressionLiteral leftValue, rightExpression, Plus -> case rightExpression of
+    ExpressionBinary Plus (ExpressionLiteral nestedRightValue) nestedRightExpression -> Just $ ExpressionBinary Plus (ExpressionLiteral (leftValue + nestedRightValue)) nestedRightExpression
+    ExpressionBinary Plus nestedRightExpression (ExpressionLiteral nestedRightValue) -> Just $ ExpressionBinary Plus (ExpressionLiteral (leftValue + nestedRightValue)) nestedRightExpression
+    _ -> Nothing
+  leftExpression, ExpressionLiteral rightValue, Plus -> case leftExpression of
+    ExpressionBinary Plus nestedLeftExpression (ExpressionLiteral nestedLeftValue) -> Just $ ExpressionBinary Plus nestedLeftExpression (ExpressionLiteral (rightValue + nestedLeftValue))
+    ExpressionBinary Plus (ExpressionLiteral nestedLeftValue) nestedLeftExpression -> Just $ ExpressionBinary Plus nestedLeftExpression (ExpressionLiteral (rightValue + nestedLeftValue))
+    _ -> Nothing
   _, _, _ -> Nothing
