@@ -1,7 +1,7 @@
 module Plot.RoughPlot where
 
 import Prelude
-import Data.Array (concat, fold, zipWith, (..))
+import Data.Array (concat, fold, zipWith, (..), tail, (!!), length)
 import Data.Either (Either(..))
 import Data.Int (floor, toNumber)
 import Data.Tuple (Tuple(..))
@@ -11,8 +11,11 @@ import Expression.Evaluator (roughEvaluate, presetConstants)
 import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
 import Math (abs)
-import Plot.Helper (drawLabel, drawPlot)
+import Plot.Helper (drawLabel)
 import Types (Size, XYBounds, Position)
+import Data.Maybe (fromMaybe)
+import Data.Traversable (for_)
+import Draw.Actions (drawPlotLine)
 
 drawRoughPlot :: Size -> Int -> Int -> XYBounds -> Expression -> String -> DrawCommand Unit
 drawRoughPlot canvasSize numberOfPlots index bounds expression label = drawCommands
@@ -23,7 +26,9 @@ drawRoughPlot canvasSize numberOfPlots index bounds expression label = drawComma
 
   points = plotPoints canvasSize bounds f f''
 
-  drawCommands = fold [ drawPlot points, drawLabel label points numberOfPlots index ]
+  labelPosition = fromMaybe { x: 0.0, y: 0.0 } $ points !! ((length points) / ((numberOfPlots + 1) * index))
+
+  drawCommands = fold [ drawPlot points, drawLabel label labelPosition ]
 
 evaluateWithX :: Expression -> Number -> Number
 evaluateWithX expression x = value
@@ -70,3 +75,8 @@ plotPoints canvasSize bounds f f'' = points
   toCanvasPoint x = { x: toCanvasX x, y: toCanvasY y }
     where
     y = f x
+
+drawPlot :: Array Position -> DrawCommand Unit
+drawPlot points = for_ lines (\l -> drawPlotLine l.a l.b)
+  where
+  lines = zipWith (\a b -> { a, b }) points (fromMaybe [] (tail points))
