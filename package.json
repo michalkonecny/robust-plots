@@ -23,7 +23,8 @@
   },
   "devDependencies": {
     "spago": "^0.15.3",
-    "parcel": "^2.0.0-nightly.291"
+    "parcel": "^2.0.0-nightly.291",
+    "purescript": "^0.13.8"
   },
   "license": "BSD-3-Clause"
 }
