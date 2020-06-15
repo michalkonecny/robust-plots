@@ -2,7 +2,7 @@ module Plot.PlotController where
 
 import Prelude
 
-import Data.Array (concat, fold, length, tail, zipWith, (!!), (..), mapWithIndex, filter)
+import Data.Array (concat, fold, length, mapWithIndex, tail, zipWith, (!!), (..))
 import Data.Either (Either(..))
 import Data.Int (floor, toNumber)
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -49,18 +49,15 @@ evaluateWithX expression x = value
 runCommand :: Size -> Int -> Int -> PlotCommand -> DrawCommand Unit
 runCommand _ _ _ (Empty bounds) = clearAndDrawGridLines bounds
 
-runCommand canvasSize numberOfPlots index (Plot bounds expression label) = drawCommands
+runCommand canvasSize numberOfPlots index (RoughPlot bounds expression label) = drawCommands
   where
   f = evaluateWithX expression
 
   f'' = evaluateWithX $ simplify $ secondDifferentiate expression
 
-  points = filter (isWithinCanvas canvasSize) $ plotPoints canvasSize bounds f f''
+  points = plotPoints canvasSize bounds f f''
 
   drawCommands = fold [ drawPlot points, drawLabel label points numberOfPlots index ]
-
-isWithinCanvas :: Size -> Position -> Boolean
-isWithinCanvas canvasSize point = point.x >= 0.0 && point.x <= canvasSize.width + 1.0 && point.y >= 0.0 && point.y <= canvasSize.height + 1.0
 
 drawLabel :: String -> Array Position -> Int -> Int -> DrawCommand Unit
 drawLabel label points numberOfPlots index = drawText color ("f(x)=" <> label) 20.0 labelPosition
