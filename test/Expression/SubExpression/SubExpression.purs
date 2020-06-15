@@ -9,6 +9,7 @@ import Test.Expression.SubExpression.SplitSubExpressions (splitSubExpressionsTes
 import Test.Expression.SubExpression.SubExpressionToVariableMap (subExpressionToVariableMapTests)
 import Test.Expression.SubExpression.SubstituteSubExpressions (substituteSubExpressionsTests)
 import Test.Expression.SubExpression.OrderDepencencies (orderDepencenciesTests)
+import Test.Expression.SubExpression.RemoveSubExpressions (removeSubExpressionsTests)
 
 subExpressionTests :: TestSuite
 subExpressionTests = do
@@ -17,3 +18,5 @@ subExpressionTests = do
   substituteSubExpressionsTests
   orderDepencenciesTests
   joinCommonSubExpressionsTests
+  removeSubExpressionsTests
+  

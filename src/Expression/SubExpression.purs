@@ -18,9 +18,11 @@ removeSubExpressions = removeSubExpressionsWithMap []
   removeSubExpressionsWithMap :: (VM.VariableMap Expression) -> Expression -> Expression
   removeSubExpressionsWithMap variableMap = case _ of
     ExpressionVariable name -> case VM.lookup variableMap name of
-      Just value -> value
+      Just value -> removeSubExpressionsWithMap variableMap value
       _ -> ExpressionVariable name
     ExpressionLet name expression parentExpression -> removeSubExpressionsWithMap (variableMap <> [ (Tuple name expression) ]) parentExpression
+    ExpressionUnary op expression -> ExpressionUnary op (removeSubExpressionsWithMap variableMap expression) 
+    ExpressionBinary op leftExpression rightExpression -> ExpressionBinary op (removeSubExpressionsWithMap variableMap leftExpression) (removeSubExpressionsWithMap variableMap rightExpression)
     expression -> expression
 
 joinCommonSubExpressions :: Expression -> Expression
