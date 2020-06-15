@@ -20,12 +20,7 @@ jobs:
         node-version: 10
 
     - name: Install spago and load dependencies
-      run: |
-        npm install spago -g
-        cd /home/runner/work/robust-plots/robust-plots
-        npm run install
+      run: npm install
 
     - name: Test
-      run: | 
-        cd /home/runner/work/robust-plots/robust-plots
-        npm run test
+      run: npm run test
