@@ -1,6 +1,7 @@
 module Plot.RobustPlot where
 
 import Prelude
+
 import Data.Array (fold, length, (..), (!!))
 import Data.Either (Either(..))
 import Data.Foldable (sum)
@@ -13,16 +14,7 @@ import Expression.Evaluator (evaluate)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, boundsNumber, fromInt)
 import Plot.Helper (drawLabel)
-import Types (Position, Polygon, Size)
-
-type ApproxXYBounds
-  = { xBounds :: ApproxBounds, yBounds :: ApproxBounds }
-
-type ApproxBounds
-  = { upper :: Approx, lower :: Approx }
-
-type ApproxSize
-  = { width :: Approx, height :: Approx }
+import Types (ApproxXYBounds, Polygon, Position, Size, ApproxSize)
 
 drawRobustPlot :: Size -> Int -> Int -> ApproxXYBounds -> Expression -> String -> DrawCommand Unit
 drawRobustPlot canvasSize numberOfPlots index bounds expression label = drawCommands

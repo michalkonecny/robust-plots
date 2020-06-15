@@ -1,5 +1,7 @@
 module Types where
 
+import IntervalArith.Approx (Approx)
+
 type XYBounds
   = { xBounds :: Bounds, yBounds :: Bounds }
 
@@ -20,3 +22,12 @@ data Direction
   | Down
   | Left
   | Right
+
+type ApproxXYBounds
+  = { xBounds :: ApproxBounds, yBounds :: ApproxBounds }
+
+type ApproxBounds
+  = { upper :: Approx, lower :: Approx }
+
+type ApproxSize
+  = { width :: Approx, height :: Approx }
