@@ -4,358 +4,324 @@ module Test.Expression.Evaluator.Evaluate
 
 import Prelude
 import Data.Either (Either(..))
-import Data.Int (toNumber)
+import Data.Ratio ((%))
 import Data.Tuple (Tuple(..))
 import Expression.Error (Expect, throw)
-import Expression.VariableMap (VariableMap)
-import Expression.Evaluator (evaluate, presetConstants)
+import Expression.Evaluator (evaluate)
 import Expression.Parser (parse)
-import Test.QuickCheck ((===))
+import Expression.VariableMap (VariableMap)
+import IntervalArith.Approx (Approx, consistent, fromRationalPrec)
+import IntervalArith.Misc (big)
+import Test.Expression.Helper (expectValue)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
-import Test.Unit.QuickCheck (quickCheck)
 
 evaluateTests :: TestSuite
 evaluateTests =
   suite "Expression.Evaluator - evaluate" do
-    test "ASSERT f(x) = n WHEN f(x) = n FOR ANY integer n" $ quickCheck
-      $ \(n :: Int) -> do
-          let
-            -- given
-            variables = presetConstants
-
-            rawExpression = show $ toNumber n
-
-            -- when
-            result = fromExpect $ parseAndEvaluate variables rawExpression
-
-            -- then
-            expectedResult = show $ toNumber n
-          expectedResult === result
     test "ASSERT f(x) = 9.0 WHEN f(x) = 4+5" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "4+5"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = show 9.0
-      equal expectedResult result
+        expectedResult = ratioHelp 9 1
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
     test "ASSERT f(x) = 7.5 WHEN f(x) = 4.5+3" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "4.5+3"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = show 7.5
-      equal expectedResult result
+        expectedResult = ratioHelp 15 2
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
     test "ASSERT f(x) = 12.0 WHEN f(x) = 4*3" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "4*3"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = show 12.0
-      equal expectedResult result
+        expectedResult = ratioHelp 12 1
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
     test "ASSERT f(x) = 9.0 WHEN f(x) = 4.5*2" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "4.5*2"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = show 9.0
-      equal expectedResult result
+        expectedResult = ratioHelp 9 1
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
     test "ASSERT f(x) = 4.0 WHEN f(x) = 8/2" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "8/2"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = show 4.0
-      equal expectedResult result
+        expectedResult = ratioHelp 4 1
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
     test "ASSERT f(x) = 4.5 WHEN f(x) = 9/2" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "9/2"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = show 4.5
-      equal expectedResult result
+        expectedResult = ratioHelp 9 2
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
     test "ASSERT f(x) = 4.75 WHEN f(x) = 9.5/2" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "9.5/2"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = show 4.75
-      equal expectedResult result
+        expectedResult = ratioHelp 19 4
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
     test "ASSERT f(x) = 4.75 WHEN f(x) = 9.5/2" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "9.5/2"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = show 4.75
-      equal expectedResult result
+        expectedResult = ratioHelp 19 4
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
     test "ASSERT f(x) = 7.0 WHEN f(x) = 9-2" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "9-2"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = show 7.0
-      equal expectedResult result
+        expectedResult = ratioHelp 7 1
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
     test "ASSERT f(x) = 6.0 WHEN f(x) = 9.5-3.5" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "9.5-3.5"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = show 6.0
-      equal expectedResult result
+        expectedResult = ratioHelp 6 1
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
     test "ASSERT f(x) = 12.0 WHEN f(x) = (2+4)+6" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "(2+4)+6"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = show 12.0
-      equal expectedResult result
+        expectedResult = ratioHelp 12 1
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
     test "ASSERT f(x) = 36.0 WHEN f(x) = (2+4)*6" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "(2+4)*6"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = show 36.0
-      equal expectedResult result
+        expectedResult = ratioHelp 36 1
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
     test "ASSERT f(x) = 26.0 WHEN f(x) = 2+4*6" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "2+4*6"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = parseAndEvaluate [] rawExpression
 
-        -- then
-        expectedResult = show 26.0
-      equal expectedResult result
-    test "ASSERT f(x) = 8.0 WHEN f(x) = 2^3" do
+        expectedResult = ratioHelp 26 1
+      -- then
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
+    test "SHOULD throw error 'Unsupported operation: pow' WHEN f(x) = 2^3" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "2^3"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = fromExpect $ parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = show 8.0
+        expectedResult = "Unsupported operation: pow"
       equal expectedResult result
-    test "ASSERT f(x) = 1.0 WHEN f(x) = sin(pi/2)" do
+    test "SHOULD throw error 'Unsupported operation: sin' WHEN f(x) = sin(pi/2)" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "sin(pi/2)"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = fromExpect $ parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = show 1.0
+        expectedResult = "Unsupported operation: sin"
       equal expectedResult result
-    test "ASSERT f(x) = 0.0 WHEN f(x) = sin(0)" do
+    test "SHOULD throw error 'Unsupported operation: cos' WHEN f(x) = cos(pi)" do
       let
         -- given
-        variables = presetConstants
-
-        rawExpression = "sin(0)"
-
-        -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
-
-        -- then
-        expectedResult = show 0.0
-      equal expectedResult result
-    test "ASSERT f(x) = -1.0 WHEN f(x) = cos(pi)" do
-      let
-        -- given
-        variables = presetConstants
-
         rawExpression = "cos(pi)"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = fromExpect $ parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = show $ -1.0
+        expectedResult = "Unsupported operation: cos"
       equal expectedResult result
-    test "ASSERT f(x) = 1.0 WHEN f(x) = cos(0)" do
+    test "SHOULD throw error 'Unsupported operation: cos' WHEN f(x) = cos(0)" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "cos(0)"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = fromExpect $ parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = show 1.0
+        expectedResult = "Unsupported operation: cos"
       equal expectedResult result
-    test "ASSERT f(x) = 0.0 WHEN f(x) = tan(0)" do
+    test "SHOULD throw error 'Unsupported operation: tan' WHEN f(x) = tan(0)" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "tan(0)"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = fromExpect $ parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = show 0.0
+        expectedResult = "Unsupported operation: tan"
       equal expectedResult result
-    test "ASSERT f(x) = 2.0 WHEN f(x) = sqrt(4)" do
+    test "SHOULD throw error 'Unsupported operation: sqrt' WHEN f(x) = sqrt(4)" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "sqrt(4)"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = fromExpect $ parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = show 2.0
+        expectedResult = "Unsupported operation: sqrt"
       equal expectedResult result
-    test "ASSERT f(x) = 0.0 WHEN f(x) = log(1)" do
+    test "SHOULD throw error 'Unsupported operation: log' WHEN f(x) = log(1)" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "log(1)"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = fromExpect $ parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = show 0.0
+        expectedResult = "Unsupported operation: log"
       equal expectedResult result
     test "ASSERT f(x) = 5.0 WHEN f(x) = x AND x = 5.0" do
       let
         -- given
         x = 5.0
 
-        variables = [ (Tuple "x" x) ] <> presetConstants
+        variables = [ (Tuple "x" (ratioHelp 5 1)) ]
 
         rawExpression = "x"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = parseAndEvaluate variables rawExpression
 
         -- then
-        expectedResult = show 5.0
-      equal expectedResult result
+        expectedResult = ratioHelp 5 1
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
     test "ASSERT f(x) = 4.0 WHEN f(x) = 2.0*x AND x = 2.0" do
       let
         -- given
         x = 2.0
 
-        variables = [ (Tuple "x" x) ] <> presetConstants
+        variables = [ (Tuple "x" (ratioHelp 2 1)) ]
 
         rawExpression = "2.0*x"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = parseAndEvaluate variables rawExpression
 
         -- then
-        expectedResult = show 4.0
-      equal expectedResult result
+        expectedResult = ratioHelp 4 1
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
     test "ASSERT f(x) = 4.0 WHEN f(x) = 2*x AND x = 2.0" do
       let
         -- given
         x = 2.0
 
-        variables = [ (Tuple "x" x) ] <> presetConstants
+        variables = [ (Tuple "x" (ratioHelp 2 1)) ]
 
         rawExpression = "2.0*x"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = parseAndEvaluate variables rawExpression
 
         -- then
-        expectedResult = show 4.0
-      equal expectedResult result
-    test "ASSERT f(x) = 1.0 WHEN f(x) = 1 / (1 + (100 * (x ^ 2))) AND x = 0.0" do
+        expectedResult = ratioHelp 4 1
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
+    test "SHOULD throw error 'Unsupported operation: pow' WHEN f(x) = 1 / (1 + (100 * (x ^ 2))) AND x = 0.0" do
       let
         -- given
         x = 0.0
 
-        variables = [ (Tuple "x" x) ] <> presetConstants
+        variables = [ (Tuple "x" (ratioHelp 0 1)) ]
 
         rawExpression = "1 / (1 + (100 * (x ^ 2)))"
 
@@ -363,14 +329,14 @@ evaluateTests =
         result = fromExpect $ parseAndEvaluate variables rawExpression
 
         -- then
-        expectedResult = show 1.0
+        expectedResult = "Unsupported operation: pow"
       equal expectedResult result
-    test "ASSERT f(x) = 0.5 WHEN f(x) = 1 / (1 + (100 * (x ^ 2))) AND x = 0.1" do
+    test "SHOULD throw error 'Unsupported operation: pow' WHEN f(x) = 1 / (1 + (100 * (x ^ 2))) AND x = 0.1" do
       let
         -- given
         x = 0.1
 
-        variables = [ (Tuple "x" x) ] <> presetConstants
+        variables = [ (Tuple "x" (ratioHelp 1 10)) ]
 
         rawExpression = "1 / (1 + (100 * (x ^ 2)))"
 
@@ -378,47 +344,35 @@ evaluateTests =
         result = fromExpect $ parseAndEvaluate variables rawExpression
 
         -- then
-        expectedResult = show 0.5
-      equal expectedResult result
-    test "SHOULD throw error 'Unknown value: x' WHEN f(x) = 1 / (1 + (100 * (x ^ 2))) AND x is undefined" do
-      let
-        -- given
-        variables = presetConstants
-
-        rawExpression = "1 / (1 + (100 * (x ^ 2)))"
-
-        -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
-
-        -- then
-        expectedResult = "Unknown value: x"
+        expectedResult = "Unsupported operation: pow"
       equal expectedResult result
     test "SHOULD throw error 'Unknown value: a | Unknown value: b' WHEN f(x) = a + b AND a is undefined AND b in undefined" do
       let
         -- given
-        variables = presetConstants
-
         rawExpression = "a + b"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = fromExpect $ parseAndEvaluate [] rawExpression
 
         -- then
         expectedResult = "Unknown value: a | Unknown value: b"
       equal expectedResult result
 
-parseAndEvaluate :: VariableMap Number -> String -> Expect Number
-parseAndEvaluate variables rawExpression = result
+parseAndEvaluate :: VariableMap Approx -> String -> Expect Approx
+parseAndEvaluate variableMap rawExpression = result
   where
   expressionOrParseError = parse rawExpression
 
   valueOrEvaluationError = case expressionOrParseError of
-    Right expression -> evaluate variables expression
+    Right expression -> evaluate variableMap expression
     Left error -> throw error
 
   result = valueOrEvaluationError
 
-fromExpect :: Expect Number -> String
+ratioHelp :: Int -> Int -> Approx
+ratioHelp n d = fromRationalPrec 50 ((big n) % (big d))
+
+fromExpect :: Expect Approx -> String
 fromExpect (Right value) = show value
 
 fromExpect (Left error) = show error

@@ -1,7 +1,6 @@
 module Expression.SubExpression where
 
 import Prelude
-
 import Data.Array (elem, foldr, fromFoldable, null, unsnoc)
 import Data.Map (Map, filterKeys, lookup, toUnfoldable, values)
 import Data.Maybe (Maybe(..))
@@ -20,7 +19,9 @@ removeSubExpressions = removeSubExpressionsWithMap []
     ExpressionVariable name -> case VM.lookup variableMap name of
       Just value -> value
       _ -> ExpressionVariable name
-    ExpressionLet name expression parentExpression -> removeSubExpressionsWithMap (variableMap <> [ (Tuple name expression) ]) parentExpression
+    ExpressionLet name nameExpression parentExpression -> removeSubExpressionsWithMap (variableMap <> [ (Tuple name (removeSubExpressionsWithMap variableMap nameExpression)) ]) parentExpression
+    ExpressionUnary op expression -> ExpressionUnary op (removeSubExpressionsWithMap variableMap expression)
+    ExpressionBinary op leftExpression rightExpression -> ExpressionBinary op (removeSubExpressionsWithMap variableMap leftExpression) (removeSubExpressionsWithMap variableMap rightExpression)
     expression -> expression
 
 joinCommonSubExpressions :: Expression -> Expression

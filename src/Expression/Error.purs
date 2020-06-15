@@ -8,10 +8,12 @@ import Data.Either (Either(..))
 data Error = ParseError String
            | UnknownValue VariableName
            | MultipleErrors String
+           | UnsupportedOperation String
 
 instance showError :: Show Error where
   show (ParseError s) = "Parse error: " <> s
   show (UnknownValue n) = "Unknown value: " <> n
+  show (UnsupportedOperation n) = "Unsupported operation: " <> n
   show (MultipleErrors msg) = msg     
 
 derive instance eqError :: Eq Error
@@ -29,3 +31,6 @@ unknownValue = throw <<< UnknownValue
 
 multipleErrors :: forall a. String -> Expect a
 multipleErrors = throw <<< MultipleErrors
+
+unsupportedOperation :: forall a. String -> Expect a
+unsupportedOperation = throw <<< UnsupportedOperation

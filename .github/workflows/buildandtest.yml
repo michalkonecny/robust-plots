@@ -9,23 +9,18 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v2
 
-    - name: Setup Node.js 10
+    - name: Setup Node.js 12
       uses: actions/setup-node@v1
       with:
-        node-version: 10
+        node-version: 12
 
     - name: Install spago and load dependencies
-      run: |
-        npm install spago -g
-        cd /home/runner/work/robust-plots/robust-plots
-        npm run install
+      run: npm install
 
     - name: Test
-      run: | 
-        cd /home/runner/work/robust-plots/robust-plots
-#        npm run test
+      run: npm run test
