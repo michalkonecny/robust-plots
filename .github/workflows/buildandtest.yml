@@ -28,4 +28,4 @@ jobs:
     - name: Test
       run: | 
         cd /home/runner/work/robust-plots/robust-plots
-#        npm run test
+        npm run test
