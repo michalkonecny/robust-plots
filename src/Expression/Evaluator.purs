@@ -77,7 +77,7 @@ roughEvaluateNegate variableMap expression = case roughEvaluate variableMap expr
 ----------------------------------------------------
 evaluate :: VariableMap Approx -> Expression -> Expect Approx
 evaluate variableMap = case _ of
-  ExpressionLiteral value -> pure $ fromRationalPrec 4 value
+  ExpressionLiteral value -> pure $ fromRationalPrec 50 value
   ExpressionVariable name -> case lookup variableMap name of
     Just value -> pure value
     _ -> unknownValue name
