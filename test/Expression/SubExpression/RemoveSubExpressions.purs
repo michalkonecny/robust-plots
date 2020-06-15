@@ -3,9 +3,11 @@ module Test.Expression.SubExpression.RemoveSubExpressions
   ) where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Expression.Parser (parse)
 import Expression.SubExpression (joinCommonSubExpressions, removeSubExpressions)
+import Expression.Syntax (Expression)
 import Test.Unit (TestSuite, failure, suite, test)
 import Test.Unit.Assert (equal)
 
@@ -16,8 +18,6 @@ removeSubExpressionsTests =
       let
         -- given
         rawExpression = "sin(sin(sin(x)))+sin(sin(x))+sin(x)"
-
-        wrapAndUnwrap = removeSubExpressions <<< joinCommonSubExpressions
       -- when
       case parse rawExpression of
         Left error -> failure $ show error
@@ -26,8 +26,6 @@ removeSubExpressionsTests =
       let
         -- given
         rawExpression = "(x+x)+(x+x)"
-
-        wrapAndUnwrap = removeSubExpressions <<< joinCommonSubExpressions
       -- when
       case parse rawExpression of
         Left error -> failure $ show error
@@ -36,8 +34,6 @@ removeSubExpressionsTests =
       let
         -- given
         rawExpression = "x+x"
-
-        wrapAndUnwrap = removeSubExpressions <<< joinCommonSubExpressions
       -- when
       case parse rawExpression of
         Left error -> failure $ show error
@@ -46,9 +42,10 @@ removeSubExpressionsTests =
       let
         -- given
         rawExpression = "sin((x+x)+(x+x))+(x+x)+sin((x+x)+(x+x))"
-
-        wrapAndUnwrap = removeSubExpressions <<< joinCommonSubExpressions
       -- when
       case parse rawExpression of
         Left error -> failure $ show error
         Right expression -> equal (show $ wrapAndUnwrap expression) (show expression)
+
+wrapAndUnwrap :: Expression -> Expression
+wrapAndUnwrap = removeSubExpressions <<< joinCommonSubExpressions
