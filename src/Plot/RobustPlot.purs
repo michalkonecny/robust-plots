@@ -7,6 +7,7 @@ import Data.Either (Either(..))
 import Data.Foldable (sum)
 import Data.Int (toNumber)
 import Data.Maybe (fromMaybe)
+import Data.Number (isFinite)
 import Data.Tuple (Tuple(..))
 import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
@@ -34,7 +35,7 @@ evaluateWithX expression x = value
   variableMap = [ Tuple "x" x ]
 
   value = case evaluate variableMap expression of
-    Left _ -> zero
+    Left _ -> zero -- TODO Handle any evaluation erros 
     Right v -> v
 
 plotPoints :: Size -> XYBounds -> (Approx -> Approx) -> Array Polygon
@@ -94,7 +95,10 @@ plotPoints canvasSize bounds f = points
   toCanvasX x = rationalToNumber $ ((x - bounds.xBounds.lower) * canvasSize.width) / rangeX
 
   toCanvasY :: Number -> Number
-  toCanvasY y = canvasHeight - (((y - yLowerBound) * canvasHeight) / rangeY)
+  toCanvasY y = safeCanvasY
+    where
+      canvasY = canvasHeight - (((y - yLowerBound) * canvasHeight) / rangeY)
+      safeCanvasY = if isFinite canvasY then canvasY else if canvasY < zero then canvasHeight + one else -one
 
 drawPlot :: Array Polygon -> DrawCommand Unit
 drawPlot ploygons = drawEnclosure true ploygons
