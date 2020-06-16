@@ -3,8 +3,10 @@ module Test.IntervalArith.Misc where
 import Prelude
 import Data.Foldable (foldl)
 import Data.NonEmpty ((:|))
-import IntervalArith.Misc (Integer, big, scale)
-import Test.QuickCheck (class Arbitrary, (<=?), (==?))
+import Data.Ord (abs)
+import Data.Ratio ((%))
+import IntervalArith.Misc (Integer, Rational, big, scale)
+import Test.QuickCheck (class Arbitrary, arbitrary, (<=?), (==?))
 import Test.QuickCheck.Combinators ((&=&))
 import Test.QuickCheck.Gen (chooseInt, elements, listOf, sized)
 import Test.Unit (TestSuite, suite, test)
@@ -73,3 +75,12 @@ instance arbitraryPositiveExponent :: Arbitrary ArbitraryPositiveExponent where
   arbitrary =
     sized \size ->
       ArbitraryPositiveExponent <$> chooseInt 0 (2 * size + 1)
+
+newtype ArbitraryRational
+  = ArbitraryRational Rational
+
+instance arbitraryRational :: Arbitrary ArbitraryRational where
+  arbitrary = do
+    (ArbitraryInteger p) <- arbitrary
+    (ArbitraryInteger qPre) <- arbitrary
+    pure $ ArbitraryRational $ p % (one + (abs qPre))
