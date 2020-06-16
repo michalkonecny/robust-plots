@@ -179,10 +179,11 @@ handleAction action = do
         H.liftEffect $ E.preventDefault (WE.toEvent event)
         handleAction $ Zoom (changeInY < 0.0)
     StartRobust id robustCommands bounds -> do
-      _ <- lift $ lift $ delay $ Milliseconds 5000.0
+      _ <- lift $ lift $ delay $ Milliseconds 2000.0 -- TODO Remove artifical delay
       robustDrawCommands <- lift $ computePlots state.input.size robustCommands
       handleAction $ EndRobust id robustDrawCommands
     EndRobust id drawCommands ->
+      -- If the command set is different then ignore the drawCommands
       when (state.commandSetId == id) do
         H.put state { input { operations = drawCommands } }
 
