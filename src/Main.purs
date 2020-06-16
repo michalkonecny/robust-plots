@@ -1,6 +1,7 @@
 module Main where
 
 import Prelude
+
 import Components.BoundsInput (BoundsInputMessage(..), BoundsInputSlot, boundsInputComponent)
 import Components.Canvas (Input, CanvasSlot, CanvasMessage(..), canvasComponent, xyBounds)
 import Components.Canvas.Controller (canvasController)
@@ -23,6 +24,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.Query.EventSource as ES
 import Halogen.VDom.Driver (runUI)
+import IntervalArith.Misc (toRational)
 import Plot.Commands (PlotCommand, plotExpression, clear)
 import Plot.Pan (panBounds, panBoundsByVector)
 import Plot.PlotController (computePlotAsync)
@@ -94,8 +96,8 @@ ui =
         { operations: pure unit
         , canvasId: canvasId
         , size:
-            { width: 800.0
-            , height: 500.0
+            { width: toRational 800
+            , height: toRational 500
             }
         }
     , bounds: initialBounds
@@ -215,7 +217,7 @@ updatePlot id expression text plot =
     plot
 
 initialBounds :: XYBounds
-initialBounds = xyBounds (-1.0) (1.0) (-1.0) (1.0)
+initialBounds = xyBounds (- one) (one) (-one) (one)
 
 computePlots :: Size -> XYBounds -> Array ExpressionPlot -> ReaderT Config Aff (DrawCommand Unit)
 computePlots canvasSize newBounds plots = lift $ computePlotAsync canvasSize computedPlot

@@ -1,22 +1,23 @@
 module Plot.RobustPlot where
 
 import Prelude
-
 import Data.Array (fold, length, (..), (!!))
 import Data.Either (Either(..))
 import Data.Foldable (sum)
-import Data.Int (floor, toNumber)
+import Data.Int (toNumber)
 import Data.Maybe (fromMaybe)
 import Data.Tuple (Tuple(..))
 import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
 import Expression.Evaluator (evaluate)
 import Expression.Syntax (Expression)
-import IntervalArith.Approx (Approx, boundsNumber, fromInt)
+import IntervalArith.Approx (Approx, boundsR, fromRationalBoundsPrec)
+import IntervalArith.Extended (Extended(..))
+import IntervalArith.Misc (Rational, rationalToNumber, toRational)
 import Plot.Helper (drawLabel)
-import Types (ApproxXYBounds, Polygon, Position, Size, ApproxSize)
+import Types (XYBounds, Polygon, Position, Size)
 
-drawRobustPlot :: Size -> Int -> Int -> ApproxXYBounds -> Expression -> String -> DrawCommand Unit
+drawRobustPlot :: Size -> Int -> Int -> XYBounds -> Expression -> String -> DrawCommand Unit
 drawRobustPlot canvasSize numberOfPlots index bounds expression label = drawCommands
   where
   f = evaluateWithX expression
@@ -36,52 +37,77 @@ evaluateWithX expression x = value
     Left _ -> zero
     Right v -> v
 
-plotPoints :: Size -> ApproxXYBounds -> (Approx -> Approx) -> Array Polygon
-plotPoints size bounds f = points
+plotPoints :: Size -> XYBounds -> (Approx -> Approx) -> Array Polygon
+plotPoints canvasSize bounds f = points
   where
-  canvasSize = toApproxSize size
+  segmentCount = 50
 
   rangeX = bounds.xBounds.upper - bounds.xBounds.lower
 
   rangeY = bounds.yBounds.upper - bounds.yBounds.lower
 
-  defaultRange = map (fromInt >>> toDomainX) $ 0 .. 50
+  defaultRange = map (toRational >>> toDomainX) $ 0 .. segmentCount
+
+  segmentWidth = rangeX / (toRational segmentCount)
 
   points = map toCanvasPoint defaultRange
 
-  toDomainX :: Approx -> Approx
-  toDomainX canvasX = ((canvasX * rangeX) / canvasSize.width) + bounds.xBounds.lower
-
-  toCanvasPoint :: Approx -> Polygon
-  toCanvasPoint x = polygon
+  toDomainX :: Rational -> Tuple Rational Rational
+  toDomainX segmentX = Tuple lower upper
     where
+    lower = (segmentX * segmentWidth) + bounds.xBounds.lower
+
+    upper = lower + segmentWidth
+
+  toCanvasPoint :: Tuple Rational Rational -> Polygon
+  toCanvasPoint (Tuple xLower xUpper) = polygon
+    where
+    x = fromRationalBoundsPrec 50 xLower xUpper
+
     y = f x
 
-    approxX = ((x - bounds.xBounds.lower) * canvasSize.width) / rangeX
+    canvasXLower = toCanvasX xLower
 
-    (Tuple xLower xUpper) = boundsNumber approxX
+    canvasXUpper = toCanvasX xUpper
 
-    approxY = canvasSize.height - (((y - bounds.yBounds.lower) * canvasSize.height) / rangeY)
+    (Tuple yLower yUpper) = safeBoundsR y
 
-    (Tuple yLower yUpper) = boundsNumber approxY
+    canvasYLower = toCanvasY yLower
 
-    a = { x: xLower, y: yUpper }
+    canvasYUpper = toCanvasY yUpper
 
-    b = { x: xUpper, y: yUpper }
+    a = { x: canvasXLower, y: canvasYUpper }
 
-    c = { x: xUpper, y: yLower }
+    b = { x: canvasXUpper, y: canvasYUpper }
 
-    d = { x: xLower, y: yLower }
+    c = { x: canvasXUpper, y: canvasYLower }
+
+    d = { x: canvasXLower, y: canvasYLower }
 
     polygon =
       [ a, b, c, d
       ]
 
+  toCanvasX :: Rational -> Number
+  toCanvasX x = rationalToNumber $ ((x - bounds.xBounds.lower) * canvasSize.width) / segmentWidth
+
+  toCanvasY :: Rational -> Number
+  toCanvasY y = rationalToNumber $ canvasSize.height - (((y - bounds.yBounds.lower) * canvasSize.height) / rangeY)
+
+  safeBoundsR :: Approx -> Tuple Rational Rational
+  safeBoundsR y = case boundsR y of
+    (Tuple PosInf PosInf) -> (Tuple zero zero)
+    (Tuple PosInf NegInf) -> (Tuple zero canvasSize.height)
+    (Tuple PosInf (Finite yUpper)) -> (Tuple zero yUpper)
+    (Tuple NegInf PosInf) -> (Tuple canvasSize.height zero)
+    (Tuple NegInf NegInf) -> (Tuple canvasSize.height canvasSize.height)
+    (Tuple NegInf (Finite yUpper)) -> (Tuple canvasSize.height yUpper)
+    (Tuple (Finite yLower) PosInf) -> (Tuple yLower zero)
+    (Tuple (Finite yLower) NegInf) -> (Tuple yLower canvasSize.height)
+    (Tuple (Finite yLower) (Finite yUpper)) -> (Tuple yLower yUpper)
+
 drawPlot :: Array Polygon -> DrawCommand Unit
 drawPlot ploygons = drawEnclosure true ploygons
-
-toApproxSize :: Size -> ApproxSize
-toApproxSize s = { width: fromInt $ floor s.width, height: fromInt $ floor s.height }
 
 toPosition :: Polygon -> Position
 toPosition polygon = { x, y }

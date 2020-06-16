@@ -2,13 +2,25 @@ module Components.BoundsInput where
 
 import Prelude
 
+import Control.Alt ((<|>))
+import Control.Lazy (fix)
+import Data.Either (Either(..))
+import Data.Enum (fromEnum)
+import Data.Foldable (foldr)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Number (fromString)
+import Data.Ratio (denominator, (%))
 import Effect.Class (class MonadEffect)
+import Expression.Parser (token, P)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import IntervalArith.Misc (Integer, Rational, big, rationalToNumber, toRational)
+import Text.Parsing.Parser (runParser)
+import Text.Parsing.Parser.Combinators (lookAhead, notFollowedBy, many1Till)
+import Text.Parsing.Parser.Expr (buildExprParser)
+import Text.Parsing.Parser.String (char)
+import Text.Parsing.Parser.Token (digit)
 import Types (XYBounds)
 
 type BoundsInputSlot p
@@ -59,12 +71,12 @@ initialState :: XYBounds -> State
 initialState input =
   { error: Nothing
   , xBounds:
-      { upper: show input.xBounds.upper
-      , lower: show input.xBounds.lower
+      { upper: show $ rationalToNumber input.xBounds.upper
+      , lower: show $ rationalToNumber input.xBounds.lower
       }
   , yBounds:
-      { upper: show input.yBounds.upper
-      , lower: show input.yBounds.lower
+      { upper: show $ rationalToNumber input.yBounds.upper
+      , lower: show $ rationalToNumber input.yBounds.lower
       }
   }
 
@@ -140,24 +152,24 @@ handleAction = case _ of
     H.modify_
       _
         { xBounds
-          { upper = show bounds.xBounds.upper
-          , lower = show bounds.xBounds.lower
+          { upper = show $ rationalToNumber bounds.xBounds.upper
+          , lower = show $ rationalToNumber bounds.xBounds.lower
           }
         , yBounds
-          { upper = show bounds.yBounds.upper
-          , lower = show bounds.yBounds.lower
+          { upper = show $ rationalToNumber bounds.yBounds.upper
+          , lower = show $ rationalToNumber bounds.yBounds.lower
           }
         }
   Update -> do
     { xBounds, yBounds } <- H.get
     let
-      maybeXLower = fromString xBounds.lower
+      maybeXLower = parse xBounds.lower
 
-      maybeXUpper = fromString xBounds.upper
+      maybeXUpper = parse xBounds.upper
 
-      maybeYLower = fromString yBounds.lower
+      maybeYLower = parse yBounds.lower
 
-      maybeYUpper = fromString yBounds.upper
+      maybeYUpper = parse yBounds.upper
     case maybeXLower of
       Nothing -> H.modify_ _ { error = Just $ "Failed to parse lower X bound" }
       Just xLower -> case maybeXUpper of
@@ -167,3 +179,40 @@ handleAction = case _ of
           Just yLower -> case maybeYUpper of
             Nothing -> H.modify_ _ { error = Just $ "Failed to parse upper Y bound" }
             Just yUpper -> H.raise (Updated { xBounds: { lower: xLower, upper: xUpper }, yBounds: { lower: yLower, upper: yUpper } })
+
+parse :: String -> Maybe Rational
+parse input = case runParser input expressionParser of
+  Left error -> Nothing
+  Right number -> Just number
+
+expressionParser :: P Rational
+expressionParser = fix (\p -> buildExprParser [] literal)
+
+literal :: P Rational
+literal = do
+  interger <- token.integer
+  let
+    rationalInteger = toRational interger
+  (lookAhead (char '.') *> asRational rationalInteger) <|> (pure $ rationalInteger)
+  where
+  asRational :: Rational -> P Rational
+  asRational wholeNumber = do
+    _ <- token.dot
+    decimalPlaces <- many1Till digitToInteger isNotDigit
+    pure $ wholeNumber + (foldr foldIntoRational (toRational 0) decimalPlaces)
+
+  digitToInteger :: P Integer
+  digitToInteger = digit >>= fromChar >>> big >>> pure
+
+  -- | Note: `fromEnum` returns the ASCII code for the character. So subtract the code for 
+  -- | `0` to retrieve the actual integer value
+  fromChar :: Char -> Int
+  fromChar char = (fromEnum char) - (fromEnum '0')
+
+  isNotDigit :: P Unit
+  isNotDigit = notFollowedBy $ digit
+
+  foldIntoRational :: Integer -> Rational -> Rational
+  foldIntoRational element accumulator = accumulator + (element % newDenominator)
+    where
+    newDenominator = (big 10) * denominator accumulator

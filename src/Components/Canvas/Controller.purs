@@ -1,14 +1,16 @@
 module Components.Canvas.Controller where
 
 import Prelude
-import Draw.Commands (DrawCommand)
-import Components.Canvas.Interpreter (runDrawCommands)
+
 import Components.Canvas.Context (DrawContext)
+import Components.Canvas.Interpreter (runDrawCommands)
 import Constants (canvasId)
 import Data.Maybe (Maybe(..))
+import Draw.Commands (DrawCommand)
 import Effect (Effect)
 import Effect.Exception (throw)
 import Graphics.Canvas (getCanvasElementById, getContext2D)
+import IntervalArith.Misc (rationalToNumber)
 import Types (Size)
 
 type CanvasController commands
@@ -27,7 +29,7 @@ canvasController = { init, render, onResize }
     case maybeCanvas of
       Just canvas -> do
         context <- getContext2D canvas
-        pure $ Just { context: context, canvasWidth: size.width, canvasHeight: size.height }
+        pure $ Just { context: context, canvasWidth: rationalToNumber size.width, canvasHeight: rationalToNumber size.height }
       Nothing -> do
         _ <- throw $ "canvas id: " <> canvasId <> " was not found."
         pure Nothing
