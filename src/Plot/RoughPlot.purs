@@ -3,7 +3,7 @@ module Plot.RoughPlot where
 import Prelude
 import Data.Array (concat, fold, zipWith, (..), tail, (!!), length)
 import Data.Either (Either(..))
-import Data.Int (floor)
+import Data.Int (floor, toNumber)
 import Data.Maybe (fromMaybe)
 import Data.Traversable (for_)
 import Data.Tuple (Tuple(..))
@@ -31,48 +31,56 @@ drawRoughPlot canvasSize numberOfPlots index bounds expression label = drawComma
 
   drawCommands = fold [ drawPlot points, drawLabel label labelPosition ]
 
-evaluateWithX :: Expression -> Rational -> Number
+evaluateWithX :: Expression -> Number -> Number
 evaluateWithX expression x = value
   where
-  variableMap = presetConstants <> [ Tuple "x" (rationalToNumber x) ]
+  variableMap = presetConstants <> [ Tuple "x" x ]
 
   value = case roughEvaluate variableMap expression of
     Left _ -> 0.0
     Right v -> v
 
-plotPoints :: Size -> XYBounds -> (Rational -> Number) -> (Rational -> Number) -> Array Position
+plotPoints :: Size -> XYBounds -> (Number -> Number) -> (Number -> Number) -> Array Position
 plotPoints canvasSize bounds f f'' = points
   where
-  rangeX = bounds.xBounds.upper - bounds.xBounds.lower
+  rangeX = rationalToNumber $ bounds.xBounds.upper - bounds.xBounds.lower
 
-  rangeY = bounds.yBounds.upper - bounds.yBounds.lower
+  rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
-  defaultRange = map (toRational >>> toDomainX) $ 0 .. (floor $ rationalToNumber canvasSize.width)
+  width = rationalToNumber canvasSize.width
+
+  height = rationalToNumber canvasSize.height
+
+  xLower = rationalToNumber bounds.xBounds.lower
+
+  yLower = rationalToNumber bounds.yBounds.lower
+
+  defaultRange = map (toNumber >>> toDomainX) $ 0 .. (floor width)
 
   changeInGradient = map f'' defaultRange
 
   points = map toCanvasPoint $ concat $ zipWith toRange changeInGradient defaultRange
 
-  toRange :: Number -> Rational -> Array Rational
+  toRange :: Number -> Number -> Array Number
   toRange deltaGradient value =
-    if (abs deltaGradient) < rationalToNumber (canvasSize.width / rangeX) then
+    if (abs deltaGradient) < (width / rangeX) then
       [ value ]
     else
-      map (toSubRange <<< toRational) $ -5 .. 5
+      map (toNumber >>> toSubRange) $ -5 .. 5
     where
-    toSubRange :: Rational -> Rational
-    toSubRange x = value + ((x * rangeX) / (canvasSize.width * toRational 10))
+    toSubRange :: Number -> Number
+    toSubRange x = value + ((x * rangeX) / (width * 10.0))
 
-  toCanvasX :: Rational -> Number
-  toCanvasX x = rationalToNumber $ ((x - bounds.xBounds.lower) * canvasSize.width) / rangeX
+  toCanvasX :: Number -> Number
+  toCanvasX x = ((x - xLower) * width) / rangeX
 
   toCanvasY :: Number -> Number
-  toCanvasY y = (rationalToNumber canvasSize.height) - (((y - rationalToNumber bounds.yBounds.lower) * rationalToNumber canvasSize.height) / rationalToNumber rangeY)
+  toCanvasY y = height - (((y - yLower) * height) / rangeY)
 
-  toDomainX :: Rational -> Rational
-  toDomainX canvasX = ((canvasX * rangeX) / canvasSize.width) + bounds.xBounds.lower
+  toDomainX :: Number -> Number
+  toDomainX canvasX = ((canvasX * rangeX) / width) + xLower
 
-  toCanvasPoint :: Rational -> Position
+  toCanvasPoint :: Number -> Position
   toCanvasPoint x = { x: toCanvasX x, y: toCanvasY y }
     where
     y = f x
