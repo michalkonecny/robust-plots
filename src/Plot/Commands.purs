@@ -4,11 +4,15 @@ import Expression.Syntax (Expression)
 import Types (XYBounds)
 
 data PlotCommand
-  = RoughPlot XYBounds Expression String
-  | Empty XYBounds
+  = Empty XYBounds
+  | RoughPlot XYBounds Expression String
+  | RobustPlot XYBounds Expression String
 
-plotExpression :: XYBounds -> Expression -> String -> PlotCommand
-plotExpression = RoughPlot 
+roughPlot :: XYBounds -> Expression -> String -> PlotCommand
+roughPlot = RoughPlot 
+
+robustPlot :: XYBounds -> Expression -> String -> PlotCommand
+robustPlot = RobustPlot 
 
 clear :: XYBounds -> PlotCommand
 clear = Empty
@@ -16,3 +20,4 @@ clear = Empty
 isPlotExpression :: PlotCommand -> Boolean
 isPlotExpression (RoughPlot _ _ _) = true
 isPlotExpression (Empty _) = false
+isPlotExpression (RobustPlot _ _ _) = true
