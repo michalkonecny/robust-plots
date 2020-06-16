@@ -23,7 +23,7 @@ drawRobustPlot canvasSize numberOfPlots index bounds expression label = drawComm
   where
   f = evaluateWithX expression
 
-  segmentEnclosures = plotPoints canvasSize bounds f
+  segmentEnclosures = plotEnclosures canvasSize bounds f
 
   labelPosition = toPosition $ fromMaybe [ { x: 0.0, y: 0.0 } ] $ segmentEnclosures !! ((length segmentEnclosures) / ((numberOfPlots + 1) * index))
 
@@ -38,8 +38,8 @@ evaluateWithX expression x = value
     Left _ -> zero -- TODO Handle any evaluation erros 
     Right v -> v
 
-plotPoints :: Size -> XYBounds -> (Approx -> Approx) -> Array Polygon
-plotPoints canvasSize bounds f = segmentEnclosures
+plotEnclosures :: Size -> XYBounds -> (Approx -> Approx) -> Array Polygon
+plotEnclosures canvasSize bounds f = segmentEnclosures
   where
   segmentCount = 50
 
