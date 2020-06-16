@@ -1,7 +1,8 @@
 module Plot.RobustPlot where
 
 import Prelude
-import Data.Array (fold, length, (..), (!!))
+
+import Data.Array (fold, length, tail, zipWith, (!!), (..))
 import Data.Either (Either(..))
 import Data.Foldable (sum)
 import Data.Int (toNumber)
@@ -45,22 +46,23 @@ plotPoints canvasSize bounds f = points
 
   rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
-  defaultRange = map (toRational >>> toDomainX) $ 0 .. segmentCount
+  domainSegments = map (toRational >>> toDomainX) $ 0 .. segmentCount
+
+  defaultRange = zipWith toRange domainSegments (fromMaybe [] (tail domainSegments))
 
   segmentWidth = rangeX / (toRational segmentCount)
 
-  points = map toCanvasPoint defaultRange
+  points = map toCanvasPoint defaultRange 
 
   yLowerBound = rationalToNumber bounds.yBounds.lower
 
   canvasHeight = rationalToNumber canvasSize.height
 
-  toDomainX :: Rational -> Tuple Rational Rational
-  toDomainX segmentX = Tuple lower upper
-    where
-    lower = (segmentX * segmentWidth) + bounds.xBounds.lower
+  toRange :: Rational -> Rational -> Tuple Rational Rational
+  toRange lower upper = Tuple lower upper
 
-    upper = lower + segmentWidth
+  toDomainX :: Rational -> Rational
+  toDomainX segmentX = (segmentX * segmentWidth) + bounds.xBounds.lower 
 
   applyExpression :: Rational -> Rational -> Tuple Number Number
   applyExpression xLower xUpper = boundsNumber $ f $ fromRationalBoundsPrec 50 xLower xUpper
@@ -86,7 +88,7 @@ plotPoints canvasSize bounds f = points
 
     d = { x: canvasXLower, y: canvasYLower }
 
-    polygon = [ a, b, c, d ]
+    polygon = [ a, b, c, d, a ]
 
   toCanvasX :: Rational -> Number
   toCanvasX x = rationalToNumber $ ((x - bounds.xBounds.lower) * canvasSize.width) / rangeX

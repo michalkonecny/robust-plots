@@ -1,7 +1,6 @@
 module Main where
 
 import Prelude
-
 import Components.BoundsInput (BoundsInputMessage(..), BoundsInputSlot, boundsInputComponent)
 import Components.Canvas (Input, CanvasSlot, CanvasMessage(..), canvasComponent, xyBounds)
 import Components.Canvas.Controller (canvasController)
@@ -15,7 +14,7 @@ import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Draw.Commands (DrawCommand)
 import Effect (Effect)
-import Effect.Aff (Aff)
+import Effect.Aff (Aff, Milliseconds(..), delay)
 import Effect.Class (class MonadEffect)
 import Expression.Syntax (Expression)
 import Halogen as H
@@ -45,6 +44,7 @@ type State
   = { input :: Input (DrawCommand Unit)
     , bounds :: XYBounds
     , plots :: Array ExpressionPlot
+    , commandSetId :: Int
     }
 
 type ExpressionPlot
@@ -64,6 +64,8 @@ data Action
   | HandleBoundsInput BoundsInputMessage
   | AddPlot
   | ResetBounds
+  | StartRobust Int (Array PlotCommand) XYBounds
+  | EndRobust Int (DrawCommand Unit)
 
 type ChildSlots
   = ( canvas :: CanvasSlot Int
@@ -104,6 +106,7 @@ ui =
     , plots:
         [ newPlot 1
         ]
+    , commandSetId: 0
     }
 
   render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
@@ -175,6 +178,13 @@ handleAction action = do
       when (changeInY /= 0.0) do
         H.liftEffect $ E.preventDefault (WE.toEvent event)
         handleAction $ Zoom (changeInY < 0.0)
+    StartRobust id robustCommands bounds -> do
+      _ <- lift $ lift $ delay $ Milliseconds 5000.0
+      robustDrawCommands <- lift $ computePlots state.input.size robustCommands
+      handleAction $ EndRobust id robustDrawCommands
+    EndRobust id drawCommands ->
+      when (state.commandSetId == id) do
+        H.put state { input { operations = drawCommands } }
 
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
 ui' = H.hoist (\app -> runReaderT app initialConfig) ui
@@ -194,28 +204,34 @@ initialBounds = xyBounds (-one) (one) (-one) (one)
 
 plotRoughThenRobust :: forall output. State -> XYBounds -> Array ExpressionPlot -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 plotRoughThenRobust state newBounds plots = do
-  drawCommands <- lift $ computePlots state.input.size newBounds plots roughPlot
-  H.put state { input { operations = drawCommands }, plots = plots, bounds = newBounds }
-  robustDrawCommands <- lift $ computePlots state.input.size newBounds plots robustPlot
-  H.put state { input { operations = robustDrawCommands }, plots = plots, bounds = newBounds }
+  let
+    toCommandArray = plotCommands state.input.size newBounds plots
 
-computePlots :: Size -> XYBounds -> Array ExpressionPlot -> (XYBounds -> Expression -> String -> PlotCommand) -> ReaderT Config Aff (DrawCommand Unit)
-computePlots canvasSize newBounds plots plotter = lift $ computePlotAsync canvasSize computedPlot
+    roughCommands = toCommandArray roughPlot
+
+    robustCommands = toCommandArray robustPlot
+
+    commandSetId = state.commandSetId + 1
+  drawCommands <- lift $ computePlots state.input.size roughCommands
+  H.put state { input { operations = drawCommands }, plots = plots, bounds = newBounds, commandSetId = commandSetId }
+  handleAction $ StartRobust commandSetId robustCommands newBounds
+
+computePlots :: Size -> Array PlotCommand -> ReaderT Config Aff (DrawCommand Unit)
+computePlots canvasSize plots = lift $ computePlotAsync canvasSize plots
+
+toMaybePlotCommand :: Size -> XYBounds -> (XYBounds -> Expression -> String -> PlotCommand) -> ExpressionPlot -> Maybe PlotCommand
+toMaybePlotCommand size newBounds plotter plot = case plot.expression of
+  Just expression -> Just $ plotter newBounds expression plot.expressionText
+  Nothing -> Nothing
+
+plotCommands :: Size -> XYBounds -> Array ExpressionPlot -> (XYBounds -> Expression -> String -> PlotCommand) -> Array PlotCommand
+plotCommands canvasSize newBounds plots plotter = computedPlot
   where
-  commands = mapMaybe (computePlot canvasSize newBounds plotter) plots
+  commands = mapMaybe (toMaybePlotCommand canvasSize newBounds plotter) plots
 
   clearCommand = clear newBounds
 
-  computedPlot =
-    if null commands then
-      [ clearCommand ]
-    else
-      [ clearCommand ] <> commands
-
-computePlot :: Size -> XYBounds -> (XYBounds -> Expression -> String -> PlotCommand) -> ExpressionPlot -> Maybe PlotCommand
-computePlot size newBounds plotter plot = case plot.expression of
-  Just expression -> Just $ plotter newBounds expression plot.expressionText
-  Nothing -> Nothing
+  computedPlot = if null commands then [ clearCommand ] else [ clearCommand ] <> commands
 
 initialConfig :: Config
 initialConfig = { someData: "" }
