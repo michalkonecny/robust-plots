@@ -4,14 +4,15 @@ module Test.IntervalArith.Approx
 
 import Prelude
 import Effect (Effect)
-import IntervalArith.Approx (Approx(..), approxMB, consistent, setMB, (⊑))
+import IntervalArith.Approx (Approx(..), approxMB, consistent, fromRationalBoundsPrec, fromRationalPrec, setMB, (⊑))
 import IntervalArith.Approx.ShowA (showA)
 import IntervalArith.Misc (big)
 import Test.Field (fieldTests)
 import Test.IntervalArith.Approx.ShowA (approxTests_showA)
-import Test.IntervalArith.Misc (ArbitraryInteger(..), ArbitraryPositiveExponent(..))
+import Test.IntervalArith.Misc (ArbitraryInteger(..), ArbitraryPositiveExponent(..), ArbitraryRational(..))
 import Test.Order (preOrderTests)
 import Test.QuickCheck (class Arbitrary, arbitrary)
+import Test.QuickCheck.Combinators ((&=&))
 import Test.QuickCheck.Gen (Size, chooseInt, randomSample', sized)
 import Test.TestUtils (SuiteOrdParams1, SuiteEqParams1, assertOp, assertOpWithInput)
 import Test.Unit (TestSuite, suite, test)
@@ -38,6 +39,7 @@ approxTests = do
   approxTests_setMBworse
   approxTests_Order
   approxTests_Consistent
+  approxTests_fromRational
   approxTests_Field
 
 approxTests_setMBworse :: TestSuite
@@ -100,6 +102,50 @@ approxTests_Consistent =
           -- then
           in
             assertOp consistent " `consistent` " a b
+
+approxTests_fromRational :: TestSuite
+approxTests_fromRational =
+  suite "IntervalArith.Approx - conversion from Ratinoal" do
+    test "SHOULD HOLD addition on Approx is consistent with addition on Rational"
+      $ quickCheck \aPre bPre precPre ->
+          let
+            -- given
+            (ArbitraryPositiveExponent prec) = precPre
+
+            (ArbitraryRational b) = bPre
+
+            (ArbitraryRational a) = aPre
+
+            -- when
+            resultAddConvert = fromRationalPrec prec (a + b)
+
+            resultConvertAdd = (fromRationalPrec prec a) + (fromRationalPrec prec b)
+
+            -- then
+            consistentOp = assertOp consistent " `consistent` "
+          in
+            resultAddConvert `consistentOp` resultConvertAdd
+    test "SHOULD HOLD Approx from bounds is consistent with each bound"
+      $ quickCheck \aPre bPre precPre ->
+          let
+            -- given
+            (ArbitraryPositiveExponent prec) = precPre
+
+            (ArbitraryRational b) = bPre
+
+            (ArbitraryRational a) = aPre
+
+            -- when
+            hull = fromRationalBoundsPrec prec (min a b) (max a b)
+
+            aApprox = fromRationalPrec prec a
+
+            bApprox = fromRationalPrec prec b
+
+            -- then
+            consistentOp = assertOpWithInput consistent " `consistent` " [a,b]
+          in
+            hull `consistentOp` aApprox &=& hull `consistentOp` bApprox
 
 approxTests_Field :: TestSuite
 approxTests_Field = fieldTests approxEqParams

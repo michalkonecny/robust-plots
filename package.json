@@ -12,6 +12,7 @@
   "version": "0.0.1",
   "scripts": {
     "install": "spago install",
+    "repl": "spago repl",
     "build": "npm run build-purescript && parcel build index.html",
     "start": "npm run build-purescript && parcel index.html",
     "build-purescript": "spago build",
@@ -19,7 +20,8 @@
   },
   "dependencies": {
     "big-integer": "^1.6.48",
-    "decimal.js": "7.1.1"
+    "decimal.js": "7.1.1",
+    "purty": "^6.2.0"
   },
   "devDependencies": {
     "spago": "^0.15.3",

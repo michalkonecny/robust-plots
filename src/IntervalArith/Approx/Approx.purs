@@ -5,8 +5,10 @@
 module IntervalArith.Approx where
 
 import Prelude
+
 import Control.Biapply (biapply)
 import Data.BigInt (abs)
+import Data.Enum (fromEnum)
 import Data.Foldable (intercalate)
 import Data.Maybe (Maybe(..))
 import Data.Ord (signum)
@@ -311,11 +313,48 @@ fromRationalPrec t r = approxAutoMB m e (-t - 1)
   -- m = 2 * r_scaled_rounded
   m = (shift r_scaled_rounded 1)
 
-  rounding_occurred = p_shifted `mod` q_shifted == (big 0)
+  isRounded = p_shifted `mod` q_shifted /= zero
 
-  e
-    | rounding_occurred = big 0
-    | otherwise = big 1
+  e = big $ fromEnum isRounded
+
+{-|
+  Make an Approx hull of the given two Rational numbers `l` and `u`, possibly overapproximating up to the given precision.
+
+  Precondition: `l <= u`.
+-}
+fromRationalBoundsPrec :: Precision -> Rational -> Rational -> Approx
+fromRationalBoundsPrec t l u = approxAutoMB m (e + roundingCompensation) (-t - 1)
+  where
+  two = one + one
+
+  cR = (l + u) / two
+
+  eR = (u - l) / two
+
+  scaleAndRound r = Tuple rScaled isRounded
+    where
+    p = numerator r
+
+    q = denominator r
+
+    -- r_scaled_rounded = round (r*2^^t)
+    p_shifted = shift p (t + 1)
+
+    q_shifted = shift q 1
+
+    r_scaled_rounded = (p_shifted + q) `div` q_shifted
+
+    -- m = 2 * r_scaled_rounded
+    rScaled = (shift r_scaled_rounded 1)
+
+    isRounded = p_shifted `mod` q_shifted /= zero
+
+  Tuple m mIsRounded = scaleAndRound cR
+
+  Tuple e eIsRounded = scaleAndRound eR
+
+  roundingCompensation = big $ fromEnum mIsRounded + fromEnum eIsRounded
+
 
 instance semiringApprox :: Semiring Approx where
   zero = fromInt 0
