@@ -11,8 +11,7 @@ import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
 import Expression.Evaluator (evaluate)
 import Expression.Syntax (Expression)
-import IntervalArith.Approx (Approx, boundsR, fromRationalBoundsPrec)
-import IntervalArith.Extended (Extended(..))
+import IntervalArith.Approx (Approx, boundsNumber, fromRationalBoundsPrec)
 import IntervalArith.Misc (Rational, rationalToNumber, toRational)
 import Plot.Helper (drawLabel)
 import Types (XYBounds, Polygon, Position, Size)
@@ -44,13 +43,17 @@ plotPoints canvasSize bounds f = points
 
   rangeX = bounds.xBounds.upper - bounds.xBounds.lower
 
-  rangeY = bounds.yBounds.upper - bounds.yBounds.lower
+  rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
   defaultRange = map (toRational >>> toDomainX) $ 0 .. segmentCount
 
   segmentWidth = rangeX / (toRational segmentCount)
 
   points = map toCanvasPoint defaultRange
+
+  yLowerBound = rationalToNumber bounds.yBounds.lower
+
+  canvasHeight = rationalToNumber canvasSize.height
 
   toDomainX :: Rational -> Tuple Rational Rational
   toDomainX segmentX = Tuple lower upper
@@ -59,18 +62,17 @@ plotPoints canvasSize bounds f = points
 
     upper = lower + segmentWidth
 
+  applyExpression :: Rational -> Rational -> Tuple Number Number
+  applyExpression xLower xUpper = boundsNumber $ f $ fromRationalBoundsPrec 50 xLower xUpper
+
   toCanvasPoint :: Tuple Rational Rational -> Polygon
   toCanvasPoint (Tuple xLower xUpper) = polygon
     where
-    x = fromRationalBoundsPrec 50 xLower xUpper
-
-    y = f x
+    (Tuple yLower yUpper) = applyExpression xLower xUpper
 
     canvasXLower = toCanvasX xLower
 
     canvasXUpper = toCanvasX xUpper
-
-    (Tuple yLower yUpper) = safeBoundsR y
 
     canvasYLower = toCanvasY yLower
 
@@ -84,27 +86,13 @@ plotPoints canvasSize bounds f = points
 
     d = { x: canvasXLower, y: canvasYLower }
 
-    polygon =
-      [ a, b, c, d
-      ]
+    polygon = [ a, b, c, d ]
 
   toCanvasX :: Rational -> Number
-  toCanvasX x = rationalToNumber $ ((x - bounds.xBounds.lower) * canvasSize.width) / segmentWidth
+  toCanvasX x = rationalToNumber $ ((x - bounds.xBounds.lower) * canvasSize.width) / rangeX
 
-  toCanvasY :: Rational -> Number
-  toCanvasY y = rationalToNumber $ canvasSize.height - (((y - bounds.yBounds.lower) * canvasSize.height) / rangeY)
-
-  safeBoundsR :: Approx -> Tuple Rational Rational
-  safeBoundsR y = case boundsR y of
-    (Tuple PosInf PosInf) -> (Tuple zero zero)
-    (Tuple PosInf NegInf) -> (Tuple zero canvasSize.height)
-    (Tuple PosInf (Finite yUpper)) -> (Tuple zero yUpper)
-    (Tuple NegInf PosInf) -> (Tuple canvasSize.height zero)
-    (Tuple NegInf NegInf) -> (Tuple canvasSize.height canvasSize.height)
-    (Tuple NegInf (Finite yUpper)) -> (Tuple canvasSize.height yUpper)
-    (Tuple (Finite yLower) PosInf) -> (Tuple yLower zero)
-    (Tuple (Finite yLower) NegInf) -> (Tuple yLower canvasSize.height)
-    (Tuple (Finite yLower) (Finite yUpper)) -> (Tuple yLower yUpper)
+  toCanvasY :: Number -> Number
+  toCanvasY y = canvasHeight - (((y - yLowerBound) * canvasHeight) / rangeY)
 
 drawPlot :: Array Polygon -> DrawCommand Unit
 drawPlot ploygons = drawEnclosure true ploygons

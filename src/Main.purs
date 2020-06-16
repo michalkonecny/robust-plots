@@ -1,6 +1,7 @@
 module Main where
 
 import Prelude
+
 import Components.BoundsInput (BoundsInputMessage(..), BoundsInputSlot, boundsInputComponent)
 import Components.Canvas (Input, CanvasSlot, CanvasMessage(..), canvasComponent, xyBounds)
 import Components.Canvas.Controller (canvasController)
@@ -24,7 +25,7 @@ import Halogen.HTML.Events as HE
 import Halogen.Query.EventSource as ES
 import Halogen.VDom.Driver (runUI)
 import IntervalArith.Misc (toRational)
-import Plot.Commands (PlotCommand, roughPlot, clear)
+import Plot.Commands (PlotCommand, clear, robustPlot, roughPlot)
 import Plot.Pan (panBounds, panBoundsByVector)
 import Plot.PlotController (computePlotAsync)
 import Plot.Zoom (zoomBounds)
@@ -195,6 +196,8 @@ plotRoughThenRobust :: forall output. State -> XYBounds -> Array ExpressionPlot 
 plotRoughThenRobust state newBounds plots = do
   drawCommands <- lift $ computePlots state.input.size newBounds plots roughPlot
   H.put state { input { operations = drawCommands }, plots = plots, bounds = newBounds }
+  robustDrawCommands <- lift $ computePlots state.input.size newBounds plots robustPlot
+  H.put state { input { operations = robustDrawCommands }, plots = plots, bounds = newBounds }
 
 computePlots :: Size -> XYBounds -> Array ExpressionPlot -> (XYBounds -> Expression -> String -> PlotCommand) -> ReaderT Config Aff (DrawCommand Unit)
 computePlots canvasSize newBounds plots plotter = lift $ computePlotAsync canvasSize computedPlot
