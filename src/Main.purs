@@ -201,7 +201,7 @@ updatePlot id expression text plot =
     plot
 
 initialBounds :: XYBounds
-initialBounds = xyBounds (-one) (one) (-one) (one)
+initialBounds = xyBounds (-one) one (-one) one
 
 plotRoughThenRobust :: forall output. State -> XYBounds -> Array ExpressionPlot -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 plotRoughThenRobust state newBounds plots = do

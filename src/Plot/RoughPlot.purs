@@ -37,7 +37,7 @@ evaluateWithX expression x = value
   variableMap = presetConstants <> [ Tuple "x" x ]
 
   value = case roughEvaluate variableMap expression of
-    Left _ -> 0.0
+    Left _ -> zero
     Right v -> v
 
 plotPoints :: Size -> XYBounds -> (Number -> Number) -> (Number -> Number) -> Array Position
