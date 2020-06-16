@@ -23,11 +23,11 @@ drawRobustPlot canvasSize numberOfPlots index bounds expression label = drawComm
   where
   f = evaluateWithX expression
 
-  points = plotPoints canvasSize bounds f
+  segmentEnclosures = plotPoints canvasSize bounds f
 
-  labelPosition = toPosition $ fromMaybe [ { x: 0.0, y: 0.0 } ] $ points !! ((length points) / ((numberOfPlots + 1) * index))
+  labelPosition = toPosition $ fromMaybe [ { x: 0.0, y: 0.0 } ] $ segmentEnclosures !! ((length segmentEnclosures) / ((numberOfPlots + 1) * index))
 
-  drawCommands = fold [ drawPlot points, drawLabel label labelPosition ]
+  drawCommands = fold [ drawPlot segmentEnclosures, drawLabel label labelPosition ]
 
 evaluateWithX :: Expression -> Approx -> Approx
 evaluateWithX expression x = value
@@ -39,7 +39,7 @@ evaluateWithX expression x = value
     Right v -> v
 
 plotPoints :: Size -> XYBounds -> (Approx -> Approx) -> Array Polygon
-plotPoints canvasSize bounds f = points
+plotPoints canvasSize bounds f = segmentEnclosures
   where
   segmentCount = 50
 
@@ -47,13 +47,13 @@ plotPoints canvasSize bounds f = points
 
   rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
-  domainSegments = map (toRational >>> toDomainX) $ 0 .. segmentCount
+  domainBreakpoints = map (toRational >>> toDomainX) $ 0 .. segmentCount
 
-  defaultRange = zipWith toRange domainSegments (fromMaybe [] (tail domainSegments))
+  domainSegments = zipWith toRange domainBreakpoints (fromMaybe [] (tail domainBreakpoints))
 
   segmentWidth = rangeX / (toRational segmentCount)
 
-  points = map toCanvasPoint defaultRange 
+  segmentEnclosures = map toCanvasEnclosure domainSegments 
 
   yLowerBound = rationalToNumber bounds.yBounds.lower
 
@@ -68,8 +68,8 @@ plotPoints canvasSize bounds f = points
   applyExpression :: Rational -> Rational -> Tuple Number Number
   applyExpression xLower xUpper = boundsNumber $ f $ fromRationalBoundsPrec 50 xLower xUpper
 
-  toCanvasPoint :: Tuple Rational Rational -> Polygon
-  toCanvasPoint (Tuple xLower xUpper) = polygon
+  toCanvasEnclosure :: Tuple Rational Rational -> Polygon
+  toCanvasEnclosure (Tuple xLower xUpper) = polygon
     where
     (Tuple yLower yUpper) = applyExpression xLower xUpper
 
