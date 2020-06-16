@@ -1,6 +1,8 @@
 module Plot.Zoom where
 
 import Prelude
+
+import IntervalArith.Misc (toRational)
 import Types (XYBounds)
 
 zoomBounds :: XYBounds -> Boolean -> XYBounds
@@ -20,6 +22,6 @@ zoomBounds bounds isZoomIn =
 
   yRange = bounds.yBounds.upper - bounds.yBounds.lower
 
-  xMovement = (xRange / 20.0)
+  xMovement = (xRange / toRational 20)
 
-  yMovement = (yRange / 20.0)
+  yMovement = (yRange / toRational 20)

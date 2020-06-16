@@ -1,19 +1,24 @@
 module Types where
 
+import IntervalArith.Misc (Rational)
+
 type XYBounds
   = { xBounds :: Bounds, yBounds :: Bounds }
 
 type Bounds
-  = { upper :: Number, lower :: Number }
+  = { upper :: Rational, lower :: Rational }
 
 type Position
   = { x :: Number, y :: Number }
 
 type Size
-  = { width :: Number, height :: Number }
+  = { width :: Rational, height :: Rational }
 
 type Polygon
   = Array Position
+
+type Delta
+  = { x :: Rational, y :: Rational }
 
 data Direction
   = Up

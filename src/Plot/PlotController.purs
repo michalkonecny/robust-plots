@@ -11,6 +11,7 @@ import Effect (Effect)
 import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
 import Plot.Commands (PlotCommand(..), isPlotExpression)
 import Plot.GridLines (clearAndDrawGridLines)
+import Plot.RobustPlot (drawRobustPlot)
 import Plot.RoughPlot (drawRoughPlot)
 import Types (Size)
 
@@ -33,3 +34,5 @@ runCommand :: Size -> Int -> Int -> PlotCommand -> DrawCommand Unit
 runCommand _ _ _ (Empty bounds) = clearAndDrawGridLines bounds
 
 runCommand canvasSize numberOfPlots index (RoughPlot bounds expression label) = drawRoughPlot canvasSize numberOfPlots index bounds expression label
+
+runCommand canvasSize numberOfPlots index (RobustPlot bounds expression label) = drawRobustPlot canvasSize numberOfPlots index bounds expression label

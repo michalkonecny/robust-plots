@@ -1,11 +1,11 @@
 module Components.Canvas where
 
 import Prelude
+
 import Components.Canvas.Context (DrawContext)
 import Components.Canvas.Controller (CanvasController)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Control.Monad.Maybe.Trans as MaybeT
-import Data.Int (toNumber)
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Data.Traversable (for)
@@ -14,7 +14,8 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Types (Size, XYBounds, Position)
+import IntervalArith.Misc (Rational, rationalToNumber, toRational)
+import Types (Delta, Size, XYBounds)
 import Web.UIEvent.MouseEvent (MouseEvent)
 import Web.UIEvent.MouseEvent as ME
 
@@ -24,12 +25,12 @@ type CanvasSlot p
 type State operations
   = { input :: Input operations
     , context :: Maybe DrawContext
-    , oldPosition :: Position
+    , oldDelta :: Delta
     , isDragging :: Boolean
     }
 
 data CanvasMessage
-  = Dragged Position
+  = Dragged Delta
 
 type Input operations
   = { operations :: operations
@@ -40,9 +41,9 @@ type Input operations
 data Action operations
   = Init
   | HandleInput (Input operations)
-  | StartDrag Position
+  | StartDrag Delta
   | EndDrag
-  | Drag Position
+  | Drag Delta
 
 canvasComponent :: forall operations query m. MonadEffect m => CanvasController operations -> H.Component HH.HTML query (Input operations) CanvasMessage m
 canvasComponent controller =
@@ -62,7 +63,7 @@ initialState :: forall operations. Input operations -> State operations
 initialState input =
   { input
   , context: Nothing
-  , oldPosition: { x: 0.0, y: 0.0 }
+  , oldDelta: { x: zero, y: zero }
   , isDragging: false
   }
 
@@ -70,10 +71,10 @@ render :: forall operations slots m. State operations -> HH.ComponentHTML (Actio
 render { input: { size, canvasId } } =
   HH.canvas
     [ HP.id_ canvasId
-    , HP.width $ Int.floor size.width
-    , HP.height $ Int.floor size.height
-    , HE.onMouseDown $ (\(event :: MouseEvent) -> Just $ StartDrag { x: toNumber $ ME.clientX event, y: toNumber $ ME.clientY event })
-    , HE.onMouseMove $ (\(event :: MouseEvent) -> Just $ Drag { x: toNumber $ ME.clientX event, y: toNumber $ ME.clientY event })
+    , HP.width $ Int.floor $ rationalToNumber size.width
+    , HP.height $ Int.floor $ rationalToNumber size.height
+    , HE.onMouseDown $ (\(event :: MouseEvent) -> Just $ StartDrag { x: toRational $ ME.clientX event, y: toRational $ ME.clientY event })
+    , HE.onMouseMove $ (\(event :: MouseEvent) -> Just $ Drag { x: toRational $ ME.clientX event, y: toRational $ ME.clientY event })
     , HE.onMouseUp $ (\(event :: MouseEvent) -> Just $ EndDrag)
     ]
 
@@ -97,14 +98,14 @@ handleAction controller = case _ of
           H.modify_ _ { context = Just context' }
         H.liftEffect $ controller.render context input.operations
     pure unit
-  StartDrag position -> do
-    H.modify_ _ { oldPosition = position, isDragging = true }
+  StartDrag delta -> do
+    H.modify_ _ { oldDelta = delta, isDragging = true }
   EndDrag -> H.modify_ _ { isDragging = false }
-  Drag position -> do
+  Drag delta -> do
     state <- H.get
     when state.isDragging do
-      H.put $ state { oldPosition = position }
-      H.raise $ Dragged { x: state.oldPosition.x - position.x, y: position.y - state.oldPosition.y }
+      H.put $ state { oldDelta = delta }
+      H.raise $ Dragged { x: state.oldDelta.x - delta.x, y: delta.y - state.oldDelta.y }
 
-xyBounds :: Number -> Number -> Number -> Number -> XYBounds
+xyBounds :: Rational -> Rational -> Rational -> Rational -> XYBounds
 xyBounds xLower xUpper yLower yUpper = { xBounds: { upper: xUpper, lower: xLower }, yBounds: { upper: yUpper, lower: yLower } }

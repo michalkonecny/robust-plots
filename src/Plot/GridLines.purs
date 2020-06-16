@@ -1,12 +1,12 @@
 module Plot.GridLines where
 
 import Prelude
-import Draw.Commands (DrawCommand)
-import Draw.Actions (clearCanvas, drawXGridLine, drawYGridLine, drawXAxisLine, drawYAxisLine)
-import Data.Traversable (for_)
 import Data.Array ((..))
 import Data.Decimal as D
-import Data.Int (floor, toNumber)
+import Data.Traversable (for_)
+import Draw.Actions (clearCanvas, drawXGridLine, drawYGridLine, drawXAxisLine, drawYAxisLine)
+import Draw.Commands (DrawCommand)
+import IntervalArith.Misc (Rational, rationalToNumber, toRational)
 import Types (XYBounds)
 
 clearAndDrawGridLines :: XYBounds -> DrawCommand Unit
@@ -21,50 +21,55 @@ drawAxes bounds = do
   drawXAxisLine xZero rangeX
   drawYAxisLine yZero rangeY
   where
-  xZero = -bounds.xBounds.lower
-  yZero = -bounds.yBounds.lower
-  rangeX = bounds.xBounds.upper - bounds.xBounds.lower
-  rangeY = bounds.yBounds.upper - bounds.yBounds.lower
+  xZero = rationalToNumber $ -bounds.xBounds.lower
+
+  yZero = rationalToNumber $ -bounds.yBounds.lower
+
+  rangeX = rationalToNumber $ bounds.xBounds.upper - bounds.xBounds.lower
+
+  rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
 drawXGridLines :: XYBounds -> DrawCommand Unit
 drawXGridLines bounds = for_ xGuidePoints draw
   where
   range = bounds.xBounds.upper - bounds.xBounds.lower
 
-  lineCount = 20.0
+  lineCount = 20
 
   x1 = bounds.xBounds.lower
 
-  xGuidePoints = map (toGuidePoints x1 range lineCount) $ 0 .. (floor lineCount)
+  xGuidePoints = map (toGuidePoints x1 range lineCount) $ 0 .. lineCount
 
   draw :: { component :: Number, value :: Number } -> DrawCommand Unit
-  draw { component, value } = drawXGridLine component value range
+  draw { component, value } = drawXGridLine component value (rationalToNumber range)
 
 drawYGridLines :: XYBounds -> DrawCommand Unit
 drawYGridLines bounds = for_ yGuidePoints draw
   where
   range = bounds.yBounds.upper - bounds.yBounds.lower
 
-  lineCount = 20.0
+  lineCount = 20
 
   y1 = bounds.yBounds.lower
 
-  yGuidePoints = map (toGuidePoints y1 range lineCount) $ 0 .. (floor lineCount)
+  yGuidePoints = map (toGuidePoints y1 range lineCount) $ 0 .. lineCount
 
   draw :: { component :: Number, value :: Number } -> DrawCommand Unit
-  draw { component, value } = drawYGridLine component value range
+  draw { component, value } = drawYGridLine component value (rationalToNumber range)
 
-toGuidePoints :: Number -> Number -> Number -> Int -> { component :: Number, value :: Number }
+toGuidePoints :: Rational -> Rational -> Int -> Int -> { component :: Number, value :: Number }
 toGuidePoints offset range lineCount index = { component, value }
   where
-  numberIndex = toNumber index
+  numberIndex = toRational index
 
-  component = (numberIndex * range) / lineCount
+  componentR = (numberIndex * range) / toRational lineCount
 
-  value = to3SignificantDigits $ component + offset
+  component = rationalToNumber componentR
 
-toSignificantDigits :: Int -> Number -> Number
-toSignificantDigits digits = D.toNumber <<< (D.toSignificantDigits digits) <<< D.fromNumber
+  value = to3SignificantDigits $ componentR + offset
 
-to3SignificantDigits :: Number -> Number
+toSignificantDigits :: Int -> Rational -> Number
+toSignificantDigits digits = D.toNumber <<< (D.toSignificantDigits digits) <<< D.fromNumber <<< rationalToNumber
+
+to3SignificantDigits :: Rational -> Number
 to3SignificantDigits = toSignificantDigits 3

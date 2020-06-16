@@ -14,7 +14,7 @@ import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Draw.Commands (DrawCommand)
 import Effect (Effect)
-import Effect.Aff (Aff)
+import Effect.Aff (Aff, Milliseconds(..), delay)
 import Effect.Class (class MonadEffect)
 import Expression.Syntax (Expression)
 import Halogen as H
@@ -23,7 +23,8 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.Query.EventSource as ES
 import Halogen.VDom.Driver (runUI)
-import Plot.Commands (PlotCommand, plotExpression, clear)
+import IntervalArith.Misc (toRational)
+import Plot.Commands (PlotCommand, clear, robustPlot, roughPlot)
 import Plot.Pan (panBounds, panBoundsByVector)
 import Plot.PlotController (computePlotAsync)
 import Plot.Zoom (zoomBounds)
@@ -43,6 +44,7 @@ type State
   = { input :: Input (DrawCommand Unit)
     , bounds :: XYBounds
     , plots :: Array ExpressionPlot
+    , commandSetId :: Int
     }
 
 type ExpressionPlot
@@ -62,6 +64,8 @@ data Action
   | HandleBoundsInput BoundsInputMessage
   | AddPlot
   | ResetBounds
+  | StartRobust Int (Array PlotCommand) XYBounds
+  | EndRobust Int (DrawCommand Unit)
 
 type ChildSlots
   = ( canvas :: CanvasSlot Int
@@ -94,14 +98,15 @@ ui =
         { operations: pure unit
         , canvasId: canvasId
         , size:
-            { width: 800.0
-            , height: 500.0
+            { width: toRational 800
+            , height: toRational 500
             }
         }
     , bounds: initialBounds
     , plots:
         [ newPlot 1
         ]
+    , commandSetId: 0
     }
 
   render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
@@ -151,6 +156,14 @@ handleAction :: forall output. Action -> H.HalogenM State Action ChildSlots outp
 handleAction action = do
   state <- H.get
   case action of
+    Clear -> plotRoughThenRobust state state.bounds (map (\plot -> plot { expression = Nothing }) state.plots)
+    HandleExpressionInput (Parsed id expression text) -> plotRoughThenRobust state state.bounds (map (updatePlot id expression text) state.plots)
+    Pan direction -> plotRoughThenRobust state (panBounds state.bounds direction) state.plots
+    Zoom isZoomIn -> plotRoughThenRobust state (zoomBounds state.bounds isZoomIn) state.plots
+    ResetBounds -> plotRoughThenRobust state initialBounds state.plots
+    HandleCanvas (Dragged delta) -> plotRoughThenRobust state (panBoundsByVector state.input.size state.bounds delta) state.plots
+    AddPlot -> H.put state { plots = state.plots <> [ newPlot (1 + length state.plots) ] }
+    HandleBoundsInput (Updated newBounds) -> plotRoughThenRobust state newBounds state.plots
     Init -> do
       document <- H.liftEffect $ Web.document =<< Web.window
       H.subscribe' \id ->
@@ -159,47 +172,20 @@ handleAction action = do
           (HTMLDocument.toEventTarget document)
           (map (HandleScroll id) <<< WE.fromEvent)
       handleAction Clear
-    Clear -> do
-      let
-        plots = map (\plot -> plot { expression = Nothing }) state.plots
-      drawCommands <- lift $ computePlots state.input.size state.bounds plots
-      H.put state { input { operations = drawCommands }, plots = plots }
-    HandleExpressionInput (Parsed id expression text) -> do
-      let
-        plots = map (updatePlot id expression text) state.plots
-      drawCommands <- lift $ computePlots state.input.size state.bounds plots
-      H.put state { input { operations = drawCommands }, plots = plots }
-    Pan direction -> do
-      let
-        newBounds = panBounds state.bounds direction
-      drawCommands <- lift $ computePlots state.input.size newBounds state.plots
-      H.put state { input { operations = drawCommands }, bounds = newBounds }
-    Zoom isZoomIn -> do
-      let
-        newBounds = zoomBounds state.bounds isZoomIn
-      drawCommands <- lift $ computePlots state.input.size newBounds state.plots
-      H.put state { input { operations = drawCommands }, bounds = newBounds }
-    ResetBounds -> do
-      drawCommands <- lift $ computePlots state.input.size initialBounds state.plots
-      H.put state { input { operations = drawCommands }, bounds = initialBounds }
     HandleScroll _ event -> do
       let
         changeInY = WE.deltaY event
       when (changeInY /= 0.0) do
         H.liftEffect $ E.preventDefault (WE.toEvent event)
         handleAction $ Zoom (changeInY < 0.0)
-    HandleCanvas (Dragged delta) -> do
-      let
-        newBounds = panBoundsByVector state.input.size state.bounds delta
-      drawCommands <- lift $ computePlots state.input.size newBounds state.plots
-      H.put state { input { operations = drawCommands }, bounds = newBounds }
-    AddPlot -> do
-      let
-        plots = state.plots <> [ newPlot (1 + length state.plots) ]
-      H.put state { plots = plots }
-    HandleBoundsInput (Updated newBounds) -> do
-      drawCommands <- lift $ computePlots state.input.size newBounds state.plots
-      H.put state { input { operations = drawCommands }, bounds = newBounds }
+    StartRobust id robustCommands bounds -> do
+      _ <- lift $ lift $ delay $ Milliseconds 2000.0 -- TODO Remove artifical delay
+      robustDrawCommands <- lift $ computePlots state.input.size robustCommands
+      handleAction $ EndRobust id robustDrawCommands
+    EndRobust id drawCommands ->
+      -- If the command set is different then ignore the drawCommands
+      when (state.commandSetId == id) do
+        H.put state { input { operations = drawCommands } }
 
 ui' :: forall f i o. H.Component HH.HTML f i o Aff
 ui' = H.hoist (\app -> runReaderT app initialConfig) ui
@@ -215,25 +201,38 @@ updatePlot id expression text plot =
     plot
 
 initialBounds :: XYBounds
-initialBounds = xyBounds (-1.0) (1.0) (-1.0) (1.0)
+initialBounds = xyBounds (-one) one (-one) one
 
-computePlots :: Size -> XYBounds -> Array ExpressionPlot -> ReaderT Config Aff (DrawCommand Unit)
-computePlots canvasSize newBounds plots = lift $ computePlotAsync canvasSize computedPlot
+plotRoughThenRobust :: forall output. State -> XYBounds -> Array ExpressionPlot -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
+plotRoughThenRobust state newBounds plots = do
+  let
+    toCommandArray = plotCommands state.input.size newBounds plots
+
+    roughCommands = toCommandArray roughPlot
+
+    robustCommands = toCommandArray robustPlot
+
+    commandSetId = state.commandSetId + 1
+  drawCommands <- lift $ computePlots state.input.size roughCommands
+  H.put state { input { operations = drawCommands }, plots = plots, bounds = newBounds, commandSetId = commandSetId }
+  handleAction $ StartRobust commandSetId robustCommands newBounds
+
+computePlots :: Size -> Array PlotCommand -> ReaderT Config Aff (DrawCommand Unit)
+computePlots canvasSize plots = lift $ computePlotAsync canvasSize plots
+
+toMaybePlotCommand :: Size -> XYBounds -> (XYBounds -> Expression -> String -> PlotCommand) -> ExpressionPlot -> Maybe PlotCommand
+toMaybePlotCommand size newBounds plotter plot = case plot.expression of
+  Just expression -> Just $ plotter newBounds expression plot.expressionText
+  Nothing -> Nothing
+
+plotCommands :: Size -> XYBounds -> Array ExpressionPlot -> (XYBounds -> Expression -> String -> PlotCommand) -> Array PlotCommand
+plotCommands canvasSize newBounds plots plotter = computedPlot
   where
-  commands = mapMaybe (computePlot canvasSize newBounds) plots
+  commands = mapMaybe (toMaybePlotCommand canvasSize newBounds plotter) plots
 
   clearCommand = clear newBounds
 
-  computedPlot =
-    if null commands then
-      [ clearCommand ]
-    else
-      [ clearCommand ] <> commands
-
-computePlot :: Size -> XYBounds -> ExpressionPlot -> Maybe PlotCommand
-computePlot size newBounds plot = case plot.expression of
-  Just expression -> Just $ plotExpression newBounds expression plot.expressionText
-  Nothing -> Nothing
+  computedPlot = if null commands then [ clearCommand ] else [ clearCommand ] <> commands
 
 initialConfig :: Config
 initialConfig = { someData: "" }
