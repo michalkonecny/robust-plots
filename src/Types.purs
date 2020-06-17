@@ -20,6 +20,8 @@ type Polygon
 type Delta
   = { x :: Rational, y :: Rational }
 
+type Id = Int
+
 data Direction
   = Up
   | Down

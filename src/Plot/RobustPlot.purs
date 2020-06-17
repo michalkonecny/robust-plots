@@ -18,6 +18,9 @@ import IntervalArith.Misc (Rational, rationalToNumber, toRational)
 import Plot.Helper (drawLabel)
 import Types (XYBounds, Polygon, Position, Size)
 
+segmentCount :: Int
+segmentCount = 10
+
 drawRobustPlot :: Size -> Int -> Int -> XYBounds -> Expression -> String -> DrawCommand Unit
 drawRobustPlot canvasSize numberOfPlots index bounds expression label = drawCommands
   where
@@ -41,8 +44,6 @@ evaluateWithX expression x = value
 plotEnclosures :: Size -> XYBounds -> (Approx -> Approx) -> Array Polygon
 plotEnclosures canvasSize bounds f = segmentEnclosures
   where
-  segmentCount = 50
-
   rangeX = bounds.xBounds.upper - bounds.xBounds.lower
 
   rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
