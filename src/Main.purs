@@ -210,7 +210,7 @@ handleAction action = do
     DrawPlot -> H.modify_ (_ { input { operations = foldDrawCommands state } })
     HandleQueue -> do
       when (hasJobs state.queue) do
-        (Tuple newQueue maybeJobResult) <- lift $ lift $ runFirst state.input.size state.bounds state.queue
+        (Tuple newQueue maybeJobResult) <- lift $ lift $ runFirst state.input.size state.bounds.xBounds state.queue
         case maybeJobResult of
           Nothing -> handleAction DrawPlot
           Just jobResult -> do

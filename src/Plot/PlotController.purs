@@ -1,8 +1,6 @@
 module Plot.PlotController where
 
 import Prelude
-
-import Data.Array (fold, mapWithIndex)
 import Data.Either (Either(..))
 import Data.Enum (fromEnum)
 import Data.Traversable (sum)
@@ -13,26 +11,22 @@ import Plot.Commands (PlotCommand(..), isPlotExpression)
 import Plot.GridLines (clearAndDrawGridLines)
 import Plot.RobustPlot (drawRobustPlot)
 import Plot.RoughPlot (drawRoughPlot)
-import Types (Size)
+import Types (Size, Bounds)
 
-computePlotAsync :: Size -> Array PlotCommand -> Aff (DrawCommand Unit)
-computePlotAsync canvasSize plot = makeAff $ runComputation canvasSize plot
+computePlotAsync :: Size -> Bounds -> PlotCommand -> Aff (DrawCommand Unit)
+computePlotAsync canvasSize bounds plot = makeAff $ runComputation canvasSize bounds plot
 
-runComputation :: Size -> Array PlotCommand -> (Either Error (DrawCommand Unit) -> Effect Unit) -> Effect Canceler
-runComputation canvasSize commands callback = do
-  callback $ Right result
+runComputation :: Size -> Bounds -> PlotCommand -> (Either Error (DrawCommand Unit) -> Effect Unit) -> Effect Canceler
+runComputation canvasSize bounds commands callback = do
+  callback $ Right $ runCommand canvasSize bounds commands
   pure nonCanceler
-  where
-  numberOfPlots = countPlots commands
-
-  result = fold $ mapWithIndex (runCommand canvasSize numberOfPlots) commands
 
 countPlots :: Array PlotCommand -> Int
 countPlots = sum <<< map (fromEnum <<< isPlotExpression)
 
-runCommand :: Size -> Int -> Int -> PlotCommand -> DrawCommand Unit
-runCommand _ _ _ (Empty bounds) = clearAndDrawGridLines bounds
+runCommand :: Size -> Bounds -> PlotCommand -> DrawCommand Unit
+runCommand _ _ (Empty bounds) = clearAndDrawGridLines bounds
 
-runCommand canvasSize numberOfPlots index (RoughPlot bounds expression label) = drawRoughPlot canvasSize numberOfPlots index bounds expression label
+runCommand canvasSize _ (RoughPlot bounds expression label) = drawRoughPlot canvasSize bounds expression label
 
-runCommand canvasSize numberOfPlots index (RobustPlot bounds expression label) = drawRobustPlot canvasSize numberOfPlots index bounds expression label
+runCommand canvasSize fullBounds (RobustPlot bounds expression label) = drawRobustPlot canvasSize 1 0 bounds expression label

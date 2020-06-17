@@ -1,6 +1,7 @@
-module Plot.JobBatcher (JobQueue, Job, JobResult, cancelAll, addPlot, markComplete, initialJobQueue, cancelWithBatchId, addManyPlots, hasJobs, runFirst) where
+module Plot.JobBatcher (JobQueue, Job, JobResult, cancelAll, addPlot, initialJobQueue, cancelWithBatchId, addManyPlots, hasJobs, runFirst) where
 
 import Prelude
+
 import Data.Array (elem, foldl, tail, zipWith, (..))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
@@ -12,7 +13,7 @@ import IntervalArith.Misc (Rational, toRational)
 import Plot.Commands (PlotCommand(..), robustPlot)
 import Plot.PlotController (computePlotAsync)
 import Plot.Queue (Queue, empty, mapToArray, push, filter, pop, null)
-import Types (Id, XYBounds, Size)
+import Types (Id, Size, XYBounds, Bounds)
 
 batchSegmentCount :: Int
 batchSegmentCount = 5
@@ -72,7 +73,7 @@ addPlot jobQueue p@(RobustPlot bounds expression label) batchId = foldl (addJob 
 -- Add Rough and Empty plot as single jobs
 addPlot jobQueue p batchId = addJob batchId jobQueue p
 
-runFirst :: Size -> XYBounds -> JobQueue -> Aff (Tuple JobQueue (Maybe JobResult))
+runFirst :: Size -> Bounds -> JobQueue -> Aff (Tuple JobQueue (Maybe JobResult))
 runFirst canvasSize bounds jobQueue = do
   let
     (Tuple newQueue maybeJob) = pop jobQueue.queue
@@ -94,11 +95,8 @@ runMaybeJob runner cancelled (Just job) =
 nullJob :: Aff (DrawCommand Unit)
 nullJob = (liftAff <<< pure <<< pure) unit
 
-runJob :: Size -> XYBounds -> Job -> Aff (DrawCommand Unit)
-runJob canvasSize bounds job = computePlotAsync canvasSize [ job.command ]
-
-markComplete :: JobQueue -> Id -> JobQueue
-markComplete jobQueue id = jobQueue { queue = filter (\job -> job.id == id) jobQueue.queue }
+runJob :: Size -> Bounds -> Job -> Aff (DrawCommand Unit)
+runJob canvasSize bounds job = computePlotAsync canvasSize bounds job.command
 
 segmentRobust :: XYBounds -> Expression -> String -> Array PlotCommand
 segmentRobust bounds expression label = commands
