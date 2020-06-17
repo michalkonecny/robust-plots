@@ -270,8 +270,8 @@ approxTests_fromRationalBounds =
             leqOp = assertOpWithInput (<=) " <= " [ aL, aU, bL, bU ]
           in
             resultL `leqOp` (Finite $ abL) &=& (Finite $ abU) `leqOp` resultU
-    test "SHOULD HOLD division on Approx is division on Rational intervals"
-      $ quickCheck \a1Pre a2Pre b1Pre b2Pre precPre ->
+    test "SHOULD HOLD recip on Approx is recip on Rational intervals"
+      $ quickCheck \b1Pre b2Pre precPre ->
           let
             -- given
             (ArbitraryPositiveExponent prec) = precPre
@@ -284,41 +284,21 @@ approxTests_fromRationalBounds =
 
             bU = max b1 b2
 
-            (ArbitraryRational a1) = a1Pre
-
-            (ArbitraryRational a2) = a2Pre
-
-            aL = min a1 a2
-
-            aU = max a1 a2
-
-            a = fromRationalBoundsPrec prec aL aU
-
             b = fromRationalBoundsPrec prec bL bU
 
             -- when
-            Tuple resultL resultU = boundsR $ a / b
-
-            bLinv = if bL == zero then PosInf else Finite (one / bL)
-
-            bUinv = if bU == zero then NegInf else Finite (one / bU)
-
-            aLf = Finite aL
-
-            aUf = Finite aU
-
-            products = (aLf * bLinv) :| [ aLf * bUinv, aUf * bLinv, aUf * bUinv ]
+            Tuple resultL resultU = boundsR $ recip b
 
             hasZero = bL <= zero && zero <= bU
 
-            aDbL = if hasZero then NegInf else foldl1 min products
+            bLinv = if hasZero then PosInf else Finite (one / bL)
 
-            aDbU = if hasZero then PosInf else foldl1 max products
+            bUinv = if hasZero then NegInf else Finite (one / bU)
 
             -- then
-            leqOp = assertOpWithInput (<=) " <= " [ aL, aU, bL, bU ]
+            leqOp = assertOpWithInput (<=) " <= " [ bL, bU ]
           in
-            resultL `leqOp` aDbL &=& aDbU `leqOp` resultU
+            resultL `leqOp` bUinv &=& bLinv `leqOp` resultU
 
 approxTests_Field :: TestSuite
 approxTests_Field = fieldTests approxEqParams
