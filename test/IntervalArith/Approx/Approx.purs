@@ -3,9 +3,14 @@ module Test.IntervalArith.Approx
   ) where
 
 import Prelude
+
+import Data.NonEmpty (foldl1, (:|))
+import Data.Ratio ((%))
+import Data.Tuple (Tuple(..))
 import Effect (Effect)
-import IntervalArith.Approx (Approx(..), approxMB, consistent, fromRationalBoundsPrec, fromRationalPrec, setMB, (⊑))
+import IntervalArith.Approx (Approx(..), approxMB, boundErrorTerm, boundsR, consistent, fromRationalBoundsPrec, fromRationalPrec, setMB, (⊑))
 import IntervalArith.Approx.ShowA (showA)
+import IntervalArith.Extended (Extended(..))
 import IntervalArith.Misc (big)
 import Test.Field (fieldTests)
 import Test.IntervalArith.Approx.ShowA (approxTests_showA)
@@ -36,14 +41,16 @@ randomSampleApprox size = randomSample' size (map (\(ArbitraryApprox a) -> a) ar
 approxTests :: TestSuite
 approxTests = do
   approxTests_showA
-  approxTests_setMBworse
+  approxTests_setMB
+  approxTests_boundErrorTerm
   approxTests_Order
   approxTests_Consistent
-  approxTests_fromRational
   approxTests_Field
+  approxTests_fromRational
+  approxTests_fromRationalBounds
 
-approxTests_setMBworse :: TestSuite
-approxTests_setMBworse =
+approxTests_setMB :: TestSuite
+approxTests_setMB =
   suite "IntervalArith.Approx - setMB" do
     test "SHOULD HOLD setMB mb a ⊑ a FOR ALL approx a and integer mb>=0"
       $ quickCheck \aPre mbPre ->
@@ -58,6 +65,21 @@ approxTests_setMBworse =
           -- then
           in
             assertOp (⊑) " ⊑ " aMB a
+
+approxTests_boundErrorTerm :: TestSuite
+approxTests_boundErrorTerm =
+  suite "IntervalArith.Approx - boundErrorTerms" do
+    test "SHOULD HOLD boundErrorTerms a ⊑ a FOR ALL approx a"
+      $ quickCheck \aPre ->
+          let
+            -- given
+            (ArbitraryApprox a) = aPre
+
+            -- when
+            aB = boundErrorTerm a
+          -- then
+          in
+            assertOp (⊑) " ⊑ " aB a
 
 approxTests_Order :: TestSuite
 approxTests_Order =
@@ -105,7 +127,7 @@ approxTests_Consistent =
 
 approxTests_fromRational :: TestSuite
 approxTests_fromRational =
-  suite "IntervalArith.Approx - conversion from Ratinoal" do
+  suite "IntervalArith.Approx - conversion from Rational" do
     test "SHOULD HOLD addition on Approx is consistent with addition on Rational"
       $ quickCheck \aPre bPre precPre ->
           let
@@ -125,7 +147,7 @@ approxTests_fromRational =
             consistentOp = assertOp consistent " `consistent` "
           in
             resultAddConvert `consistentOp` resultConvertAdd
-    test "SHOULD HOLD Approx from bounds is consistent with each bound"
+    test "SHOULD HOLD multiplication on Approx is consistent with multiplication on Rational"
       $ quickCheck \aPre bPre precPre ->
           let
             -- given
@@ -136,16 +158,165 @@ approxTests_fromRational =
             (ArbitraryRational a) = aPre
 
             -- when
-            hull = fromRationalBoundsPrec prec (min a b) (max a b)
+            resultMulConvert = fromRationalPrec prec (a * b)
 
-            aApprox = fromRationalPrec prec a
-
-            bApprox = fromRationalPrec prec b
+            resultConvertMul = (fromRationalPrec prec a) * (fromRationalPrec prec b)
 
             -- then
-            consistentOp = assertOpWithInput consistent " `consistent` " [a,b]
+            consistentOp = assertOp consistent " `consistent` "
           in
-            hull `consistentOp` aApprox &=& hull `consistentOp` bApprox
+            resultMulConvert `consistentOp` resultConvertMul
+    test "SHOULD HOLD division on Approx is consistent with division on Rational"
+      $ quickCheck \aPre bPre precPre ->
+          let
+            -- given
+            (ArbitraryPositiveExponent prec) = precPre
+
+            (ArbitraryRational b) = bPre
+
+            (ArbitraryRational a) = aPre
+
+            -- when
+            resultDivConvert =
+              if b == zero then
+                Bottom
+              else
+                fromRationalPrec prec (a / b)
+
+            resultConvertDiv = (fromRationalPrec prec a) / (fromRationalPrec prec b)
+
+            -- then
+            consistentOp = assertOp consistent " `consistent` "
+          in
+            resultDivConvert `consistentOp` resultConvertDiv
+
+approxTests_fromRationalBounds :: TestSuite
+approxTests_fromRationalBounds =
+  suite "IntervalArith.Approx - conversion from Rational bounds" do
+    test "SHOULD HOLD Approx from bounds is consistent with each bound"
+      $ quickCheck \a1Pre a2Pre precPre ->
+          let
+            -- given
+            (ArbitraryPositiveExponent prec) = precPre
+
+            (ArbitraryRational a1) = a1Pre
+
+            (ArbitraryRational a2) = a2Pre
+
+            aL = min a1 a2
+
+            aU = max a1 a2
+
+            -- when
+            hull = fromRationalBoundsPrec prec aL aU
+
+            Tuple hullL hullU = boundsR hull
+
+            -- then
+            leqOp = assertOp (<=) " <= "
+          in
+            hullL `leqOp` (Finite aL) &=& (Finite aU) `leqOp` hullU
+    test "SHOULD HOLD addition on Approx is consistent with addition on Rational intervals"
+      $ quickCheck \a1Pre a2Pre b1Pre b2Pre precPre ->
+          let
+            -- given
+            (ArbitraryPositiveExponent prec) = precPre
+
+            (ArbitraryRational b1) = b1Pre
+
+            (ArbitraryRational b2) = b2Pre
+
+            bL = min b1 b2
+
+            bU = max b1 b2
+
+            (ArbitraryRational a1) = a1Pre
+
+            (ArbitraryRational a2) = a2Pre
+
+            aL = min a1 a2
+
+            aU = max a1 a2
+
+            -- when
+            a = fromRationalBoundsPrec prec aL aU
+
+            b = fromRationalBoundsPrec prec bL bU
+
+            Tuple resultL resultU = boundsR $ a + b
+
+            -- then
+            leqOp = assertOpWithInput (<=) " <= " [ aL, aU, bL, bU ]
+          in
+            resultL `leqOp` (Finite $ aL + bL) &=& (Finite $ aU + bU) `leqOp` resultU
+    test "SHOULD HOLD multiplication on Approx is multiplication on Rational intervals"
+      $ quickCheck \a1Pre a2Pre b1Pre b2Pre precPre ->
+          let
+            -- given
+            (ArbitraryPositiveExponent prec) = precPre
+
+            (ArbitraryRational b1) = b1Pre
+
+            (ArbitraryRational b2) = b2Pre
+
+            bL = min b1 b2
+
+            bU = max b1 b2
+
+            (ArbitraryRational a1) = a1Pre
+
+            (ArbitraryRational a2) = a2Pre
+
+            aL = min a1 a2
+
+            aU = max a1 a2
+
+            -- when
+            a = fromRationalBoundsPrec prec aL aU
+
+            b = fromRationalBoundsPrec prec bL bU
+
+            Tuple resultL resultU = boundsR $ a * b
+
+            products = (aL * bL) :| [ aL * bU, aU * bL, aU * bU ]
+
+            abL = foldl1 min products
+
+            abU = foldl1 max products
+
+            -- then
+            leqOp = assertOpWithInput (<=) " <= " [ aL, aU, bL, bU ]
+          in
+            resultL `leqOp` (Finite $ abL) &=& (Finite $ abU) `leqOp` resultU
+    test "SHOULD HOLD recip on Approx is recip on Rational intervals"
+      $ quickCheck \b1Pre b2Pre precPre ->
+          let
+            -- given
+            (ArbitraryPositiveExponent prec) = precPre
+
+            (ArbitraryRational b1) = b1Pre
+
+            (ArbitraryRational b2) = b2Pre
+
+            bL = min b1 b2
+
+            bU = max b1 b2
+
+            b = fromRationalBoundsPrec prec bL bU
+
+            -- when
+            Tuple resultL resultU = boundsR $ recip b
+
+            hasZero = bL <= zero && zero <= bU
+
+            bLinv = if hasZero then PosInf else Finite (one / bL)
+
+            bUinv = if hasZero then NegInf else Finite (one / bU)
+
+            -- then
+            leqOp = assertOpWithInput (<=) " <= " [ bL, bU, ((big prec) % one) ]
+          in
+            resultL `leqOp` bUinv &=& bLinv `leqOp` resultU
 
 approxTests_Field :: TestSuite
 approxTests_Field = fieldTests approxEqParams
