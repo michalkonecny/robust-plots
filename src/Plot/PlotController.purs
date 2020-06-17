@@ -14,11 +14,11 @@ import Plot.RoughPlot (drawRoughPlot)
 import Types (Size, Bounds)
 
 computePlotAsync :: Size -> Bounds -> PlotCommand -> Aff (DrawCommand Unit)
-computePlotAsync canvasSize bounds plot = makeAff $ runComputation canvasSize bounds plot
+computePlotAsync canvasSize fullXBounds plot = makeAff $ runComputation canvasSize fullXBounds plot
 
 runComputation :: Size -> Bounds -> PlotCommand -> (Either Error (DrawCommand Unit) -> Effect Unit) -> Effect Canceler
-runComputation canvasSize bounds commands callback = do
-  callback $ Right $ runCommand canvasSize bounds commands
+runComputation canvasSize fullXBounds commands callback = do
+  callback $ Right $ runCommand canvasSize fullXBounds commands
   pure nonCanceler
 
 countPlots :: Array PlotCommand -> Int
@@ -29,4 +29,4 @@ runCommand _ _ (Empty bounds) = clearAndDrawGridLines bounds
 
 runCommand canvasSize _ (RoughPlot bounds expression label) = drawRoughPlot canvasSize bounds expression label
 
-runCommand canvasSize fullBounds (RobustPlot bounds expression label) = drawRobustPlot canvasSize 1 0 bounds expression label
+runCommand canvasSize fullXBounds (RobustPlot bounds expression label) = drawRobustPlot canvasSize fullXBounds bounds expression label
