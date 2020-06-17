@@ -3,10 +3,12 @@ module Test.IntervalArith.Approx
   ) where
 
 import Prelude
+
 import Data.NonEmpty (foldl1, (:|))
+import Data.Ratio ((%))
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
-import IntervalArith.Approx (Approx(..), approxMB, boundsR, consistent, fromRationalBoundsPrec, fromRationalPrec, setMB, (⊑))
+import IntervalArith.Approx (Approx(..), approxMB, boundErrorTerm, boundsR, consistent, fromRationalBoundsPrec, fromRationalPrec, setMB, (⊑))
 import IntervalArith.Approx.ShowA (showA)
 import IntervalArith.Extended (Extended(..))
 import IntervalArith.Misc (big)
@@ -39,15 +41,16 @@ randomSampleApprox size = randomSample' size (map (\(ArbitraryApprox a) -> a) ar
 approxTests :: TestSuite
 approxTests = do
   approxTests_showA
-  approxTests_setMBworse
+  approxTests_setMB
+  approxTests_boundErrorTerm
   approxTests_Order
   approxTests_Consistent
   approxTests_Field
   approxTests_fromRational
   approxTests_fromRationalBounds
 
-approxTests_setMBworse :: TestSuite
-approxTests_setMBworse =
+approxTests_setMB :: TestSuite
+approxTests_setMB =
   suite "IntervalArith.Approx - setMB" do
     test "SHOULD HOLD setMB mb a ⊑ a FOR ALL approx a and integer mb>=0"
       $ quickCheck \aPre mbPre ->
@@ -62,6 +65,21 @@ approxTests_setMBworse =
           -- then
           in
             assertOp (⊑) " ⊑ " aMB a
+
+approxTests_boundErrorTerm :: TestSuite
+approxTests_boundErrorTerm =
+  suite "IntervalArith.Approx - boundErrorTerms" do
+    test "SHOULD HOLD boundErrorTerms a ⊑ a FOR ALL approx a"
+      $ quickCheck \aPre ->
+          let
+            -- given
+            (ArbitraryApprox a) = aPre
+
+            -- when
+            aB = boundErrorTerm a
+          -- then
+          in
+            assertOp (⊑) " ⊑ " aB a
 
 approxTests_Order :: TestSuite
 approxTests_Order =
@@ -296,7 +314,7 @@ approxTests_fromRationalBounds =
             bUinv = if hasZero then NegInf else Finite (one / bU)
 
             -- then
-            leqOp = assertOpWithInput (<=) " <= " [ bL, bU ]
+            leqOp = assertOpWithInput (<=) " <= " [ bL, bU, ((big prec) % one) ]
           in
             resultL `leqOp` bUinv &=& bLinv `leqOp` resultU
 
