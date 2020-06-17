@@ -1,6 +1,7 @@
 module IntervalArith.Misc where
 
 import Prelude
+
 import Data.BigInt (BigInt)
 import Data.BigInt as BigInt
 import Data.Int as Int
@@ -8,6 +9,7 @@ import Data.Monoid (power)
 import Data.Monoid.Multiplicative (Multiplicative(..))
 import Data.Ratio (Ratio, (%), numerator, denominator)
 import Data.String.CodeUnits as StrCU
+import FFI.BigInt (bitLength)
 
 {-- Strings --}
 fromCA :: Array Char -> String
@@ -43,6 +45,8 @@ bit n = shift (big 1) n
 testBit :: Integer -> Int -> Boolean
 testBit b n = (BigInt.and b (bit n)) /= zero
 
+integerLog2 :: Integer -> Int
+integerLog2 n = bitLength n - 1
 
 {-- Rational --}
 type Rational
