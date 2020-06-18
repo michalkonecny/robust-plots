@@ -10,11 +10,12 @@ module Plot.JobBatcher
   , hasJobs
   , runFirst
   , showQueueIds
-  , pop
+  , setRunning
   , isCancelled
   ) where
 
 import Prelude
+
 import Data.Array (elem, foldl, tail, zipWith, (..))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
@@ -35,6 +36,7 @@ type JobQueue
   = { cancelled :: Array Id
     , queue :: Queue Job
     , currentId :: Id
+    , running :: Maybe Id
     }
 
 type Job
@@ -53,6 +55,7 @@ initialJobQueue =
   { cancelled: []
   , currentId: 0
   , queue: empty
+  , running: Nothing
   }
 
 hasJobs :: JobQueue -> Boolean
@@ -85,6 +88,11 @@ addPlot jobQueue p@(RobustPlot bounds expression label) batchId = foldl (addJob 
 
 -- Add Rough and Empty plot as single jobs
 addPlot jobQueue p batchId = addJob batchId jobQueue p
+
+setRunning :: JobQueue -> JobQueue
+setRunning jobQueue = case peek jobQueue.queue of
+  Nothing -> jobQueue { running = Nothing }
+  Just job -> jobQueue { running = pure job.id, queue = queueTail jobQueue.queue }
 
 runFirst :: Size -> Bounds -> JobQueue -> Aff (Maybe JobResult)
 runFirst canvasSize bounds jobQueue = runMaybeJob (runJob canvasSize bounds) jobQueue.cancelled maybeJob
@@ -134,9 +142,6 @@ addJob batchId jobQueue command = jobQueue { queue = newQueue, currentId = newCu
   newCurrentId = jobQueue.currentId + 1
 
   newQueue = push jobQueue.queue { id: newCurrentId, command, batchId }
-
-pop :: JobQueue -> JobQueue
-pop jobQueue = jobQueue { queue = queueTail jobQueue.queue }
 
 isCancelled :: JobQueue -> Id -> Boolean
 isCancelled jobQueue id = elem id jobQueue.cancelled

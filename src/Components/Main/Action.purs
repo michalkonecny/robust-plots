@@ -16,7 +16,7 @@ import Expression.Syntax (Expression)
 import Halogen as H
 import Halogen.Query.EventSource as ES
 import Plot.Commands (PlotCommand, clear, robustPlot, roughPlot)
-import Plot.JobBatcher (JobResult, addManyPlots, addPlot, cancelAll, cancelWithBatchId, hasJobs, isCancelled, pop, runFirst, showQueueIds)
+import Plot.JobBatcher (JobResult, addManyPlots, addPlot, cancelAll, cancelWithBatchId, hasJobs, isCancelled, setRunning, runFirst, showQueueIds)
 import Plot.Pan (panBounds, panBoundsByVector)
 import Plot.Zoom (zoomBounds)
 import Types (Direction, Id, XYBounds)
@@ -96,7 +96,7 @@ handleAction action = do
     HandleQueue -> do
       H.liftEffect $ log $ showQueueIds state.queue
       when (hasJobs state.queue) do
-        H.modify_ (_ { queue = pop state.queue })
+        H.modify_ (_ { queue = setRunning state.queue })
         maybeJobResult <- lift $ lift $ runFirst state.input.size state.bounds.xBounds state.queue
         _ <- lift $ lift $ delay $ Milliseconds 2000.0 -- TODO Remove artifical delay
         newState <- H.get

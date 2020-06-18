@@ -10,14 +10,11 @@ import Constants (canvasId)
 import Control.Monad.Reader (ReaderT, runReaderT)
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
-import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Class (class MonadEffect)
 import Halogen as H
-import Halogen.Aff as HA
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
-import Halogen.VDom.Driver (runUI)
 import IntervalArith.Misc (toRational)
 import Plot.JobBatcher (initialJobQueue)
 import Types (Direction(..))
@@ -110,9 +107,3 @@ mainComponent = H.hoist (\app -> runReaderT app initialConfig) ui
 
 initialConfig :: Config
 initialConfig = { someData: "" }
-
-main :: Effect Unit
-main =
-  HA.runHalogenAff do
-    body <- HA.awaitBody
-    runUI mainComponent unit body
