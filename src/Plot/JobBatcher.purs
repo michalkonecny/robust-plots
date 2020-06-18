@@ -15,7 +15,6 @@ module Plot.JobBatcher
   ) where
 
 import Prelude
-
 import Data.Array (elem, foldl, tail, zipWith, (..))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
@@ -36,7 +35,7 @@ type JobQueue
   = { cancelled :: Array Id
     , queue :: Queue Job
     , currentId :: Id
-    , running :: Maybe Id
+    , running :: Maybe Job
     }
 
 type Job
@@ -62,18 +61,33 @@ hasJobs :: JobQueue -> Boolean
 hasJobs jobQueue = not $ null jobQueue.queue
 
 cancelAll :: JobQueue -> JobQueue
-cancelAll jobQueue = jobQueue { cancelled = cancelled, queue = empty }
+cancelAll jobQueue = cancelRunning $ jobQueue { cancelled = cancelled, queue = empty }
   where
-  cancelled = jobQueue.cancelled <> mapToArray (\job -> job.id) jobQueue.queue
+  cancelled = jobQueue.cancelled <> mapToArray (_.id) jobQueue.queue
 
 cancelWithBatchId :: JobQueue -> Id -> JobQueue
-cancelWithBatchId jobQueue batchId = jobQueue { cancelled = cancelledIds, queue = active }
+cancelWithBatchId jobQueue batchId = newQueue
   where
-  active = filter (\job -> job.batchId /= batchId) jobQueue.queue
+  hasBatchId :: Job -> Boolean
+  hasBatchId job = job.batchId == batchId
 
-  canceledJobs = (filter (\job -> job.batchId == batchId) jobQueue.queue)
+  active = filter (not <<< hasBatchId) jobQueue.queue
 
-  cancelledIds = jobQueue.cancelled <> (mapToArray (\job -> job.id) canceledJobs)
+  cancelledJobs = filter hasBatchId jobQueue.queue
+
+  cancelledActive = jobQueue { cancelled = jobQueue.cancelled <> (mapToArray (_.id) cancelledJobs), queue = active }
+
+  newQueue = if isRunning hasBatchId jobQueue then cancelRunning $ cancelledActive else cancelledActive
+
+cancelRunning :: JobQueue -> JobQueue
+cancelRunning jobQueue = case jobQueue.running of
+  Nothing -> jobQueue
+  Just job -> jobQueue { cancelled = jobQueue.cancelled <> [ job.id ], running = Nothing }
+
+isRunning :: (Job -> Boolean) -> JobQueue -> Boolean
+isRunning check jobQueue = case jobQueue.running of
+  Nothing -> false
+  Just job -> check job
 
 addManyPlots :: JobQueue -> Array (Tuple PlotCommand Id) -> JobQueue
 addManyPlots jobQueue plots = foldl foldIntoJob jobQueue plots
@@ -92,7 +106,7 @@ addPlot jobQueue p batchId = addJob batchId jobQueue p
 setRunning :: JobQueue -> JobQueue
 setRunning jobQueue = case peek jobQueue.queue of
   Nothing -> jobQueue { running = Nothing }
-  Just job -> jobQueue { running = pure job.id, queue = queueTail jobQueue.queue }
+  Just job -> jobQueue { running = pure job, queue = queueTail jobQueue.queue }
 
 runFirst :: Size -> Bounds -> JobQueue -> Aff (Maybe JobResult)
 runFirst canvasSize bounds jobQueue = runMaybeJob (runJob canvasSize bounds) jobQueue.cancelled maybeJob
