@@ -1,6 +1,6 @@
 module Components.Main.Action where
 
-import Prelude (Unit, bind, discard, map, pure, unit, when, ($), (+), (/=), (<), (<<<), (<>), (=<<))
+import Prelude
 import Components.BoundsInput (BoundsInputMessage(..))
 import Components.Canvas (CanvasMessage(..))
 import Components.ExpressionInput (ExpressionInputMessage(..))

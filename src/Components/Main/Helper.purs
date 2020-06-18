@@ -1,13 +1,13 @@
 module Components.Main.Helper where
 
 import Prelude
-import Components.Canvas (xyBounds)
 import Components.Main.Types (ExpressionPlot, State)
 import Data.Array (fold, mapMaybe)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Draw.Commands (DrawCommand)
 import Expression.Syntax (Expression)
+import IntervalArith.Misc (Rational)
 import Plot.Commands (PlotCommand, robustPlot)
 import Types (Id, XYBounds)
 
@@ -44,3 +44,6 @@ toMaybeDrawCommand plot = case plot.expression of
 
 foldDrawCommands :: State -> DrawCommand Unit
 foldDrawCommands state = fold $ [ state.clearPlot ] <> mapMaybe toMaybeDrawCommand state.plots
+
+xyBounds :: Rational -> Rational -> Rational -> Rational -> XYBounds
+xyBounds xLower xUpper yLower yUpper = { xBounds: { upper: xUpper, lower: xLower }, yBounds: { upper: yUpper, lower: yLower } }

@@ -6,6 +6,9 @@ import Components.Canvas (canvasComponent)
 import Components.Canvas.Controller (canvasController)
 import Components.ExpressionInput (expressionInputComponent)
 import Components.ExpressionInput.Controller (expressionInputController)
+import Components.Main.Types (ChildSlots, Config, State)
+import Components.Main.Action (Action(..), handleAction)
+import Components.Main.Helper (initialBounds, newPlot)
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT, runReaderT)
 import Data.Maybe (Maybe(..))
@@ -18,8 +21,6 @@ import Halogen.HTML.Events as HE
 import IntervalArith.Misc (toRational)
 import Plot.JobBatcher (initialJobQueue)
 import Types (Direction(..))
-import Components.Main.Types (ChildSlots, Config, State)
-import Components.Main.Action (Action(..), handleAction, initialBounds, newPlot)
 
 _canvas = SProxy :: SProxy "canvas"
 
