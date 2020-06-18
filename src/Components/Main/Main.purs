@@ -10,7 +10,7 @@ import Components.Main.Types (ChildSlots, Config, State)
 import Components.Main.Action (Action(..), handleAction)
 import Components.Main.Helper (initialBounds, newPlot)
 import Constants (canvasId)
-import Control.Monad.Reader (ReaderT, runReaderT)
+import Control.Monad.Reader (ReaderT)
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
@@ -28,8 +28,8 @@ _expressionInput = SProxy :: SProxy "expressionInput"
 
 _boundsInput = SProxy :: SProxy "boundsInput"
 
-ui :: forall query input output. H.Component HH.HTML query input output (ReaderT Config Aff)
-ui =
+mainComponent :: forall query input output. H.Component HH.HTML query input output (ReaderT Config Aff)
+mainComponent =
   H.mkComponent
     { initialState: const initialState
     , render
@@ -102,9 +102,3 @@ ui =
 
 toActionEvent :: forall a. Action -> a -> Maybe Action
 toActionEvent action _ = Just action
-
-mainComponent :: forall f i o. H.Component HH.HTML f i o Aff
-mainComponent = H.hoist (\app -> runReaderT app initialConfig) ui
-
-initialConfig :: Config
-initialConfig = { someData: "" }
