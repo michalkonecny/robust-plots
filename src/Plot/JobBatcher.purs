@@ -1,7 +1,20 @@
-module Plot.JobBatcher (JobQueue, Job, JobResult, cancelAll, addPlot, initialJobQueue, cancelWithBatchId, addManyPlots, hasJobs, runFirst) where
+module Plot.JobBatcher
+  ( JobQueue
+  , Job
+  , JobResult
+  , cancelAll
+  , addPlot
+  , initialJobQueue
+  , cancelWithBatchId
+  , addManyPlots
+  , hasJobs
+  , runFirst
+  , showQueueIds
+  , pop
+  , isCancelled
+  ) where
 
 import Prelude
-
 import Data.Array (elem, foldl, tail, zipWith, (..))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
@@ -12,7 +25,7 @@ import Expression.Syntax (Expression)
 import IntervalArith.Misc (Rational, toRational)
 import Plot.Commands (PlotCommand(..), robustPlot)
 import Plot.PlotController (computePlotAsync)
-import Plot.Queue (Queue, empty, mapToArray, push, filter, pop, null)
+import Plot.Queue (Queue, empty, filter, mapToArray, null, peek, push, showWith, queueTail)
 import Types (Id, Size, XYBounds, Bounds)
 
 batchSegmentCount :: Int
@@ -73,14 +86,10 @@ addPlot jobQueue p@(RobustPlot bounds expression label) batchId = foldl (addJob 
 -- Add Rough and Empty plot as single jobs
 addPlot jobQueue p batchId = addJob batchId jobQueue p
 
-runFirst :: Size -> Bounds -> JobQueue -> Aff (Tuple JobQueue (Maybe JobResult))
-runFirst canvasSize bounds jobQueue = do
-  let
-    (Tuple newQueue maybeJob) = pop jobQueue.queue
-
-    newJobQueue = jobQueue { queue = newQueue }
-  result <- runMaybeJob (runJob canvasSize bounds) newJobQueue.cancelled maybeJob
-  pure $ Tuple newJobQueue result
+runFirst :: Size -> Bounds -> JobQueue -> Aff (Maybe JobResult)
+runFirst canvasSize bounds jobQueue = runMaybeJob (runJob canvasSize bounds) jobQueue.cancelled maybeJob
+  where
+  maybeJob = peek jobQueue.queue
 
 runMaybeJob :: (Job -> Aff (DrawCommand Unit)) -> Array Id -> Maybe Job -> Aff (Maybe JobResult)
 runMaybeJob _ _ Nothing = pure Nothing
@@ -125,3 +134,19 @@ addJob batchId jobQueue command = jobQueue { queue = newQueue, currentId = newCu
   newCurrentId = jobQueue.currentId + 1
 
   newQueue = push jobQueue.queue { id: newCurrentId, command, batchId }
+
+pop :: JobQueue -> JobQueue
+pop jobQueue = jobQueue { queue = queueTail jobQueue.queue }
+
+isCancelled :: JobQueue -> Id -> Boolean
+isCancelled jobQueue id = elem id jobQueue.cancelled
+
+eqMaybeJob :: Maybe Job -> Maybe Job -> Boolean
+eqMaybeJob Nothing Nothing = true
+
+eqMaybeJob (Just jobA) (Just jobB) = jobA.id == jobB.id
+
+eqMaybeJob _ _ = false
+
+showQueueIds :: JobQueue -> String
+showQueueIds jobQueue = showWith (\job -> show job.id) jobQueue.queue
