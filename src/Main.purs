@@ -1,6 +1,6 @@
 module Main where
 
-import Prelude (Unit, bind, unit)
+import Prelude
 import Components.Main (mainComponent)
 import Effect (Effect)
 import Halogen.Aff as HA
