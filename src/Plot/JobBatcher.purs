@@ -21,6 +21,7 @@ import Data.Tuple (Tuple(..))
 import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff)
 import Effect.Aff.Class (liftAff)
+import Effect.Exception.Unsafe (unsafeThrow)
 import Expression.Syntax (Expression)
 import IntervalArith.Misc (Rational, toRational)
 import Plot.Commands (PlotCommand(..), robustPlot)
@@ -96,9 +97,11 @@ addManyPlots jobQueue plots = foldl foldIntoJob jobQueue plots
   foldIntoJob queue (Tuple command batchId) = addPlot queue command batchId
 
 addPlot :: JobQueue -> PlotCommand -> Id -> JobQueue
-addPlot jobQueue p@(RobustPlot bounds expression label) batchId = foldl (addJob batchId) jobQueue segmentedPlots
+addPlot jobQueue p@(RobustPlot bounds fullXBounds expression label) batchId = foldl (addJob batchId) jobQueue segmentedPlots
   where
-  segmentedPlots = segmentRobust bounds expression label
+  segmentedPlots = segmentRobust fullXBounds bounds expression label
+
+addPlot _ (Empty _) _ = unsafeThrow "Cannot batch clear plot command"
 
 -- Add Rough and Empty plot as single jobs
 addPlot jobQueue p batchId = addJob batchId jobQueue p
@@ -109,7 +112,7 @@ setRunning jobQueue = case peek jobQueue.queue of
   Just job -> jobQueue { running = pure job, queue = queueTail jobQueue.queue }
 
 runFirst :: Size -> Bounds -> JobQueue -> Aff (Maybe JobResult)
-runFirst canvasSize bounds jobQueue = runMaybeJob (runJob canvasSize bounds) jobQueue.cancelled maybeJob
+runFirst canvasSize bounds jobQueue = runMaybeJob (runJob canvasSize) jobQueue.cancelled maybeJob
   where
   maybeJob = peek jobQueue.queue
 
@@ -126,11 +129,11 @@ runMaybeJob runner cancelled (Just job) =
 nullJob :: Aff (DrawCommand Unit)
 nullJob = (liftAff <<< pure <<< pure) unit
 
-runJob :: Size -> Bounds -> Job -> Aff (DrawCommand Unit)
-runJob canvasSize bounds job = computePlotAsync canvasSize bounds job.command
+runJob :: Size -> Job -> Aff (DrawCommand Unit)
+runJob canvasSize job = computePlotAsync canvasSize job.command
 
-segmentRobust :: XYBounds -> Expression -> String -> Array PlotCommand
-segmentRobust bounds expression label = commands
+segmentRobust :: Bounds -> XYBounds -> Expression -> String -> Array PlotCommand
+segmentRobust fullXBounds bounds expression label = commands
   where
   rangeX = bounds.xBounds.upper - bounds.xBounds.lower
 
@@ -146,7 +149,7 @@ segmentRobust bounds expression label = commands
   toDomainX segmentX = (segmentX * segmentWidth) + bounds.xBounds.lower
 
   toPlotCommand :: Rational -> Rational -> PlotCommand
-  toPlotCommand lower upper = robustPlot commandBounds expression label
+  toPlotCommand lower upper = robustPlot commandBounds fullXBounds expression label
     where
     commandBounds = bounds { xBounds = { lower, upper } }
 

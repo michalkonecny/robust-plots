@@ -11,22 +11,22 @@ import Plot.Commands (PlotCommand(..), isPlotExpression)
 import Plot.GridLines (clearAndDrawGridLines)
 import Plot.RobustPlot (drawRobustPlot)
 import Plot.RoughPlot (drawRoughPlot)
-import Types (Size, Bounds)
+import Types (Size)
 
-computePlotAsync :: Size -> Bounds -> PlotCommand -> Aff (DrawCommand Unit)
-computePlotAsync canvasSize fullXBounds plot = makeAff $ runComputation canvasSize fullXBounds plot
+computePlotAsync :: Size -> PlotCommand -> Aff (DrawCommand Unit)
+computePlotAsync canvasSize plot = makeAff $ runComputation canvasSize plot
 
-runComputation :: Size -> Bounds -> PlotCommand -> (Either Error (DrawCommand Unit) -> Effect Unit) -> Effect Canceler
-runComputation canvasSize fullXBounds commands callback = do
-  callback $ Right $ runCommand canvasSize fullXBounds commands
+runComputation :: Size -> PlotCommand -> (Either Error (DrawCommand Unit) -> Effect Unit) -> Effect Canceler
+runComputation canvasSize commands callback = do
+  callback $ Right $ runCommand canvasSize commands
   pure nonCanceler
 
 countPlots :: Array PlotCommand -> Int
 countPlots = sum <<< map (fromEnum <<< isPlotExpression)
 
-runCommand :: Size -> Bounds -> PlotCommand -> DrawCommand Unit
-runCommand _ _ (Empty bounds) = clearAndDrawGridLines bounds
+runCommand :: Size -> PlotCommand -> DrawCommand Unit
+runCommand _ (Empty bounds) = clearAndDrawGridLines bounds
 
-runCommand canvasSize _ (RoughPlot bounds expression label) = drawRoughPlot canvasSize bounds expression label
+runCommand canvasSize (RoughPlot bounds expression label) = drawRoughPlot canvasSize bounds expression label
 
-runCommand canvasSize fullXBounds (RobustPlot bounds expression label) = drawRobustPlot canvasSize fullXBounds bounds expression label
+runCommand canvasSize (RobustPlot bounds fullXBounds expression label) = drawRobustPlot canvasSize fullXBounds bounds expression label

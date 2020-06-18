@@ -4,6 +4,7 @@ import Prelude
 import Components.BoundsInput (BoundsInputMessage(..))
 import Components.Canvas (CanvasMessage(..), xyBounds)
 import Components.ExpressionInput (ExpressionInputMessage(..))
+import Components.Main.Types (ChildSlots, Config, ExpressionPlot, State)
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.Trans.Class (lift)
 import Data.Array (fold, length, mapMaybe)
@@ -18,6 +19,7 @@ import Halogen.Query.EventSource as ES
 import Plot.Commands (PlotCommand, clear, robustPlot, roughPlot)
 import Plot.JobBatcher (JobResult, addManyPlots, addPlot, cancelAll, cancelWithBatchId, hasJobs, isCancelled, setRunning, runFirst, showQueueIds)
 import Plot.Pan (panBounds, panBoundsByVector)
+import Plot.PlotController (computePlotAsync)
 import Plot.Zoom (zoomBounds)
 import Types (Direction, Id, XYBounds)
 import Web.Event.Event as E
@@ -27,7 +29,6 @@ import Web.HTML.Window (document) as Web
 import Web.UIEvent.WheelEvent (WheelEvent)
 import Web.UIEvent.WheelEvent as WE
 import Web.UIEvent.WheelEvent.EventTypes as WET
-import Components.Main.Types (ChildSlots, Config, ExpressionPlot, State)
 
 data Action
   = Clear
@@ -51,12 +52,9 @@ handleAction action = do
   state <- H.get
   case action of
     Clear -> do
-      let
-        canceledQueue = cancelAll state.queue
-
-        queueWithClear = addPlot canceledQueue (clear state.bounds) clearPlotBatchId
-      H.modify_ (_ { plots = [ newPlot 1 ], clearPlot = pure unit, queue = queueWithClear })
-      handleAction HandleQueue
+      clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
+      H.modify_ (_ { plots = [ newPlot 1 ], clearPlot = clearBounds, queue = cancelAll state.queue })
+      handleAction DrawPlot
     HandleExpressionInput (Parsed id expression text) -> do
       let
         plots = alterPlot (updateExpressionPlotInfo expression text) id state.plots
@@ -65,7 +63,7 @@ handleAction action = do
 
         rough = roughPlot state.bounds expression text
 
-        robust = robustPlot state.bounds expression text
+        robust = robustWithBounds state.bounds expression text
 
         withRough = addPlot updatedQueue rough id
 
@@ -98,7 +96,7 @@ handleAction action = do
       when (hasJobs state.queue) do
         H.modify_ (_ { queue = setRunning state.queue })
         maybeJobResult <- lift $ lift $ runFirst state.input.size state.bounds.xBounds state.queue
-        _ <- lift $ lift $ delay $ Milliseconds 2000.0 -- TODO Remove artifical delay
+        _ <- fork 
         newState <- H.get
         handleJobResult maybeJobResult newState
 
@@ -109,10 +107,7 @@ handleJobResult (Just jobResult) newState =
   if isCancelled newState.queue jobResult.job.id then
     pure unit
   else do
-    if jobResult.job.batchId == clearPlotBatchId then
-      H.modify_ (_ { clearPlot = jobResult.drawCommands })
-    else
-      H.modify_ (_ { plots = alterPlot (updateExpressionPlotCommands jobResult.drawCommands) jobResult.job.batchId newState.plots })
+    H.modify_ (_ { plots = alterPlot (updateExpressionPlotCommands jobResult.drawCommands) jobResult.job.batchId newState.plots })
     handleAction DrawPlot
     handleAction HandleQueue
 
@@ -134,29 +129,35 @@ alterPlot alterF id = map mapper
 initialBounds :: XYBounds
 initialBounds = xyBounds (-one) one (-one) one
 
+fork :: forall output. H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
+fork = lift $ lift $ delay $ Milliseconds 0.0 -- TODO Remove artifical delay
+
 redrawWithBounds :: forall output. State -> XYBounds -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 redrawWithBounds state newBounds = do
   let
     canceledQueue = cancelAll state.queue
 
-    queueWithClear = addPlot canceledQueue (clear newBounds) clearPlotBatchId
-
     plots = map (_ { drawCommands = pure unit }) state.plots
 
     roughPlotsWithId = mapMaybe (toMaybePlotCommandWithId newBounds roughPlot) plots
 
-    robustPlotsWithId = mapMaybe (toMaybePlotCommandWithId newBounds robustPlot) plots
+    robustPlotsWithId = mapMaybe (toMaybePlotCommandWithId newBounds robustWithBounds) plots
 
-    withRough = addManyPlots queueWithClear roughPlotsWithId
+    withRough = addManyPlots canceledQueue roughPlotsWithId
 
     withRobust = addManyPlots withRough robustPlotsWithId
-  H.modify_ (_ { plots = plots, queue = withRobust, bounds = newBounds })
+  clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
+  H.modify_ (_ { plots = plots, queue = withRobust, clearPlot = clearBounds, bounds = newBounds })
+  handleAction DrawPlot
   handleAction HandleQueue
 
 toMaybePlotCommandWithId :: XYBounds -> (XYBounds -> Expression -> String -> PlotCommand) -> ExpressionPlot -> Maybe (Tuple PlotCommand Id)
 toMaybePlotCommandWithId newBounds plotter plot = case plot.expression of
   Just expression -> Just $ Tuple (plotter newBounds expression plot.expressionText) plot.id
   Nothing -> Nothing
+
+robustWithBounds :: XYBounds -> Expression -> String -> PlotCommand
+robustWithBounds bounds expression label = robustPlot bounds bounds.xBounds expression label
 
 toMaybeDrawCommand :: ExpressionPlot -> Maybe (DrawCommand Unit)
 toMaybeDrawCommand plot = case plot.expression of
