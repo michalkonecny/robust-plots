@@ -1,22 +1,20 @@
 module Components.Main.Action where
 
-import Prelude
+import Prelude (Unit, bind, discard, map, pure, unit, when, ($), (+), (/=), (<), (<<<), (<>), (=<<))
 import Components.BoundsInput (BoundsInputMessage(..))
-import Components.Canvas (CanvasMessage(..), xyBounds)
+import Components.Canvas (CanvasMessage(..))
 import Components.ExpressionInput (ExpressionInputMessage(..))
-import Components.Main.Types (ChildSlots, Config, ExpressionPlot, State)
+import Components.Main.Types (ChildSlots, Config, State)
+import Components.Main.Helper (alterPlot, foldDrawCommands, initialBounds, newPlot, robustWithBounds, toMaybePlotCommandWithId, updateExpressionPlotCommands, updateExpressionPlotInfo)
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.Trans.Class (lift)
-import Data.Array (fold, length, mapMaybe)
+import Data.Array (length, mapMaybe)
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..))
-import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff, Milliseconds(..), delay)
 import Effect.Class.Console (log)
-import Expression.Syntax (Expression)
 import Halogen as H
 import Halogen.Query.EventSource as ES
-import Plot.Commands (PlotCommand, clear, robustPlot, roughPlot)
+import Plot.Commands (clear, roughPlot)
 import Plot.JobBatcher (JobResult, addManyPlots, addPlot, cancelAll, cancelWithBatchId, hasJobs, isCancelled, setRunning, runFirst, showQueueIds)
 import Plot.Pan (panBounds, panBoundsByVector)
 import Plot.PlotController (computePlotAsync)
@@ -96,7 +94,7 @@ handleAction action = do
       when (hasJobs state.queue) do
         H.modify_ (_ { queue = setRunning state.queue })
         maybeJobResult <- lift $ lift $ runFirst state.input.size state.bounds.xBounds state.queue
-        _ <- fork 
+        _ <- fork
         newState <- H.get
         handleJobResult maybeJobResult newState
 
@@ -110,24 +108,6 @@ handleJobResult (Just jobResult) newState =
     H.modify_ (_ { plots = alterPlot (updateExpressionPlotCommands jobResult.drawCommands) jobResult.job.batchId newState.plots })
     handleAction DrawPlot
     handleAction HandleQueue
-
-newPlot :: Int -> ExpressionPlot
-newPlot id = { expressionText: "", expression: Nothing, id, drawCommands: pure unit }
-
-updateExpressionPlotInfo :: Expression -> String -> ExpressionPlot -> ExpressionPlot
-updateExpressionPlotInfo expression text = _ { expressionText = text, expression = Just expression, drawCommands = pure unit }
-
-updateExpressionPlotCommands :: DrawCommand Unit -> ExpressionPlot -> ExpressionPlot
-updateExpressionPlotCommands commands plot = plot { drawCommands = fold [ plot.drawCommands, commands ] }
-
-alterPlot :: (ExpressionPlot -> ExpressionPlot) -> Id -> Array ExpressionPlot -> Array ExpressionPlot
-alterPlot alterF id = map mapper
-  where
-  mapper :: ExpressionPlot -> ExpressionPlot
-  mapper plot = if plot.id == id then alterF plot else plot
-
-initialBounds :: XYBounds
-initialBounds = xyBounds (-one) one (-one) one
 
 fork :: forall output. H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 fork = lift $ lift $ delay $ Milliseconds 0.0 -- TODO Remove artifical delay
@@ -150,19 +130,3 @@ redrawWithBounds state newBounds = do
   H.modify_ (_ { plots = plots, queue = withRobust, clearPlot = clearBounds, bounds = newBounds })
   handleAction DrawPlot
   handleAction HandleQueue
-
-toMaybePlotCommandWithId :: XYBounds -> (XYBounds -> Expression -> String -> PlotCommand) -> ExpressionPlot -> Maybe (Tuple PlotCommand Id)
-toMaybePlotCommandWithId newBounds plotter plot = case plot.expression of
-  Just expression -> Just $ Tuple (plotter newBounds expression plot.expressionText) plot.id
-  Nothing -> Nothing
-
-robustWithBounds :: XYBounds -> Expression -> String -> PlotCommand
-robustWithBounds bounds expression label = robustPlot bounds bounds.xBounds expression label
-
-toMaybeDrawCommand :: ExpressionPlot -> Maybe (DrawCommand Unit)
-toMaybeDrawCommand plot = case plot.expression of
-  Just expression -> Just plot.drawCommands
-  Nothing -> Nothing
-
-foldDrawCommands :: State -> (DrawCommand Unit)
-foldDrawCommands state = fold $ [ state.clearPlot ] <> mapMaybe toMaybeDrawCommand state.plots
