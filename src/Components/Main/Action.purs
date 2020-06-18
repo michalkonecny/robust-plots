@@ -4,10 +4,12 @@ import Prelude
 import Components.BoundsInput (BoundsInputMessage(..))
 import Components.Canvas (CanvasMessage(..))
 import Components.ExpressionInput (ExpressionInputMessage(..))
-import Components.Main.Types (ChildSlots, Config, State)
 import Components.Main.Helper (alterPlot, foldDrawCommands, initialBounds, newPlot, robustWithBounds, toMaybePlotCommandWithId, updateExpressionPlotCommands, updateExpressionPlotInfo)
+import Components.Main.State (ExpressionPlot)
+import Components.Main.Types (ChildSlots, Config, State)
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.Trans.Class (lift)
+import Control.Parallel (parSequence)
 import Data.Array (length, mapMaybe)
 import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff, Milliseconds(..), delay)
@@ -19,7 +21,7 @@ import Plot.JobBatcher (JobResult, addManyPlots, addPlot, cancelAll, cancelWithB
 import Plot.Pan (panBounds, panBoundsByVector)
 import Plot.PlotController (computePlotAsync)
 import Plot.Zoom (zoomBounds)
-import Types (Direction, Id, XYBounds)
+import Types (Direction, Id, XYBounds, Size)
 import Web.Event.Event as E
 import Web.HTML (window) as Web
 import Web.HTML.HTMLDocument as HTMLDocument
@@ -54,18 +56,15 @@ handleAction action = do
       H.modify_ (_ { plots = [ newPlot 1 ], clearPlot = clearBounds, queue = cancelAll state.queue })
       handleAction DrawPlot
     HandleExpressionInput (Parsed id expression text) -> do
+      newRoughCommands <- lift $ lift $ computePlotAsync state.input.size (roughPlot state.bounds expression text)
       let
-        plots = alterPlot (updateExpressionPlotInfo expression text) id state.plots
+        plots = alterPlot (updateExpressionPlotInfo expression text newRoughCommands) id state.plots
 
         updatedQueue = cancelWithBatchId state.queue id
 
-        rough = roughPlot state.bounds expression text
-
         robust = robustWithBounds state.bounds expression text
 
-        withRough = addPlot updatedQueue rough id
-
-        withRobust = addPlot withRough robust id
+        withRobust = addPlot updatedQueue robust id
       H.modify_ (_ { plots = plots, queue = withRobust })
       handleAction HandleQueue
     Pan direction -> redrawWithBounds state (panBounds state.bounds direction)
@@ -117,16 +116,20 @@ redrawWithBounds state newBounds = do
   let
     canceledQueue = cancelAll state.queue
 
-    plots = map (_ { drawCommands = pure unit }) state.plots
+    robustPlotsWithId = mapMaybe (toMaybePlotCommandWithId newBounds robustWithBounds) state.plots
 
-    roughPlotsWithId = mapMaybe (toMaybePlotCommandWithId newBounds roughPlot) plots
-
-    robustPlotsWithId = mapMaybe (toMaybePlotCommandWithId newBounds robustWithBounds) plots
-
-    withRough = addManyPlots canceledQueue roughPlotsWithId
-
-    withRobust = addManyPlots withRough robustPlotsWithId
+    withRobust = addManyPlots canceledQueue robustPlotsWithId
+  plots <- lift $ lift $ parSequence $ map (computeExpressionPlot state.input.size newBounds) state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
   H.modify_ (_ { plots = plots, queue = withRobust, clearPlot = clearBounds, bounds = newBounds })
   handleAction DrawPlot
   handleAction HandleQueue
+
+computeExpressionPlot :: Size -> XYBounds -> ExpressionPlot -> Aff (ExpressionPlot)
+computeExpressionPlot size newBounds plot = case plot.expression of
+  Nothing -> pure plot
+  Just expression -> do
+    let
+      command = roughPlot newBounds expression plot.expressionText
+    drawCommands <- computePlotAsync size command
+    pure $ plot { drawCommands = drawCommands }

@@ -2,12 +2,10 @@ module Plot.PlotController where
 
 import Prelude
 import Data.Either (Either(..))
-import Data.Enum (fromEnum)
-import Data.Traversable (sum)
 import Draw.Commands (DrawCommand)
 import Effect (Effect)
 import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
-import Plot.Commands (PlotCommand(..), isPlotExpression)
+import Plot.Commands (PlotCommand(..))
 import Plot.GridLines (clearAndDrawGridLines)
 import Plot.RobustPlot (drawRobustPlot)
 import Plot.RoughPlot (drawRoughPlot)
@@ -20,9 +18,6 @@ runComputation :: Size -> PlotCommand -> (Either Error (DrawCommand Unit) -> Eff
 runComputation canvasSize commands callback = do
   callback $ Right $ runCommand canvasSize commands
   pure nonCanceler
-
-countPlots :: Array PlotCommand -> Int
-countPlots = sum <<< map (fromEnum <<< isPlotExpression)
 
 runCommand :: Size -> PlotCommand -> DrawCommand Unit
 runCommand _ (Empty bounds) = clearAndDrawGridLines bounds

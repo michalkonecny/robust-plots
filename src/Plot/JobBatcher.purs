@@ -101,10 +101,8 @@ addPlot jobQueue p@(RobustPlot bounds fullXBounds expression label) batchId = fo
   where
   segmentedPlots = segmentRobust fullXBounds bounds expression label
 
-addPlot _ (Empty _) _ = unsafeThrow "Cannot batch clear plot command"
-
--- Add Rough and Empty plot as single jobs
-addPlot jobQueue p batchId = addJob batchId jobQueue p
+-- Rough and Empty plot should be perfomed synchronously 
+addPlot jobQueue p batchId = unsafeThrow "Cannot batch non robust plot command"
 
 setRunning :: JobQueue -> JobQueue
 setRunning jobQueue = case peek jobQueue.queue of

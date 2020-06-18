@@ -14,8 +14,8 @@ import Types (Id, XYBounds)
 newPlot :: Int -> ExpressionPlot
 newPlot id = { expressionText: "", expression: Nothing, id, drawCommands: pure unit }
 
-updateExpressionPlotInfo :: Expression -> String -> ExpressionPlot -> ExpressionPlot
-updateExpressionPlotInfo expression text = _ { expressionText = text, expression = Just expression, drawCommands = pure unit }
+updateExpressionPlotInfo :: Expression -> String -> DrawCommand Unit -> ExpressionPlot -> ExpressionPlot
+updateExpressionPlotInfo expression text commands = _ { expressionText = text, expression = Just expression, drawCommands = commands }
 
 updateExpressionPlotCommands :: DrawCommand Unit -> ExpressionPlot -> ExpressionPlot
 updateExpressionPlotCommands commands plot = plot { drawCommands = fold [ plot.drawCommands, commands ] }
