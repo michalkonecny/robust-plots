@@ -20,7 +20,7 @@ import FFI.BigInt (bitLength)
 import IntervalArith.Dyadic (Dyadic, dyadicToNumber, (:^))
 import IntervalArith.Dyadic as Dyadic
 import IntervalArith.Extended (Extended(..))
-import IntervalArith.Misc (class ToRational, Integer, Rational, big, bit, roundRational, scale, shift, testBit, toRational, (^))
+import IntervalArith.Misc (class ToRational, Integer, Rational, big, bit, integerLog2, roundRational, scale, shift, testBit, toRational, (^))
 
 -- | A type synonym. Used to denote number of bits after binary point.
 type Precision
@@ -451,7 +451,7 @@ recipA Bottom = Bottom
 recipA (Approx mb m e s)
   | e == zero && m /= zero =
     let
-      s' = bitLength m
+      s' = integerLog2 (abs m)
     in
       if abs m == bit s' then
         Approx mb (signum m) zero (-s - s')
@@ -466,7 +466,7 @@ recipA (Approx mb m e s)
 
       d2 = shift d (-1)
 
-      s' = bitLength d + 2 * errorBits
+      s' = integerLog2 d + 2 * errorBits
     in
       boundErrorTerm
         $ approxMB mb
@@ -510,14 +510,14 @@ boundErrorTerm a@(Approx mb m e s)
   | e < errorBound = a
   | otherwise =
     let
-      k = bitLength e + 1 - errorBits
+      k = integerLog2 e + 1 - errorBits
 
       t = testBit m (k - 1)
 
       m' = shift m (-k)
 
       -- may overflow and use errorBits+1
-      e' = shift (e + bit (k - 1)) (-k - 1)
+      e' = shift (e + bit (k - 1)) (-k) + one
     in
       if t then
         Approx mb (m' + one) e' (s + k)
