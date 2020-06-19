@@ -15,7 +15,6 @@ module Plot.JobBatcher
   ) where
 
 import Prelude
-
 import Data.Array (elem, foldl, foldr, tail, zipWith, (..))
 import Data.Foldable (class Foldable)
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -29,7 +28,7 @@ import Expression.Syntax (Expression)
 import IntervalArith.Misc (Rational, toRational)
 import Plot.Commands (PlotCommand(..))
 import Plot.PlotController (computePlotAsync)
-import Plot.Queue (Queue, asArray, empty, filter, null, peek, push, queueTail) as Q
+import Plot.Queue (Queue, toList, empty, filter, null, peek, push, tail) as Q
 import Types (Id, Size, XYBounds, Bounds)
 
 batchSegmentCount :: Int
@@ -70,7 +69,7 @@ clearCancelled = _ { cancelled = S.empty }
 cancelAll :: JobQueue -> JobQueue
 cancelAll jobQueue = cancelRunning $ jobQueue { cancelled = cancelled, queue = Q.empty }
   where
-  cancelled = insertAll (_.id) (Q.asArray jobQueue.queue) jobQueue.cancelled
+  cancelled = insertAll (_.id) (Q.toList jobQueue.queue) jobQueue.cancelled
 
 cancelWithBatchId :: JobQueue -> Id -> JobQueue
 cancelWithBatchId jobQueue batchId = newQueue
@@ -80,7 +79,7 @@ cancelWithBatchId jobQueue batchId = newQueue
 
   active = Q.filter (not <<< hasBatchId) jobQueue.queue
 
-  cancelledJobs = Q.asArray $ Q.filter hasBatchId jobQueue.queue
+  cancelledJobs = Q.toList $ Q.filter hasBatchId jobQueue.queue
 
   cancelledActive = jobQueue { cancelled = insertAll (_.id) cancelledJobs jobQueue.cancelled, queue = active }
 
@@ -116,7 +115,7 @@ addPlot jobQueue p batchId = unsafeThrow "Cannot batch non robust plot command"
 setRunning :: JobQueue -> JobQueue
 setRunning jobQueue = case Q.peek jobQueue.queue of
   Nothing -> jobQueue { running = Nothing }
-  Just job -> jobQueue { running = pure job, queue = Q.queueTail jobQueue.queue }
+  Just job -> jobQueue { running = pure job, queue = Q.tail jobQueue.queue }
 
 runFirst :: Size -> Bounds -> JobQueue -> Aff (Maybe JobResult)
 runFirst canvasSize bounds jobQueue = runMaybeJob (runJob canvasSize) jobQueue.cancelled maybeJob

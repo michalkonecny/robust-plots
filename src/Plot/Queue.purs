@@ -1,39 +1,36 @@
 module Plot.Queue where
 
 import Prelude
-import Data.Array as A
-import Data.Foldable (class Foldable)
+import Data.List as L
 import Data.Maybe (Maybe, fromMaybe)
 
 data Queue a
-  = Queue (Array a)
+  = Queue (L.List a)
 
+-- O(n)
 push :: forall a. Queue a -> a -> Queue a
-push (Queue queue) elem = Queue $ queue <> [ elem ]
+push (Queue queue) elem = Queue $ L.snoc queue elem
 
-pushAll :: forall a. Queue a -> Array a -> Queue a
-pushAll (Queue queue) newElements = Queue $ queue <> newElements
+-- O(1)
+tail :: forall a. Queue a -> Queue a
+tail (Queue queue) = Queue $ fromMaybe L.Nil $ L.tail queue
 
-queueTail :: forall a. Queue a -> Queue a
-queueTail (Queue queue) = Queue $ fromMaybe [] $ A.tail queue
-
-length :: forall a. Queue a -> Int
-length (Queue queue) = A.length queue
-
+-- O(1)
 peek :: forall a. Queue a -> Maybe a
-peek (Queue queue) = A.head queue
+peek (Queue queue) = L.head queue
 
+-- O(1)
 null :: forall a. Queue a -> Boolean
-null (Queue queue) = A.null queue
+null (Queue queue) = L.null queue
 
-fromFoldable :: forall f. Foldable f => f ~> Queue
-fromFoldable = Queue <<< A.fromFoldable
+-- O(1)
+toList :: forall a. Queue a -> L.List a
+toList (Queue queue) = queue
 
-asArray :: forall a. Queue a -> Array a
-asArray (Queue queue) = queue
-
+-- O(1)
 empty :: forall a. Queue a
-empty = Queue []
+empty = Queue L.Nil
 
+-- O(n)
 filter :: forall a. (a -> Boolean) -> Queue a -> Queue a
-filter f (Queue queue) = Queue $ A.filter f queue
+filter f (Queue queue) = Queue $ L.filter f queue
