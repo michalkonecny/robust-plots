@@ -56,17 +56,29 @@ initialJobQueue =
   , running: Nothing
   }
 
+-- | Whether the `Job` queue has any pending `Job`s.
+-- |
+-- | Running time: `O(1)`
 hasJobs :: JobQueue -> Boolean
 hasJobs jobQueue = not $ Q.null jobQueue.queue
 
+-- | Empties the set of cancelled `Job`s 
+-- |
+-- | Running time: `O(1)`
 clearCancelled :: JobQueue -> JobQueue
 clearCancelled = _ { cancelled = S.empty }
 
+-- | Adds all the `Job`s that are currently pending to the set of cancelled `Job`s. If there is a `Job` running then that is canclled also.
+-- |
+-- | Running time: `O(n)`
 cancelAll :: JobQueue -> JobQueue
 cancelAll jobQueue = cancelRunning $ jobQueue { cancelled = cancelled, queue = Q.empty }
   where
   cancelled = insertAll (_.id) (Q.toList jobQueue.queue) jobQueue.cancelled
 
+-- | Adds all the `Job`s that are currently pending, with the given `batchId`, to the set of cancelled `Job`s. If there is a `Job` running then that is canclled also.
+-- |
+-- | Running time: `O(n)`
 cancelWithBatchId :: JobQueue -> Id -> JobQueue
 cancelWithBatchId jobQueue batchId = newQueue
   where
@@ -81,37 +93,47 @@ cancelWithBatchId jobQueue batchId = newQueue
 
   newQueue = if isRunning hasBatchId jobQueue then cancelRunning $ cancelledActive else cancelledActive
 
+-- | Adds a collection of `PlotCommand`s, with their associated `batchId` to the `Job` queue using `addPlot`.
+-- |
+-- | Running time: `O(n * batchSegmentCount * (batchSegmentCount - 1))`
 addManyPlots :: JobQueue -> Array (Tuple PlotCommand Id) -> JobQueue
 addManyPlots jobQueue plots = foldl foldIntoJob jobQueue plots
   where
   foldIntoJob :: JobQueue -> Tuple PlotCommand Id -> JobQueue
   foldIntoJob queue (Tuple command batchId) = addPlot queue command batchId
 
+-- | Adds a `PlotCommand`, with its associated `batchId` to the `Job` queue.
+-- |
+-- | Running time: `O(batchSegmentCount * (batchSegmentCount - 1))`
 addPlot :: JobQueue -> PlotCommand -> Id -> JobQueue
-addPlot jobQueue p@(RobustPlot bounds fullXBounds expression label) batchId = foldl (addJob batchId) jobQueue segmentedPlots
+addPlot jobQueue (RobustPlot bounds fullXBounds expression label) batchId = foldl (addJob batchId) jobQueue segmentedPlots
   where
   segmentedPlots = segmentRobust fullXBounds bounds expression label
 
 -- Rough and Empty plot should be perfomed synchronously 
-addPlot jobQueue p batchId = unsafeThrow "Cannot batch non robust plot command"
+addPlot _ _ _ = unsafeThrow "Cannot batch non robust plot command"
 
+-- | Sets the `Job` at the front of the queue as running.
+-- |
+-- | Running time: `O(1)`
 setRunning :: JobQueue -> JobQueue
 setRunning jobQueue = case Q.peek jobQueue.queue of
   Nothing -> jobQueue { running = Nothing }
   Just job -> jobQueue { running = pure job, queue = Q.tail jobQueue.queue }
 
+-- | Executes the `Job` at the front of the queue.
 runFirst :: Size -> Bounds -> JobQueue -> Aff (Maybe JobResult)
 runFirst canvasSize bounds jobQueue = runMaybeJob (runJob canvasSize) jobQueue.cancelled maybeJob
   where
   maybeJob = Q.peek jobQueue.queue
 
+-- | Whether the `Job` with the given `Id` has been cancelled or not.
 isCancelled :: JobQueue -> Id -> Boolean
 isCancelled jobQueue id = elem id jobQueue.cancelled
 
 --------------------------------------------------------------------
 -- Internal functions 
 --------------------------------------------------------------------
-
 batchSegmentCount :: Int
 batchSegmentCount = 5
 
