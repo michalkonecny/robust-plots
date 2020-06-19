@@ -9,15 +9,17 @@ module Plot.JobBatcher
   , addManyPlots
   , hasJobs
   , runFirst
-  , showQueueIds
   , setRunning
   , isCancelled
   , clearCancelled
   ) where
 
 import Prelude
-import Data.Array (elem, foldl, tail, zipWith, (..))
+
+import Data.Array (elem, foldl, foldr, tail, zipWith, (..))
+import Data.Foldable (class Foldable)
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Set (Set, empty, insert) as S
 import Data.Tuple (Tuple(..))
 import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff)
@@ -25,17 +27,17 @@ import Effect.Aff.Class (liftAff)
 import Effect.Exception.Unsafe (unsafeThrow)
 import Expression.Syntax (Expression)
 import IntervalArith.Misc (Rational, toRational)
-import Plot.Commands (PlotCommand(..), robustPlot)
+import Plot.Commands (PlotCommand(..))
 import Plot.PlotController (computePlotAsync)
-import Plot.Queue (Queue, empty, filter, mapToArray, null, peek, push, showWith, queueTail)
+import Plot.Queue (Queue, asArray, empty, filter, null, peek, push, queueTail) as Q
 import Types (Id, Size, XYBounds, Bounds)
 
 batchSegmentCount :: Int
 batchSegmentCount = 5
 
 type JobQueue
-  = { cancelled :: Array Id
-    , queue :: Queue Job
+  = { cancelled :: S.Set Id
+    , queue :: Q.Queue Job
     , currentId :: Id
     , running :: Maybe Job
     }
@@ -53,22 +55,22 @@ type JobResult
 
 initialJobQueue :: JobQueue
 initialJobQueue =
-  { cancelled: []
+  { cancelled: S.empty
   , currentId: 0
-  , queue: empty
+  , queue: Q.empty
   , running: Nothing
   }
 
 hasJobs :: JobQueue -> Boolean
-hasJobs jobQueue = not $ null jobQueue.queue
+hasJobs jobQueue = not $ Q.null jobQueue.queue
 
 clearCancelled :: JobQueue -> JobQueue
-clearCancelled = _ { cancelled = [] }
+clearCancelled = _ { cancelled = S.empty }
 
 cancelAll :: JobQueue -> JobQueue
-cancelAll jobQueue = cancelRunning $ jobQueue { cancelled = cancelled, queue = empty }
+cancelAll jobQueue = cancelRunning $ jobQueue { cancelled = cancelled, queue = Q.empty }
   where
-  cancelled = jobQueue.cancelled <> mapToArray (_.id) jobQueue.queue
+  cancelled = insertAll (_.id) (Q.asArray jobQueue.queue) jobQueue.cancelled
 
 cancelWithBatchId :: JobQueue -> Id -> JobQueue
 cancelWithBatchId jobQueue batchId = newQueue
@@ -76,18 +78,21 @@ cancelWithBatchId jobQueue batchId = newQueue
   hasBatchId :: Job -> Boolean
   hasBatchId job = job.batchId == batchId
 
-  active = filter (not <<< hasBatchId) jobQueue.queue
+  active = Q.filter (not <<< hasBatchId) jobQueue.queue
 
-  cancelledJobs = filter hasBatchId jobQueue.queue
+  cancelledJobs = Q.asArray $ Q.filter hasBatchId jobQueue.queue
 
-  cancelledActive = jobQueue { cancelled = jobQueue.cancelled <> (mapToArray (_.id) cancelledJobs), queue = active }
+  cancelledActive = jobQueue { cancelled = insertAll (_.id) cancelledJobs jobQueue.cancelled, queue = active }
 
   newQueue = if isRunning hasBatchId jobQueue then cancelRunning $ cancelledActive else cancelledActive
+
+insertAll :: forall a f b. Foldable f => Ord b => (a -> b) -> f a -> S.Set b -> S.Set b
+insertAll mapper toInsert set = foldr (S.insert <<< mapper) set toInsert
 
 cancelRunning :: JobQueue -> JobQueue
 cancelRunning jobQueue = case jobQueue.running of
   Nothing -> jobQueue
-  Just job -> jobQueue { cancelled = jobQueue.cancelled <> [ job.id ], running = Nothing }
+  Just job -> jobQueue { cancelled = S.insert job.id jobQueue.cancelled, running = Nothing }
 
 isRunning :: (Job -> Boolean) -> JobQueue -> Boolean
 isRunning check jobQueue = case jobQueue.running of
@@ -109,16 +114,16 @@ addPlot jobQueue p@(RobustPlot bounds fullXBounds expression label) batchId = fo
 addPlot jobQueue p batchId = unsafeThrow "Cannot batch non robust plot command"
 
 setRunning :: JobQueue -> JobQueue
-setRunning jobQueue = case peek jobQueue.queue of
+setRunning jobQueue = case Q.peek jobQueue.queue of
   Nothing -> jobQueue { running = Nothing }
-  Just job -> jobQueue { running = pure job, queue = queueTail jobQueue.queue }
+  Just job -> jobQueue { running = pure job, queue = Q.queueTail jobQueue.queue }
 
 runFirst :: Size -> Bounds -> JobQueue -> Aff (Maybe JobResult)
 runFirst canvasSize bounds jobQueue = runMaybeJob (runJob canvasSize) jobQueue.cancelled maybeJob
   where
-  maybeJob = peek jobQueue.queue
+  maybeJob = Q.peek jobQueue.queue
 
-runMaybeJob :: (Job -> Aff (DrawCommand Unit)) -> Array Id -> Maybe Job -> Aff (Maybe JobResult)
+runMaybeJob :: (Job -> Aff (DrawCommand Unit)) -> S.Set Id -> Maybe Job -> Aff (Maybe JobResult)
 runMaybeJob _ _ Nothing = pure Nothing
 
 runMaybeJob runner cancelled (Just job) =
@@ -151,7 +156,7 @@ segmentRobust fullXBounds bounds expression label = commands
   toDomainX segmentX = (segmentX * segmentWidth) + bounds.xBounds.lower
 
   toPlotCommand :: Rational -> Rational -> PlotCommand
-  toPlotCommand lower upper = robustPlot commandBounds fullXBounds expression label
+  toPlotCommand lower upper = RobustPlot commandBounds fullXBounds expression label
     where
     commandBounds = bounds { xBounds = { lower, upper } }
 
@@ -160,17 +165,7 @@ addJob batchId jobQueue command = jobQueue { queue = newQueue, currentId = newCu
   where
   newCurrentId = jobQueue.currentId + 1
 
-  newQueue = push jobQueue.queue { id: newCurrentId, command, batchId }
+  newQueue = Q.push jobQueue.queue { id: newCurrentId, command, batchId }
 
 isCancelled :: JobQueue -> Id -> Boolean
 isCancelled jobQueue id = elem id jobQueue.cancelled
-
-eqMaybeJob :: Maybe Job -> Maybe Job -> Boolean
-eqMaybeJob Nothing Nothing = true
-
-eqMaybeJob (Just jobA) (Just jobB) = jobA.id == jobB.id
-
-eqMaybeJob _ _ = false
-
-showQueueIds :: JobQueue -> String
-showQueueIds jobQueue = showWith (\job -> show job.id) jobQueue.queue

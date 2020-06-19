@@ -1,24 +1,21 @@
 module Components.Main.Action where
 
 import Prelude
-
 import Components.BoundsInput (BoundsInputMessage(..))
 import Components.Canvas (CanvasMessage(..))
 import Components.ExpressionInput (ExpressionInputMessage(..))
 import Components.Main.Helper (alterPlot, foldDrawCommands, initialBounds, newPlot, toMaybePlotCommandWithId, updateExpressionPlotCommands, updateExpressionPlotInfo)
-import Components.Main.State (ExpressionPlot)
-import Components.Main.Types (ChildSlots, Config, State)
+import Components.Main.Types (ChildSlots, Config, State, ExpressionPlot)
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.Trans.Class (lift)
 import Control.Parallel (parSequence)
 import Data.Array (length, mapMaybe)
 import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff, Milliseconds(..), delay)
-import Effect.Class.Console (log)
 import Halogen as H
 import Halogen.Query.EventSource as ES
-import Plot.Commands (clear, roughPlot)
-import Plot.JobBatcher (JobResult, addManyPlots, addPlot, cancelAll, cancelWithBatchId, clearCancelled, hasJobs, isCancelled, runFirst, setRunning, showQueueIds)
+import Plot.Commands (clear, robustPlot, roughPlot)
+import Plot.JobBatcher (JobResult, addManyPlots, addPlot, cancelAll, cancelWithBatchId, clearCancelled, hasJobs, isCancelled, runFirst, setRunning)
 import Plot.Pan (panBounds, panBoundsByVector)
 import Plot.PlotController (computePlotAsync)
 import Plot.Zoom (zoomBounds)
@@ -63,7 +60,7 @@ handleAction action = do
 
         updatedQueue = cancelWithBatchId state.queue id
 
-        robust = robustWithBounds state.bounds expression text
+        robust = robustPlot state.bounds expression text
 
         withRobust = addPlot updatedQueue robust id
       H.modify_ (_ { plots = plots, queue = withRobust })
@@ -90,11 +87,10 @@ handleAction action = do
         handleAction $ Zoom (changeInY < 0.0)
     DrawPlot -> H.modify_ (_ { input { operations = foldDrawCommands state } })
     HandleQueue -> do
-      H.liftEffect $ log $ showQueueIds state.queue
       if (hasJobs state.queue) then do
         H.modify_ (_ { queue = setRunning state.queue })
         maybeJobResult <- lift $ lift $ runFirst state.input.size state.bounds.xBounds state.queue
-        _ <- fork
+        _ <- fork -- Subsiquent code is placed on the end of the JS event queue
         newState <- H.get
         handleJobResult maybeJobResult newState
       else

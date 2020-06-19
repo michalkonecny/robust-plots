@@ -11,8 +11,8 @@ data PlotCommand
 roughPlot :: XYBounds -> Expression -> String -> PlotCommand
 roughPlot = RoughPlot 
 
-robustPlot :: XYBounds -> Bounds -> Expression -> String -> PlotCommand
-robustPlot = RobustPlot 
+robustPlot :: XYBounds -> Expression -> String -> PlotCommand
+robustPlot bounds expression label = RobustPlot bounds bounds.xBounds expression label
 
 clear :: XYBounds -> PlotCommand
 clear = Empty
