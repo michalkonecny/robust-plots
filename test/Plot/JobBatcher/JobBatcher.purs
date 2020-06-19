@@ -8,6 +8,7 @@ import Test.Expression.JobBatcher.InitialJobQueue (initialJobQueueTests)
 import Test.Expression.JobBatcher.HasJobs (hasJobsTests)
 import Test.Expression.JobBatcher.ClearCancelled (clearCancelledTests)
 import Test.Expression.JobBatcher.CancelAll (cancelAllTests)
+import Test.Expression.JobBatcher.CancelWithBatchId (cancelWithBatchIdTests)
 
 jobBatcherTests :: TestSuite
 jobBatcherTests = do
@@ -15,3 +16,4 @@ jobBatcherTests = do
   hasJobsTests
   clearCancelledTests
   cancelAllTests
+  cancelWithBatchIdTests

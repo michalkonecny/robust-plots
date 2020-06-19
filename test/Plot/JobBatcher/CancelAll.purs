@@ -3,7 +3,6 @@ module Test.Expression.JobBatcher.CancelAll
   ) where
 
 import Prelude
-
 import Components.Main.Helper (initialBounds)
 import Data.Foldable (class Foldable, foldl)
 import Data.Maybe (Maybe(..), isNothing)
@@ -18,7 +17,7 @@ import Types (Id)
 cancelAllTests :: TestSuite
 cancelAllTests =
   suite "Plot.JobBatcher - cancelAll" do
-    test "SHOULD cancel all jobs WHEN queue has 3 jobs and no job running" do
+    test "SHOULD cancel all jobs WHEN queue has 3 jobs AND no job running" do
       let
         emptyQueue = initialJobQueue
 
@@ -32,7 +31,7 @@ cancelAllTests =
         expectedJobIds = fromFoldable [ 1, 2, 3 ]
       equal expectedJobIds cancelledQueue.cancelled
       assertFalse "should be false when all jobs are cancelled" $ hasJobs cancelledQueue
-    test "SHOULD cancel all jobs WHEN queue has 3 jobs and a job running" do
+    test "SHOULD cancel all jobs WHEN queue has 3 jobs AND a job running" do
       let
         emptyQueue = initialJobQueue
 
@@ -49,7 +48,6 @@ cancelAllTests =
       equal expectedJobIds cancelledQueue.cancelled
       assertFalse "should be false when all jobs are cancelled" $ hasJobs cancelledQueue
       assert "should be 'Nothing' when running has been cancelled" $ isNothing cancelledQueue.running
-
 
 basicJob :: Id -> Job
 basicJob id =
