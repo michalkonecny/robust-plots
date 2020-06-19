@@ -5,7 +5,6 @@
 module IntervalArith.Approx where
 
 import Prelude
-
 import Control.Biapply (biapply)
 import Data.BigInt (abs)
 import Data.Enum (fromEnum)
@@ -20,7 +19,7 @@ import FFI.BigInt (bitLength)
 import IntervalArith.Dyadic (Dyadic, dyadicToNumber, (:^))
 import IntervalArith.Dyadic as Dyadic
 import IntervalArith.Extended (Extended(..))
-import IntervalArith.Misc (class ToRational, Integer, Rational, big, bit, integerLog2, roundRational, scale, shift, testBit, toRational, (^))
+import IntervalArith.Misc (class ToRational, Integer, Rational, big, bit, integerLog2, roundRational, scale, shift, testBit, toRational, two, (^))
 
 -- | A type synonym. Used to denote number of bits after binary point.
 type Precision
@@ -243,6 +242,22 @@ diameter (Approx _ _ e s) = Finite $ (Dyadic.fromInt 2) * (e :^ s)
 
 diameter _ = PosInf
 
+-- |Computes the significance of an approximation. This is roughly the number
+-- of significant bits.
+significance :: Approx -> Extended Int
+significance (Approx _ _ e _)
+  | e == zero = PosInf
+
+significance (Approx _ m _ _)
+  | m == zero = NegInf
+
+significance (Approx _ m e _)
+  | e == one = Finite $ integerLog2 (abs m) - 1
+
+significance (Approx _ m e _) = Finite $ (integerLog2 (abs m)) - (integerLog2 (e - one)) - 1
+
+significance Bottom = NegInf
+
 -- |Returns 'True' if the approximation is exact, i.e., it's diameter is 0.
 exact :: Approx -> Boolean
 exact (Approx _ _ e _) = e == (big 0)
@@ -325,8 +340,6 @@ fromRationalPrec t r = approxAutoMB m e (-t - 1)
 fromRationalBoundsPrec :: Precision -> Rational -> Rational -> Approx
 fromRationalBoundsPrec t l u = approxAutoMB m (e + roundingCompensation) (-t - 1)
   where
-  two = one + one
-
   cR = (l + u) / two
 
   eR = (u - l) / two
@@ -354,7 +367,6 @@ fromRationalBoundsPrec t l u = approxAutoMB m (e + roundingCompensation) (-t - 1
   Tuple e eIsRounded = scaleAndRound eR
 
   roundingCompensation = big $ fromEnum mIsRounded + fromEnum eIsRounded
-
 
 instance semiringApprox :: Semiring Approx where
   zero = fromInt 0
@@ -439,7 +451,13 @@ errorBits :: Int
 errorBits = 10
 
 errorBound :: Integer
-errorBound = (big 2) ^ errorBits
+errorBound = two ^ errorBits
+
+errorBitsMB :: Int
+errorBitsMB = 1
+
+errorBoundMB :: Integer
+errorBoundMB = two ^ errorBitsMB
 
 -- |Compute the reciprocal of an approximation. The number of bits after the
 -- |binary point is bounded by the 'midpoint bound' if the input is exact.
@@ -523,3 +541,71 @@ boundErrorTerm a@(Approx mb m e s)
         Approx mb (m' + one) e' (s + k)
       else
         Approx mb m' e' (s + k)
+
+boundErrorTermMB :: Approx -> Approx
+boundErrorTermMB Bottom = Bottom
+
+boundErrorTermMB a@(Approx _ m e s)
+  | e < errorBoundMB = a
+  | otherwise =
+    let
+      k = integerLog2 e + 1 - errorBitsMB
+
+      t = testBit m (k - 1)
+
+      m' = shift m (-k)
+
+      -- may overflow and use errorBits+1
+      e' = shift (e + bit (k - 1)) (-k) + one
+    in
+      if t then
+        approxAutoMB (m' + one) e' (s + k)
+      else
+        approxAutoMB m' e' (s + k)
+
+{-|
+Limits the size of an approximation by restricting how much precision an
+approximation can have.
+
+It is always the case that @x `'better'` limitSize x@.
+
+This is accomplished by restricting the exponent of the approximation from
+below. In other words, we limit the precision possible.
+
+It is conceivable to limit the significance of an approximation rather than
+the precision. This would be an interesting research topic.
+
+== Domain interpretation and verification
+
+For this implementation to be correct it is required that this function is
+below the identity on the domain /D/ of 'Approx'. For efficiency it is
+desirable to be as close to the identity as possible.
+
+This function will NOT map a converging sequence to a converging sequence for
+a fixed precision argument. However, if the function is applied with
+increasing precision for a converging sequence, then this will give a
+converging sequence.
+-}
+limitSize :: Precision -> Approx -> Approx
+limitSize _ Bottom = Bottom
+
+limitSize l a@(Approx mb m e s) = result
+  where
+  k = (-s) - l
+
+  result
+    | k > 0 =
+      Approx (mb - k)
+        ((if testBit m (k - 1) then (_ + one) else identity) (shift m (-k)))
+        (one + (shift (e + bit (k - 1)) (-k)))
+        (-l)
+    | otherwise = a
+
+-- |Bounds the error term and limits the precision of an approximation.
+--
+-- It is always the case that @x `'better'` limitAndBound x@.
+limitAndBound :: Precision -> Approx -> Approx
+limitAndBound limit = limitSize limit <<< boundErrorTerm
+
+limitAndBoundMB :: Precision -> Approx -> Approx
+limitAndBoundMB limit = limitSize limit <<< boundErrorTermMB
