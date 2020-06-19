@@ -48,6 +48,7 @@ type JobResult
     , drawCommands :: DrawCommand Unit
     }
 
+-- | An empty `Job` queue. 
 initialJobQueue :: JobQueue
 initialJobQueue =
   { cancelled: S.empty
@@ -62,7 +63,7 @@ initialJobQueue =
 hasJobs :: JobQueue -> Boolean
 hasJobs jobQueue = not $ Q.null jobQueue.queue
 
--- | Empties the set of cancelled `Job`s 
+-- | Empties the set of cancelled `Job`s. 
 -- |
 -- | Running time: `O(1)`
 clearCancelled :: JobQueue -> JobQueue
