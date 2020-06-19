@@ -7,30 +7,44 @@ import Data.Maybe (Maybe, fromMaybe)
 data Queue a
   = Queue (L.List a)
 
--- O(n)
+-- | Appends a element to the end of the queue
+-- |
+-- | Running time: `O(n)`
 push :: forall a. Queue a -> a -> Queue a
 push (Queue queue) elem = Queue $ L.snoc queue elem
 
--- O(1)
+-- | Retrives the queue without the first element. If the queue is empty, then an empty queue is returned.
+-- |
+-- | Running time: `O(1)`
 tail :: forall a. Queue a -> Queue a
 tail (Queue queue) = Queue $ fromMaybe L.Nil $ L.tail queue
 
--- O(1)
+-- | Retrieves the first element in the queue.
+-- |
+-- | Running time: `O(1)`
 peek :: forall a. Queue a -> Maybe a
 peek (Queue queue) = L.head queue
 
--- O(1)
+-- | Whether the queue has no elements or not.
+-- |
+-- | Running time: `O(1)`
 null :: forall a. Queue a -> Boolean
 null (Queue queue) = L.null queue
 
--- O(1)
+-- | Exposes the underlying `List`
+-- |
+-- | Running time: `O(1)`
 toList :: forall a. Queue a -> L.List a
 toList (Queue queue) = queue
 
--- O(1)
+-- | An empty queue
+-- |
+-- | Running time: `O(1)`
 empty :: forall a. Queue a
 empty = Queue L.Nil
 
--- O(n)
+-- | Filters out any elements that do not conform to the give predicate. 
+-- |
+-- | Running time: `O(n)`
 filter :: forall a. (a -> Boolean) -> Queue a -> Queue a
 filter f (Queue queue) = Queue $ L.filter f queue
