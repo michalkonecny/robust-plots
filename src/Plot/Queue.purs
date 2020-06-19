@@ -43,8 +43,10 @@ toList (Queue queue) = queue
 empty :: forall a. Queue a
 empty = Queue L.Nil
 
--- | Filters out any elements that do not conform to the give predicate. 
+-- | Partitions elements by a given predicate. 
 -- |
 -- | Running time: `O(n)`
-filter :: forall a. (a -> Boolean) -> Queue a -> Queue a
-filter f (Queue queue) = Queue $ L.filter f queue
+partition :: forall a. (a -> Boolean) -> Queue a -> { no :: Queue a, yes :: Queue a }
+partition f (Queue queue) = { no: Queue noList, yes: Queue yesList }
+  where
+  { no: noList, yes: yesList } = L.partition f queue

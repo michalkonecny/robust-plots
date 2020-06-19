@@ -27,7 +27,7 @@ import Expression.Syntax (Expression)
 import IntervalArith.Misc (Rational, toRational)
 import Plot.Commands (PlotCommand(..))
 import Plot.PlotController (computePlotAsync)
-import Plot.Queue (Queue, toList, empty, filter, null, peek, push, tail) as Q
+import Plot.Queue (Queue, empty, null, partition, peek, push, tail, toList) as Q
 import Types (Id, Size, XYBounds, Bounds)
 
 type JobQueue
@@ -85,11 +85,9 @@ cancelWithBatchId jobQueue batchId = newQueue
   hasBatchId :: Job -> Boolean
   hasBatchId job = job.batchId == batchId
 
-  active = Q.filter (not <<< hasBatchId) jobQueue.queue
+  { no: active, yes: cancelledJobs } = Q.partition hasBatchId jobQueue.queue
 
-  cancelledJobs = Q.toList $ Q.filter hasBatchId jobQueue.queue
-
-  cancelledActive = jobQueue { cancelled = insertAll (_.id) cancelledJobs jobQueue.cancelled, queue = active }
+  cancelledActive = jobQueue { cancelled = insertAll (_.id) (Q.toList cancelledJobs) jobQueue.cancelled, queue = active }
 
   newQueue = if isRunning hasBatchId jobQueue then cancelRunning $ cancelledActive else cancelledActive
 
