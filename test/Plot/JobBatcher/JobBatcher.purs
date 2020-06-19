@@ -9,6 +9,8 @@ import Test.Expression.JobBatcher.HasJobs (hasJobsTests)
 import Test.Expression.JobBatcher.ClearCancelled (clearCancelledTests)
 import Test.Expression.JobBatcher.CancelAll (cancelAllTests)
 import Test.Expression.JobBatcher.CancelWithBatchId (cancelWithBatchIdTests)
+import Test.Expression.JobBatcher.SetRunning (setRunningTests)
+import Test.Expression.JobBatcher.IsCancelled (isCancelledTests)
 
 jobBatcherTests :: TestSuite
 jobBatcherTests = do
@@ -17,3 +19,5 @@ jobBatcherTests = do
   clearCancelledTests
   cancelAllTests
   cancelWithBatchIdTests
+  setRunningTests
+  isCancelledTests
