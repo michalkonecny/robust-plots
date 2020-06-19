@@ -12,6 +12,7 @@ module Plot.JobBatcher
   , showQueueIds
   , setRunning
   , isCancelled
+  , clearCancelled
   ) where
 
 import Prelude
@@ -60,6 +61,9 @@ initialJobQueue =
 
 hasJobs :: JobQueue -> Boolean
 hasJobs jobQueue = not $ null jobQueue.queue
+
+clearCancelled :: JobQueue -> JobQueue
+clearCancelled = _ { cancelled = [] }
 
 cancelAll :: JobQueue -> JobQueue
 cancelAll jobQueue = cancelRunning $ jobQueue { cancelled = cancelled, queue = empty }

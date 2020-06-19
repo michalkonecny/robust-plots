@@ -29,13 +29,10 @@ alterPlot alterF id = map mapper
 initialBounds :: XYBounds
 initialBounds = xyBounds (-one) one (-one) one
 
-toMaybePlotCommandWithId :: XYBounds -> (XYBounds -> Expression -> String -> PlotCommand) -> ExpressionPlot -> Maybe (Tuple PlotCommand Id)
-toMaybePlotCommandWithId newBounds plotter plot = case plot.expression of
-  Just expression -> Just $ Tuple (plotter newBounds expression plot.expressionText) plot.id
+toMaybePlotCommandWithId :: XYBounds -> ExpressionPlot -> Maybe (Tuple PlotCommand Id)
+toMaybePlotCommandWithId newBounds plot = case plot.expression of
+  Just expression -> Just $ Tuple (robustPlot newBounds newBounds.xBounds expression plot.expressionText) plot.id
   Nothing -> Nothing
-
-robustWithBounds :: XYBounds -> Expression -> String -> PlotCommand
-robustWithBounds bounds expression label = robustPlot bounds bounds.xBounds expression label
 
 toMaybeDrawCommand :: ExpressionPlot -> Maybe (DrawCommand Unit)
 toMaybeDrawCommand plot = case plot.expression of

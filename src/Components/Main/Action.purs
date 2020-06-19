@@ -1,10 +1,11 @@
 module Components.Main.Action where
 
 import Prelude
+
 import Components.BoundsInput (BoundsInputMessage(..))
 import Components.Canvas (CanvasMessage(..))
 import Components.ExpressionInput (ExpressionInputMessage(..))
-import Components.Main.Helper (alterPlot, foldDrawCommands, initialBounds, newPlot, robustWithBounds, toMaybePlotCommandWithId, updateExpressionPlotCommands, updateExpressionPlotInfo)
+import Components.Main.Helper (alterPlot, foldDrawCommands, initialBounds, newPlot, toMaybePlotCommandWithId, updateExpressionPlotCommands, updateExpressionPlotInfo)
 import Components.Main.State (ExpressionPlot)
 import Components.Main.Types (ChildSlots, Config, State)
 import Control.Monad.Reader (ReaderT)
@@ -17,7 +18,7 @@ import Effect.Class.Console (log)
 import Halogen as H
 import Halogen.Query.EventSource as ES
 import Plot.Commands (clear, roughPlot)
-import Plot.JobBatcher (JobResult, addManyPlots, addPlot, cancelAll, cancelWithBatchId, hasJobs, isCancelled, setRunning, runFirst, showQueueIds)
+import Plot.JobBatcher (JobResult, addManyPlots, addPlot, cancelAll, cancelWithBatchId, clearCancelled, hasJobs, isCancelled, runFirst, setRunning, showQueueIds)
 import Plot.Pan (panBounds, panBoundsByVector)
 import Plot.PlotController (computePlotAsync)
 import Plot.Zoom (zoomBounds)
@@ -90,12 +91,14 @@ handleAction action = do
     DrawPlot -> H.modify_ (_ { input { operations = foldDrawCommands state } })
     HandleQueue -> do
       H.liftEffect $ log $ showQueueIds state.queue
-      when (hasJobs state.queue) do
+      if (hasJobs state.queue) then do
         H.modify_ (_ { queue = setRunning state.queue })
         maybeJobResult <- lift $ lift $ runFirst state.input.size state.bounds.xBounds state.queue
         _ <- fork
         newState <- H.get
         handleJobResult maybeJobResult newState
+      else
+        H.modify_ (_ { queue = clearCancelled state.queue })
 
 handleJobResult :: forall output. Maybe JobResult -> State -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 handleJobResult Nothing _ = pure unit
@@ -109,14 +112,14 @@ handleJobResult (Just jobResult) newState =
     handleAction HandleQueue
 
 fork :: forall output. H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
-fork = lift $ lift $ delay $ Milliseconds 0.0 -- TODO Remove artifical delay
+fork = lift $ lift $ delay $ Milliseconds 0.0
 
 redrawWithBounds :: forall output. State -> XYBounds -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 redrawWithBounds state newBounds = do
   let
     canceledQueue = cancelAll state.queue
 
-    robustPlotsWithId = mapMaybe (toMaybePlotCommandWithId newBounds robustWithBounds) state.plots
+    robustPlotsWithId = mapMaybe (toMaybePlotCommandWithId newBounds) state.plots
 
     withRobust = addManyPlots canceledQueue robustPlotsWithId
   plots <- lift $ lift $ parSequence $ map (computeExpressionPlot state.input.size newBounds) state.plots
