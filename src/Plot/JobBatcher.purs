@@ -22,7 +22,6 @@ import Data.Set (Set, empty, insert) as S
 import Data.Tuple (Tuple(..))
 import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff)
-import Effect.Aff.Class (liftAff)
 import Effect.Exception.Unsafe (unsafeThrow)
 import Expression.Syntax (Expression)
 import IntervalArith.Misc (Rational, toRational)
@@ -30,9 +29,6 @@ import Plot.Commands (PlotCommand(..))
 import Plot.PlotController (computePlotAsync)
 import Plot.Queue (Queue, toList, empty, filter, null, peek, push, tail) as Q
 import Types (Id, Size, XYBounds, Bounds)
-
-batchSegmentCount :: Int
-batchSegmentCount = 5
 
 type JobQueue
   = { cancelled :: S.Set Id
@@ -85,19 +81,6 @@ cancelWithBatchId jobQueue batchId = newQueue
 
   newQueue = if isRunning hasBatchId jobQueue then cancelRunning $ cancelledActive else cancelledActive
 
-insertAll :: forall a f b. Foldable f => Ord b => (a -> b) -> f a -> S.Set b -> S.Set b
-insertAll mapper toInsert set = foldr (S.insert <<< mapper) set toInsert
-
-cancelRunning :: JobQueue -> JobQueue
-cancelRunning jobQueue = case jobQueue.running of
-  Nothing -> jobQueue
-  Just job -> jobQueue { cancelled = S.insert job.id jobQueue.cancelled, running = Nothing }
-
-isRunning :: (Job -> Boolean) -> JobQueue -> Boolean
-isRunning check jobQueue = case jobQueue.running of
-  Nothing -> false
-  Just job -> check job
-
 addManyPlots :: JobQueue -> Array (Tuple PlotCommand Id) -> JobQueue
 addManyPlots jobQueue plots = foldl foldIntoJob jobQueue plots
   where
@@ -122,6 +105,29 @@ runFirst canvasSize bounds jobQueue = runMaybeJob (runJob canvasSize) jobQueue.c
   where
   maybeJob = Q.peek jobQueue.queue
 
+isCancelled :: JobQueue -> Id -> Boolean
+isCancelled jobQueue id = elem id jobQueue.cancelled
+
+--------------------------------------------------------------------
+-- Internal functions 
+--------------------------------------------------------------------
+
+batchSegmentCount :: Int
+batchSegmentCount = 5
+
+insertAll :: forall a f b. Foldable f => Ord b => (a -> b) -> f a -> S.Set b -> S.Set b
+insertAll mapper toInsert set = foldr (S.insert <<< mapper) set toInsert
+
+cancelRunning :: JobQueue -> JobQueue
+cancelRunning jobQueue = case jobQueue.running of
+  Nothing -> jobQueue
+  Just job -> jobQueue { cancelled = S.insert job.id jobQueue.cancelled, running = Nothing }
+
+isRunning :: (Job -> Boolean) -> JobQueue -> Boolean
+isRunning check jobQueue = case jobQueue.running of
+  Nothing -> false
+  Just job -> check job
+
 runMaybeJob :: (Job -> Aff (DrawCommand Unit)) -> S.Set Id -> Maybe Job -> Aff (Maybe JobResult)
 runMaybeJob _ _ Nothing = pure Nothing
 
@@ -132,11 +138,15 @@ runMaybeJob runner cancelled (Just job) =
     drawCommands <- runner job
     pure $ Just { job, drawCommands }
 
-nullJob :: Aff (DrawCommand Unit)
-nullJob = (liftAff <<< pure <<< pure) unit
-
 runJob :: Size -> Job -> Aff (DrawCommand Unit)
 runJob canvasSize job = computePlotAsync canvasSize job.command
+
+addJob :: Id -> JobQueue -> PlotCommand -> JobQueue
+addJob batchId jobQueue command = jobQueue { queue = newQueue, currentId = newCurrentId }
+  where
+  newCurrentId = jobQueue.currentId + 1
+
+  newQueue = Q.push jobQueue.queue { id: newCurrentId, command, batchId }
 
 segmentRobust :: Bounds -> XYBounds -> Expression -> String -> Array PlotCommand
 segmentRobust fullXBounds bounds expression label = commands
@@ -158,13 +168,3 @@ segmentRobust fullXBounds bounds expression label = commands
   toPlotCommand lower upper = RobustPlot commandBounds fullXBounds expression label
     where
     commandBounds = bounds { xBounds = { lower, upper } }
-
-addJob :: Id -> JobQueue -> PlotCommand -> JobQueue
-addJob batchId jobQueue command = jobQueue { queue = newQueue, currentId = newCurrentId }
-  where
-  newCurrentId = jobQueue.currentId + 1
-
-  newQueue = Q.push jobQueue.queue { id: newCurrentId, command, batchId }
-
-isCancelled :: JobQueue -> Id -> Boolean
-isCancelled jobQueue id = elem id jobQueue.cancelled
