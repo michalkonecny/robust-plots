@@ -1,4 +1,4 @@
-module Test.Expression.JobBatcher.SetRunning
+module Test.Plot.JobBatcher.SetRunning
   ( setRunningTests
   ) where
 

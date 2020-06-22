@@ -1,4 +1,4 @@
-module Test.Expression.JobBatcher.InitialJobQueue
+module Test.Plot.JobBatcher.InitialJobQueue
   ( initialJobQueueTests
   ) where
 

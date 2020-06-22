@@ -2,7 +2,7 @@ module Test.Plot
   ( plotTests
   ) where
 
-import Test.Expression.JobBatcher (jobBatcherTests)
+import Test.Plot.JobBatcher (jobBatcherTests)
 import Test.Unit (TestSuite)
 
 plotTests :: TestSuite

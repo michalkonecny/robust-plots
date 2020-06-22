@@ -1,4 +1,4 @@
-module Test.Expression.JobBatcher.IsCancelled
+module Test.Plot.JobBatcher.IsCancelled
   ( isCancelledTests
   ) where
 

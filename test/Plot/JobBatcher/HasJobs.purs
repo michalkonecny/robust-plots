@@ -1,4 +1,4 @@
-module Test.Expression.JobBatcher.HasJobs
+module Test.Plot.JobBatcher.HasJobs
   ( hasJobsTests
   ) where
 

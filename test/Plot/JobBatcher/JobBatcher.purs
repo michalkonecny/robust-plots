@@ -1,16 +1,16 @@
-module Test.Expression.JobBatcher
+module Test.Plot.JobBatcher
   ( jobBatcherTests
   ) where
 
 import Prelude
 import Test.Unit (TestSuite)
-import Test.Expression.JobBatcher.InitialJobQueue (initialJobQueueTests)
-import Test.Expression.JobBatcher.HasJobs (hasJobsTests)
-import Test.Expression.JobBatcher.ClearCancelled (clearCancelledTests)
-import Test.Expression.JobBatcher.CancelAll (cancelAllTests)
-import Test.Expression.JobBatcher.CancelWithBatchId (cancelWithBatchIdTests)
-import Test.Expression.JobBatcher.SetRunning (setRunningTests)
-import Test.Expression.JobBatcher.IsCancelled (isCancelledTests)
+import Test.Plot.JobBatcher.InitialJobQueue (initialJobQueueTests)
+import Test.Plot.JobBatcher.HasJobs (hasJobsTests)
+import Test.Plot.JobBatcher.ClearCancelled (clearCancelledTests)
+import Test.Plot.JobBatcher.CancelAll (cancelAllTests)
+import Test.Plot.JobBatcher.CancelWithBatchId (cancelWithBatchIdTests)
+import Test.Plot.JobBatcher.SetRunning (setRunningTests)
+import Test.Plot.JobBatcher.IsCancelled (isCancelledTests)
 
 jobBatcherTests :: TestSuite
 jobBatcherTests = do

@@ -1,4 +1,4 @@
-module Test.Expression.JobBatcher.CancelAll
+module Test.Plot.JobBatcher.CancelAll
   ( cancelAllTests
   ) where
 

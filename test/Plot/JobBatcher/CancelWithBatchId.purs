@@ -1,4 +1,4 @@
-module Test.Expression.JobBatcher.CancelWithBatchId
+module Test.Plot.JobBatcher.CancelWithBatchId
   ( cancelWithBatchIdTests
   ) where
 
