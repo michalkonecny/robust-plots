@@ -1,5 +1,6 @@
 module Plot.Commands where
 
+import Prelude
 import Expression.Syntax (Expression)
 import Types (XYBounds, Bounds)
 
@@ -9,7 +10,7 @@ data PlotCommand
   | RobustPlot XYBounds Bounds Expression String
 
 roughPlot :: XYBounds -> Expression -> String -> PlotCommand
-roughPlot = RoughPlot 
+roughPlot = RoughPlot
 
 robustPlot :: XYBounds -> Expression -> String -> PlotCommand
 robustPlot bounds expression label = RobustPlot bounds bounds.xBounds expression label
@@ -19,5 +20,14 @@ clear = Empty
 
 isPlotExpression :: PlotCommand -> Boolean
 isPlotExpression (RoughPlot _ _ _) = true
+
 isPlotExpression (Empty _) = false
+
 isPlotExpression (RobustPlot _ _ _ _) = true
+
+derive instance plotCommandEq :: Eq PlotCommand
+
+instance plotCommandShow :: Show PlotCommand where
+  show (Empty bounds) = "Empty " <> (show bounds)
+  show (RoughPlot bounds expression label) = "RoughPlot " <> (show bounds) <> " " <> (show expression) <> " " <> label
+  show (RobustPlot bounds fullXBounds expression label) = "RobustPlot " <> (show bounds) <> " " <> (show fullXBounds) <> " " <> (show expression) <> " " <> label
