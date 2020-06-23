@@ -609,3 +609,20 @@ limitAndBound limit = limitSize limit <<< boundErrorTerm
 
 limitAndBoundMB :: Precision -> Approx -> Approx
 limitAndBoundMB limit = limitSize limit <<< boundErrorTermMB
+
+-- | Find the hull of two approximations.
+unionA :: Approx -> Approx -> Approx
+unionA Bottom _ = Bottom
+
+unionA _ Bottom = Bottom
+
+unionA a@(Approx mb1 _ _ _) b@(Approx mb2 _ _ _) = endToApprox (mb1 `max` mb2) (lowerBound a `min` lowerBound b) (upperBound a `max` upperBound b)
+
+increasingFunctionViaBounds :: (Approx -> Approx) -> (Approx -> Approx)
+increasingFunctionViaBounds f a = (f $ lowerA a) `unionA` (f $ upperA a)
+
+increasingPartialFunctionViaBounds :: (Approx -> Maybe Approx) -> (Approx -> Maybe Approx)
+increasingPartialFunctionViaBounds f a = do
+  resultL <- f $ lowerA a
+  resultU <- f $ upperA a
+  pure $ resultL `unionA` resultU

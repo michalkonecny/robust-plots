@@ -9,7 +9,7 @@ import Data.BigInt as BigInt
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Effect.Exception.Unsafe (unsafeThrow)
-import IntervalArith.Approx (Approx(..), Precision, approxAutoMB, approxMB, endToApprox, errorBits, limitAndBoundMB, mapMB, recipA, setMB, significance, upperBound)
+import IntervalArith.Approx (Approx(..), Precision, approxAutoMB, approxMB, endToApprox, errorBits, increasingPartialFunctionViaBounds, limitAndBoundMB, mapMB, recipA, setMB, significance, upperBound)
 import IntervalArith.Dyadic (shiftD, sqrtRecD, (:^))
 import IntervalArith.Extended (Extended(..))
 import IntervalArith.Misc (two)
@@ -27,18 +27,18 @@ input approximation.
 sqrtA :: Approx -> Maybe Approx
 sqrtA Bottom = Just Bottom
 
-sqrtA x@(Approx _ m e _)
+sqrtA x@(Approx mb m e _)
   | -m > e = Nothing -- definitely negative
   | m < e = Just Bottom -- possibly negative
   | m == zero && e == zero = Just x
+  | e > zero && e /= m = increasingPartialFunctionViaBounds sqrtA x
+  | otherwise = result -- e == zero || e == m
+    where
+    k = 2 * mb + 2
 
-sqrtA x@(Approx mb _ _ _) = result
-  where
-  k = 2 * mb + 2
-
-  result
-    | upperBound x < one = Just $ sqrtRecA k (recipA $ setMB k x)
-    | otherwise = Just $ limitAndBoundMB mb $ x * sqrtRecA k x
+    result
+      | upperBound x < one = Just $ sqrtRecA k (recipA $ setMB k x)
+      | otherwise = Just $ limitAndBoundMB mb $ x * sqrtRecA k x
 
 {-|
 This uses Newton's method for computing the reciprocal of the square root.
