@@ -1,20 +1,20 @@
-module Test.IntervalArith.Approx.Order
-  ( approxTests_Order, approxTests_Consistent
+module Test.IntervalArith.Approx.ApproxOrder
+  ( approxTests_ApproxOrder, approxTests_Consistent
   ) where
 
 import Prelude
 
-import IntervalArith.Approx (Approx(..), consistent)
+import IntervalArith.Approx (Approx(..), consistent, setMB, (⊑))
 import IntervalArith.Misc (big)
-import Test.IntervalArith.Approx.Arbitrary (ArbitraryApprox(..), approxOrdParams)
+import Test.IntervalArith.Approx.Arbitrary (ArbitraryApprox(..), approxEqParams)
 import Test.Order (preOrderTests)
-import Test.TestUtils (assertOp)
+import Test.TestUtils (SuiteOrdParams1, assertOp, assertOpWithInput, extendRecord)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
 import Test.Unit.QuickCheck (quickCheck)
 
-approxTests_Order :: TestSuite
-approxTests_Order =
+approxTests_ApproxOrder :: TestSuite
+approxTests_ApproxOrder =
   suite "IntervalArith.Approx - approximation order (`better`)" do
     test "SHOULD give (Approx 4 12 1 3 = 96±8 \"1~~\") WHEN setMB 4 (Approx 10 100 0 0 ~ \"100\")" do
       let
@@ -27,7 +27,7 @@ approxTests_Order =
         -- then
         expected = result
       equal expected result
-    preOrderTests approxOrdParams
+    preOrderTests approxApproxOrdParams
 
 approxTests_Consistent :: TestSuite
 approxTests_Consistent =
@@ -37,7 +37,7 @@ approxTests_Consistent =
         -- given
         input1 = Approx 4 (big 12) (big 1) 3
 
-        input2 = Approx 4 (big 12) (big 1) 3
+        input2 = Approx 4 (big 13) (big 1) 3
 
         -- when
         result = consistent input1 input2
@@ -52,8 +52,21 @@ approxTests_Consistent =
             (ArbitraryApprox a1) = aPre
 
             -- when
-            a = approxOrdParams.makeLeq b a1
+            a = approxApproxOrdParams.makeLeq b a1
           -- then
           in
             assertOp consistent " `consistent` " a b
 
+
+approxApproxOrdParams :: SuiteOrdParams1 ArbitraryApprox Approx
+approxApproxOrdParams =
+  approxEqParams
+    `extendRecord`
+    { suitePrefix: "IntervalArith.Approx ⊑"
+    , leqOpWithInput: (assertOpWithInput (⊑) " ⊑ ")
+    , leqOpSymbol: "⊑"
+    , makeLeq:
+        \a b -> case b of
+          (Approx mb _ _ _) -> setMB mb a
+          Bottom -> Bottom
+    }

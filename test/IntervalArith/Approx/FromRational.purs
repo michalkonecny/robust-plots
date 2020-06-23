@@ -3,13 +3,10 @@ module Test.IntervalArith.Approx.FromRational
   ) where
 
 import Prelude
-
 import Data.NonEmpty (foldl1, (:|))
-import Data.Ratio ((%))
 import Data.Tuple (Tuple(..))
 import IntervalArith.Approx (Approx(..), boundsR, consistent, fromRationalBoundsPrec, fromRationalPrec)
 import IntervalArith.Extended (Extended(..))
-import IntervalArith.Misc (big)
 import Test.Field (fieldTests)
 import Test.IntervalArith.Approx.Arbitrary (approxEqParams)
 import Test.IntervalArith.Misc (ArbitraryPositiveExponent(..), ArbitraryRational(..))
@@ -139,7 +136,7 @@ approxTests_fromRationalBounds =
             Tuple resultL resultU = boundsR $ a + b
 
             -- then
-            leqOp = assertOpWithInput (<=) " <= " [ aL, aU, bL, bU ]
+            leqOp = assertOpWithInput (<=) " <= " $ map show [ aL, aU, bL, bU ]
           in
             resultL `leqOp` (Finite $ aL + bL) &=& (Finite $ aU + bU) `leqOp` resultU
     test "SHOULD HOLD multiplication on Approx is multiplication on Rational intervals"
@@ -178,7 +175,7 @@ approxTests_fromRationalBounds =
             abU = foldl1 max products
 
             -- then
-            leqOp = assertOpWithInput (<=) " <= " [ aL, aU, bL, bU ]
+            leqOp = assertOpWithInput (<=) " <= " $ map show [ aL, aU, bL, bU ]
           in
             resultL `leqOp` (Finite $ abL) &=& (Finite $ abU) `leqOp` resultU
     test "SHOULD HOLD recip on Approx is recip on Rational intervals"
@@ -207,10 +204,9 @@ approxTests_fromRationalBounds =
             bUinv = if hasZero then NegInf else Finite (one / bU)
 
             -- then
-            leqOp = assertOpWithInput (<=) " <= " [ bL, bU, ((big prec) % one) ]
+            leqOp = assertOpWithInput (<=) " <= " $ [ show bL, show bU, show prec ]
           in
             resultL `leqOp` bUinv &=& bLinv `leqOp` resultU
 
 approxTests_Field :: TestSuite
 approxTests_Field = fieldTests approxEqParams
-

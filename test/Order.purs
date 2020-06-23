@@ -8,7 +8,7 @@ import Test.Unit (TestSuite, suite, test)
 import Test.Unit.QuickCheck (quickCheck)
 
 totalOrderTests ::
-  forall at t. Arbitrary at => SuiteOrdParams1 at t -> TestSuite
+  forall at t. Arbitrary at => Show t => SuiteOrdParams1 at t -> TestSuite
 totalOrderTests params = do
   suite (params.suitePrefix <> " is a total order") do
     connexity params
@@ -16,7 +16,7 @@ totalOrderTests params = do
     antisymmetry params
 
 partialOrderTests ::
-  forall at t. Arbitrary at => SuiteOrdParams1 at t -> TestSuite
+  forall at t. Arbitrary at => Show t => SuiteOrdParams1 at t -> TestSuite
 partialOrderTests params =
   suite (params.suitePrefix <> " is a partial order") do
     reflexivity params
@@ -24,19 +24,19 @@ partialOrderTests params =
     antisymmetry params
 
 preOrderTests ::
-  forall at t. Arbitrary at => SuiteOrdParams1 at t -> TestSuite
+  forall at t. Arbitrary at => Show t => SuiteOrdParams1 at t -> TestSuite
 preOrderTests params =
   suite (params.suitePrefix <> " is a pre-order") do
     reflexivity params
     transitivity params
 
 reflexivity ::
-  forall at t. Arbitrary at => SuiteOrdParams1 at t -> TestSuite
+  forall at t. Arbitrary at => Show t => SuiteOrdParams1 at t -> TestSuite
 reflexivity p =
   test
     ( "SHOULD HOLD reflexivity: "
         <> "a"
-        <> p.leqOpSymbol
+        <> p.leqOpSymbol 
         <> "a"
         <> " FOR ALL "
         <> p.valuesName
@@ -46,12 +46,12 @@ reflexivity p =
         let
           a = p.fromArbitraryValue aA
 
-          leqOp = p.leqOpWithInput [ a ]
+          leqOp = p.leqOpWithInput [ show a ]
         in
           a `leqOp` a
 
 connexity ::
-  forall at t. Arbitrary at => SuiteOrdParams1 at t -> TestSuite
+  forall at t. Arbitrary at => Show t => SuiteOrdParams1 at t -> TestSuite
 connexity p =
   test
     ( "SHOULD HOLD connexity: "
@@ -72,12 +72,12 @@ connexity p =
 
           b = p.fromArbitraryValue bA
 
-          leqOp = p.leqOpWithInput [ a, b ]
+          leqOp = p.leqOpWithInput $ map show [ a, b ]
         in
           (a `leqOp` b) |=| (b `leqOp` a)
 
 antisymmetry ::
-  forall at t. Arbitrary at => SuiteOrdParams1 at t -> TestSuite
+  forall at t. Arbitrary at => Show t => SuiteOrdParams1 at t -> TestSuite
 antisymmetry p =
   test
     ( "SHOULD HOLD antisymmetry: "
@@ -106,14 +106,14 @@ antisymmetry p =
 
           b = p.makeLeq b1 b2
 
-          eqOp = p.eqOpWithInput [ a, b ]
+          eqOp = p.eqOpWithInput $ map show [ a, b ]
 
-          leqOp = p.leqOpWithInput [ a, b ]
+          leqOp = p.leqOpWithInput $ map show [ a, b ]
         in
           ((a `leqOp` b) &=& (b `leqOp` a)) ==> (a `eqOp` b)
 
 transitivity ::
-  forall at t. Arbitrary at => SuiteOrdParams1 at t -> TestSuite
+  forall at t. Arbitrary at => Show t => SuiteOrdParams1 at t -> TestSuite
 transitivity p =
   test
     ( "SHOULD HOLD transitivity: "
@@ -140,6 +140,6 @@ transitivity p =
 
           a = p.makeLeq b $ p.fromArbitraryValue aA
 
-          leqOp = p.leqOpWithInput [ a, b, c ]
+          leqOp = p.leqOpWithInput $ map show [ a, b, c ]
         in
           ((a `leqOp` b) &=& (b `leqOp` c)) ==> (a `leqOp` c)
