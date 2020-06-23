@@ -3,7 +3,6 @@ module Test.IntervalArith.Approx.NumOrder
   ) where
 
 import Prelude
-
 import Data.Ratio ((%))
 import IntervalArith.Approx (Approx(..), fromInteger, fromRationalPrec, lowerA)
 import IntervalArith.Approx.NumOrder (absA, (!<=!), (!>=!), (?<=?), (?>=?))
@@ -11,7 +10,7 @@ import IntervalArith.Approx.ShowA (showA)
 import IntervalArith.Misc (big)
 import Test.IntervalArith.Approx.Arbitrary (ArbitraryApprox, approxEqParams)
 import Test.IntervalArith.Misc (ArbitraryPositiveExponent(..), ArbitraryRational(..))
-import Test.Order (preOrderTests)
+import Test.Order (reflexivity, transitivity)
 import Test.QuickCheck ((<?>))
 import Test.QuickCheck.Combinators ((&=&))
 import Test.TestUtils (SuiteOrdParams1, assertOpWithInput, extendRecord)
@@ -61,7 +60,9 @@ approxTests_NumOrder =
           let
             -- given
             (ArbitraryRational a) = aPre
+
             (ArbitraryRational b) = bPre
+
             (ArbitraryPositiveExponent prec) = precPre
 
             aA = fromRationalPrec prec (min a b)
@@ -72,7 +73,8 @@ approxTests_NumOrder =
           in
             ((aA ?<=? bA) <?> "aA ?<=? bA" <> inputDescription)
               &=& ((bA ?>=? aA) <?> "bA ?>=? aA" <> inputDescription)
-    preOrderTests approxNumOrdMaybeParams
+    transitivity approxNumOrdSureParams
+    reflexivity approxNumOrdMaybeParams
 
 approxNumOrdMaybeParams :: SuiteOrdParams1 ArbitraryApprox Approx
 approxNumOrdMaybeParams =
