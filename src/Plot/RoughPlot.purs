@@ -1,7 +1,7 @@
 module Plot.RoughPlot where
 
 import Prelude
-import Data.Array (concat, fold, zipWith, (..), tail, (!!), length)
+import Data.Array (concat, tail, zipWith, (..))
 import Data.Either (Either(..))
 import Data.Int (floor, toNumber)
 import Data.Maybe (fromMaybe)
@@ -15,11 +15,10 @@ import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
 import IntervalArith.Misc (rationalToNumber)
 import Math (abs)
-import Plot.Helper (drawLabel)
 import Types (Size, XYBounds, Position)
 
-drawRoughPlot :: Size -> Int -> Int -> XYBounds -> Expression -> String -> DrawCommand Unit
-drawRoughPlot canvasSize numberOfPlots index bounds expression label = drawCommands
+drawRoughPlot :: Size -> XYBounds -> Expression -> String -> DrawCommand Unit
+drawRoughPlot canvasSize bounds expression label = drawCommands
   where
   f = evaluateWithX expression
 
@@ -27,9 +26,7 @@ drawRoughPlot canvasSize numberOfPlots index bounds expression label = drawComma
 
   points = plotPoints canvasSize bounds f f''
 
-  labelPosition = fromMaybe { x: 0.0, y: 0.0 } $ points !! ((length points) / ((numberOfPlots + 1) * index))
-
-  drawCommands = fold [ drawPlot points, drawLabel label labelPosition ]
+  drawCommands = drawPlot points
 
 evaluateWithX :: Expression -> Number -> Number
 evaluateWithX expression x = value

@@ -14,8 +14,8 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import IntervalArith.Misc (Rational, rationalToNumber, toRational)
-import Types (Delta, Size, XYBounds)
+import IntervalArith.Misc (rationalToNumber, toRational)
+import Types (Delta, Size)
 import Web.UIEvent.MouseEvent (MouseEvent)
 import Web.UIEvent.MouseEvent as ME
 
@@ -106,6 +106,3 @@ handleAction controller = case _ of
     when state.isDragging do
       H.put $ state { oldDelta = delta }
       H.raise $ Dragged { x: state.oldDelta.x - delta.x, y: delta.y - state.oldDelta.y }
-
-xyBounds :: Rational -> Rational -> Rational -> Rational -> XYBounds
-xyBounds xLower xUpper yLower yUpper = { xBounds: { upper: xUpper, lower: xLower }, yBounds: { upper: yUpper, lower: yLower } }

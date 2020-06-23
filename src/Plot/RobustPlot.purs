@@ -1,8 +1,7 @@
 module Plot.RobustPlot where
 
 import Prelude
-
-import Data.Array (fold, length, tail, zipWith, (!!), (..))
+import Data.Array (length, tail, zipWith, (..))
 import Data.Either (Either(..))
 import Data.Foldable (sum)
 import Data.Int (toNumber)
@@ -15,19 +14,19 @@ import Expression.Evaluator (evaluate)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, boundsNumber, fromRationalBoundsPrec)
 import IntervalArith.Misc (Rational, rationalToNumber, toRational)
-import Plot.Helper (drawLabel)
-import Types (XYBounds, Polygon, Position, Size)
+import Types (Polygon, Position, Size, XYBounds, Bounds)
 
-drawRobustPlot :: Size -> Int -> Int -> XYBounds -> Expression -> String -> DrawCommand Unit
-drawRobustPlot canvasSize numberOfPlots index bounds expression label = drawCommands
+segmentCount :: Int
+segmentCount = 10
+
+drawRobustPlot :: Size -> Bounds -> XYBounds -> Expression -> String -> DrawCommand Unit
+drawRobustPlot canvasSize fullXBounds bounds expression label = drawCommands
   where
   f = evaluateWithX expression
 
-  segmentEnclosures = plotEnclosures canvasSize bounds f
+  segmentEnclosures = plotEnclosures canvasSize fullXBounds bounds f
 
-  labelPosition = toPosition $ fromMaybe [ { x: 0.0, y: 0.0 } ] $ segmentEnclosures !! ((length segmentEnclosures) / ((numberOfPlots + 1) * index))
-
-  drawCommands = fold [ drawPlot segmentEnclosures, drawLabel label labelPosition ]
+  drawCommands = drawPlot segmentEnclosures
 
 evaluateWithX :: Expression -> Approx -> Approx
 evaluateWithX expression x = value
@@ -38,14 +37,14 @@ evaluateWithX expression x = value
     Left _ -> zero -- TODO Handle any evaluation erros 
     Right v -> v
 
-plotEnclosures :: Size -> XYBounds -> (Approx -> Approx) -> Array Polygon
-plotEnclosures canvasSize bounds f = segmentEnclosures
+plotEnclosures :: Size -> Bounds -> XYBounds -> (Approx -> Approx) -> Array Polygon
+plotEnclosures canvasSize fullXBounds bounds f = segmentEnclosures
   where
-  segmentCount = 50
-
   rangeX = bounds.xBounds.upper - bounds.xBounds.lower
 
   rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
+
+  fullRangeX = fullXBounds.upper - fullXBounds.lower
 
   domainBreakpoints = map (toRational >>> toDomainX) $ 0 .. segmentCount
 
@@ -53,17 +52,19 @@ plotEnclosures canvasSize bounds f = segmentEnclosures
 
   segmentWidth = rangeX / (toRational segmentCount)
 
-  segmentEnclosures = map toCanvasEnclosure domainSegments 
+  segmentEnclosures = map toCanvasEnclosure domainSegments
 
   yLowerBound = rationalToNumber bounds.yBounds.lower
 
   canvasHeight = rationalToNumber canvasSize.height
 
+  halfRangeX = rangeX / (toRational 2)
+
   toRange :: Rational -> Rational -> Tuple Rational Rational
   toRange lower upper = Tuple lower upper
 
   toDomainX :: Rational -> Rational
-  toDomainX segmentX = (segmentX * segmentWidth) + bounds.xBounds.lower 
+  toDomainX segmentX = (segmentX * segmentWidth) + bounds.xBounds.lower
 
   applyExpression :: Rational -> Rational -> Tuple Number Number
   applyExpression xLower xUpper = boundsNumber $ f $ fromRationalBoundsPrec 50 xLower xUpper
@@ -92,13 +93,14 @@ plotEnclosures canvasSize bounds f = segmentEnclosures
     polygon = [ a, b, c, d, a ]
 
   toCanvasX :: Rational -> Number
-  toCanvasX x = rationalToNumber $ ((x - bounds.xBounds.lower) * canvasSize.width) / rangeX
+  toCanvasX x = rationalToNumber $ ((x - fullXBounds.lower) * canvasSize.width) / fullRangeX
 
   toCanvasY :: Number -> Number
   toCanvasY y = safeCanvasY
     where
-      canvasY = canvasHeight - (((y - yLowerBound) * canvasHeight) / rangeY)
-      safeCanvasY = if isFinite canvasY then canvasY else if canvasY < zero then canvasHeight + one else -one
+    canvasY = canvasHeight - (((y - yLowerBound) * canvasHeight) / rangeY)
+
+    safeCanvasY = if isFinite canvasY then canvasY else if canvasY < zero then canvasHeight + one else -one
 
 drawPlot :: Array Polygon -> DrawCommand Unit
 drawPlot ploygons = drawEnclosure true ploygons
