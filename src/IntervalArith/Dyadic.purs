@@ -3,7 +3,7 @@ module IntervalArith.Dyadic where
 import Prelude
 import Data.BigInt (abs, fromNumber)
 import Data.BigInt as BigInt
-import Data.Int (even, odd, round)
+import Data.Int (even, odd)
 import Data.Maybe (Maybe(..))
 import Data.Ratio ((%))
 import Effect.Exception.Unsafe (unsafeThrow)
@@ -145,11 +145,15 @@ initSqrtRecDoubleD (m :^ s) =
 
     s' = (-i - s) `div` 2 - 52
 
-    m' =
-      big <<< round <<< (_ * (2.0 ^ 53)) <<< (1.0 / _) <<< sqrt
+    dbl_m' =
+      (_ * (2.0 ^ 53)) <<< (1.0 / _) <<< sqrt
         $ (BigInt.toNumber n)
         * 0.5
         ^ (if even (s + i) then 52 else 51)
+
+    m' = case fromNumber dbl_m' of
+      Just m'' -> m''
+      _ -> unsafeThrow "internal error in initSqrtRecDoubleD"
 
     t = if m' /= bit 52 && even (s + i) then s' - 1 else s'
   in
