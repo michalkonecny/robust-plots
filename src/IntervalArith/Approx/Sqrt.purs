@@ -7,6 +7,7 @@ module IntervalArith.Approx.Sqrt where
 import Prelude
 import Data.BigInt as BigInt
 import Data.Int as Int
+import Data.Maybe (Maybe(..))
 import Effect.Exception.Unsafe (unsafeThrow)
 import IntervalArith.Approx (Approx(..), Precision, approxAutoMB, approxMB, endToApprox, errorBits, limitAndBoundMB, mapMB, recipA, setMB, significance, upperBound)
 import IntervalArith.Dyadic (shiftD, sqrtRecD, (:^))
@@ -23,19 +24,21 @@ computation. This is done via the precision argument.
 The resulting approximation should approximate the image of every point in the
 input approximation.
 -}
-sqrtA :: Approx -> Approx
-sqrtA Bottom = Bottom
+sqrtA :: Approx -> Maybe Approx
+sqrtA Bottom = Just Bottom
 
 sqrtA x@(Approx _ m e _)
-  | m == zero && e == zero = x
+  | -m > e = Nothing -- definitely negative
+  | m < e = Just Bottom -- possibly negative
+  | m == zero && e == zero = Just x
 
 sqrtA x@(Approx mb _ _ _) = result
   where
   k = 2 * mb + 2
 
   result
-    | upperBound x < one = sqrtRecA k (recipA $ setMB k x)
-    | otherwise = limitAndBoundMB mb $ x * sqrtRecA k x
+    | upperBound x < one = Just $ sqrtRecA k (recipA $ setMB k x)
+    | otherwise = Just $ limitAndBoundMB mb $ x * sqrtRecA k x
 
 {-|
 This uses Newton's method for computing the reciprocal of the square root.
@@ -44,8 +47,6 @@ sqrtRecA :: Precision -> Approx -> Approx
 sqrtRecA _ Bottom = Bottom
 
 sqrtRecA k a@(Approx mb m e s)
-  | -m > e = unsafeThrow "Attempting sqrtRecA of Approx containing only negative numbers."
-  | m < e = Bottom
   | e == zero =
     let
       (n :^ t) = shiftD (-k) $ sqrtRecD (-k - 2) (m :^ s)
