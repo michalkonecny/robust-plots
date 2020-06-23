@@ -3,8 +3,8 @@ module Test.IntervalArith.Approx
   ) where
 
 import Prelude
-
 import Test.Field (fieldTests)
+import Test.IntervalArith.Approx.Abs (approxTests_AbsA)
 import Test.IntervalArith.Approx.ApproxOrder (approxTests_Consistent, approxTests_ApproxOrder)
 import Test.IntervalArith.Approx.Arbitrary (approxEqParams)
 import Test.IntervalArith.Approx.FromRational (approxTests_fromRational, approxTests_fromRationalBounds)
@@ -22,9 +22,9 @@ approxTests = do
   approxTests_ApproxOrder
   approxTests_Consistent
   approxTests_NumOrder
-  -- approxTests_absA
+  approxTests_AbsA
   approxTests_Field
-  -- approxTests_SqrtA
 
+-- approxTests_SqrtA
 approxTests_Field :: TestSuite
 approxTests_Field = fieldTests approxEqParams
