@@ -3,11 +3,14 @@ module Test.IntervalArith.Approx.NumOrder
   ) where
 
 import Prelude
+
 import Data.Ratio ((%))
 import IntervalArith.Approx (Approx(..), fromInteger, fromRationalPrec, lowerA)
 import IntervalArith.Approx.NumOrder (absA, (!<=!), (!>=!), (?<=?), (?>=?))
+import IntervalArith.Approx.ShowA (showA)
 import IntervalArith.Misc (big)
 import Test.IntervalArith.Approx.Arbitrary (ArbitraryApprox, approxEqParams)
+import Test.IntervalArith.Misc (ArbitraryPositiveExponent(..), ArbitraryRational(..))
 import Test.Order (preOrderTests)
 import Test.QuickCheck ((<?>))
 import Test.QuickCheck.Combinators ((&=&))
@@ -30,7 +33,18 @@ approxTests_NumOrder =
         -- then
         expected = false
       equal expected result
-    test "SHOULD HOLD fromInteger n <= fromInteger m FOR ALL integers n <= m"
+    test "SHOULD HOLD fromRational (1/3) ?<=? fromRational (1/3)" do
+      let
+        -- given
+        input = fromRationalPrec 10 ((big 1) % (big 3))
+
+        -- when
+        result = input ?<=? input
+
+        -- then
+        expected = true
+      equal expected result
+    test "SHOULD HOLD fromInteger n !<=! fromInteger m FOR ALL integers n <= m"
       $ quickCheck \n m ->
           let
             -- given
@@ -42,6 +56,22 @@ approxTests_NumOrder =
               &=& ((nA ?<=? mA) <?> "nA ?<=? mA")
               &=& ((mA !>=! nA) <?> "mA !>=! nA")
               &=& ((mA ?>=? nA) <?> "mA ?>=? nA")
+    test "SHOULD HOLD fromRational a ?<=? fromRational b FOR ALL rationals a <= b"
+      $ quickCheck \aPre bPre precPre ->
+          let
+            -- given
+            (ArbitraryRational a) = aPre
+            (ArbitraryRational b) = bPre
+            (ArbitraryPositiveExponent prec) = precPre
+
+            aA = fromRationalPrec prec (min a b)
+
+            bA = fromRationalPrec prec (max a b)
+
+            inputDescription = "; aA = " <> showA aA <> "; bA = " <> showA bA
+          in
+            ((aA ?<=? bA) <?> "aA ?<=? bA" <> inputDescription)
+              &=& ((bA ?>=? aA) <?> "bA ?>=? aA" <> inputDescription)
     preOrderTests approxNumOrdMaybeParams
 
 approxNumOrdMaybeParams :: SuiteOrdParams1 ArbitraryApprox Approx
