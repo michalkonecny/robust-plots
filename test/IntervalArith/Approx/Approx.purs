@@ -1,5 +1,5 @@
 module Test.IntervalArith.Approx
-  ( approxTests, ArbitraryApprox(..), randomSampleApprox
+  ( approxTests
   ) where
 
 import Prelude
@@ -7,36 +7,19 @@ import Prelude
 import Data.NonEmpty (foldl1, (:|))
 import Data.Ratio ((%))
 import Data.Tuple (Tuple(..))
-import Effect (Effect)
-import IntervalArith.Approx (Approx(..), approxMB, boundErrorTerm, boundsR, consistent, fromRationalBoundsPrec, fromRationalPrec, setMB, (⊑))
-import IntervalArith.Approx.ShowA (showA)
+import IntervalArith.Approx (Approx(..), boundErrorTerm, boundsR, consistent, fromRationalBoundsPrec, fromRationalPrec, setMB, (⊑))
 import IntervalArith.Extended (Extended(..))
 import IntervalArith.Misc (big)
 import Test.Field (fieldTests)
 import Test.IntervalArith.Approx.ShowA (approxTests_showA)
-import Test.IntervalArith.Misc (ArbitraryInteger(..), ArbitraryPositiveExponent(..), ArbitraryRational(..))
+import Test.IntervalArith.Approx.Arbitrary (ArbitraryApprox(..))
+import Test.IntervalArith.Misc (ArbitraryPositiveExponent(..), ArbitraryRational(..))
 import Test.Order (preOrderTests)
-import Test.QuickCheck (class Arbitrary, arbitrary)
 import Test.QuickCheck.Combinators ((&=&))
-import Test.QuickCheck.Gen (Size, chooseInt, randomSample', sized)
 import Test.TestUtils (SuiteOrdParams1, SuiteEqParams1, assertOp, assertOpWithInput)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
 import Test.Unit.QuickCheck (quickCheck)
-
-data ArbitraryApprox
-  = ArbitraryApprox Approx
-
-instance arbitraryApprox :: Arbitrary ArbitraryApprox where
-  arbitrary =
-    sized \size -> do
-      (ArbitraryInteger m) <- arbitrary
-      s <- chooseInt (-2 * size) (2 * size)
-      mb <- chooseInt 10 (10 + 2 * size)
-      pure $ ArbitraryApprox $ approxMB mb m (big 0) s
-
-randomSampleApprox :: Size -> Effect (Array String)
-randomSampleApprox size = randomSample' size (map (\(ArbitraryApprox a) -> a) arbitrary) >>= \as -> pure (map showA as)
 
 approxTests :: TestSuite
 approxTests = do
