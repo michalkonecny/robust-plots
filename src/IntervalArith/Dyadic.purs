@@ -29,6 +29,9 @@ instance ordDyadic :: Ord Dyadic where
     | s <= t = compare a (shift b (t - s))
     | otherwise = compare (shift a (s - t)) b
 
+absD :: Dyadic -> Dyadic
+absD (a :^ s) = (abs a) :^ s
+
 instance scalableDyadic :: Scalable Dyadic where
   scale (a :^ s) n = a :^ (s + n)
 
