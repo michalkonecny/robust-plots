@@ -7,8 +7,6 @@ import Data.NonEmpty (foldl1, (:|))
 import Data.Tuple (Tuple(..))
 import IntervalArith.Approx (Approx(..), boundsR, consistent, fromRationalBoundsPrec, fromRationalPrec)
 import IntervalArith.Extended (Extended(..))
-import Test.Field (fieldTests)
-import Test.IntervalArith.Approx.Arbitrary (approxEqParams)
 import Test.IntervalArith.Misc (ArbitraryPositiveExponent(..), ArbitraryRational(..))
 import Test.QuickCheck.Combinators ((&=&))
 import Test.TestUtils (assertOp, assertOpWithInput)
@@ -207,6 +205,3 @@ approxTests_fromRationalBounds =
             leqOp = assertOpWithInput (<=) " <= " $ [ show bL, show bU, show prec ]
           in
             resultL `leqOp` bUinv &=& bLinv `leqOp` resultU
-
-approxTests_Field :: TestSuite
-approxTests_Field = fieldTests approxEqParams
