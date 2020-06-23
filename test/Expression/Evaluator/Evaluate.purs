@@ -243,17 +243,19 @@ evaluateTests =
         -- then
         expectedResult = "Unsupported operation: tan"
       equal expectedResult result
-    test "SHOULD throw error 'Unsupported operation: sqrt' WHEN f(x) = sqrt(4)" do
+    test "ASSERT f(x) = 2 WHEN f(x) = sqrt(4)" do
       let
         -- given
         rawExpression = "sqrt(4)"
 
         -- when
-        result = fromExpect $ parseAndEvaluate [] rawExpression
+        result = parseAndEvaluate [] rawExpression
 
-        -- then
-        expectedResult = "Unsupported operation: sqrt"
-      equal expectedResult result
+        expectedResult = ratioHelp 2 1
+      -- then
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
     test "SHOULD throw error 'Unsupported operation: log' WHEN f(x) = log(1)" do
       let
         -- given
