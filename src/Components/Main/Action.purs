@@ -20,7 +20,7 @@ import Plot.JobBatcher (JobResult, addManyPlots, addPlot, cancelAll, cancelWithB
 import Plot.Pan (panBounds, panBoundsByVector)
 import Plot.PlotController (computePlotAsync)
 import Plot.Zoom (zoomBounds)
-import Types (Direction, Id, XYBounds, Size)
+import Types (Direction, Size, XYBounds)
 import Web.Event.Event as E
 import Web.HTML (window) as Web
 import Web.HTML.HTMLDocument as HTMLDocument
@@ -43,9 +43,6 @@ data Action
   | ResetBounds
   | DrawPlot
   | HandleQueue
-
-clearPlotBatchId :: Id
-clearPlotBatchId = 0
 
 handleAction :: forall output. Action -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 handleAction action = do
@@ -138,7 +135,5 @@ computeExpressionPlot :: Size -> XYBounds -> ExpressionPlot -> Aff (ExpressionPl
 computeExpressionPlot size newBounds plot = case plot.expression of
   Nothing -> pure plot
   Just expression -> do
-    let
-      command = roughPlot newBounds expression plot.expressionText
-    drawCommands <- computePlotAsync size command
+    drawCommands <- computePlotAsync size $ roughPlot newBounds expression plot.expressionText
     pure $ plot { drawCommands = drawCommands }
