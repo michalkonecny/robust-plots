@@ -10,7 +10,7 @@ import Data.Foldable (foldr)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Ratio (denominator, (%))
 import Effect.Class (class MonadEffect)
-import Expression.Parser (token, P)
+import Expression.Parser (token, P, digitToInteger, isNotDigit, foldIntoRational)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -199,20 +199,4 @@ literal = do
   asRational wholeNumber = do
     _ <- token.dot
     decimalPlaces <- many1Till digitToInteger isNotDigit
-    pure $ wholeNumber + (foldr foldIntoRational (toRational 0) decimalPlaces)
-
-  digitToInteger :: P Integer
-  digitToInteger = digit >>= fromChar >>> big >>> pure
-
-  -- | Note: `fromEnum` returns the ASCII code for the character. So subtract the code for 
-  -- | `0` to retrieve the actual integer value
-  fromChar :: Char -> Int
-  fromChar char = (fromEnum char) - (fromEnum '0')
-
-  isNotDigit :: P Unit
-  isNotDigit = notFollowedBy $ digit
-
-  foldIntoRational :: Integer -> Rational -> Rational
-  foldIntoRational element accumulator = accumulator + (element % newDenominator)
-    where
-    newDenominator = (big 10) * denominator accumulator
+    pure $ foldIntoRational wholeNumber decimalPlaces

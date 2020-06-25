@@ -1,13 +1,19 @@
 module Expression.Parser where
 
 import Prelude
+
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
+import Data.BigInt (pow)
+import Data.Char.Unicode (digitToInt)
 import Data.Either (Either(..))
-import Data.Enum (fromEnum)
-import Data.Foldable (foldr)
+import Data.Foldable (foldl)
 import Data.Identity (Identity)
-import Data.Ratio (denominator, (%))
+import Data.List (List, mapWithIndex)
+import Data.Maybe (Maybe(..))
+import Data.Ratio ((%))
+import Data.Tuple (Tuple(..))
+import Effect.Exception.Unsafe (unsafeThrow)
 import Expression.Error (Expect, parseError)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 import IntervalArith.Misc (Rational, Integer, big, toRational)
@@ -44,23 +50,26 @@ literal = do
   asRational wholeNumber = do
     _ <- token.dot
     decimalPlaces <- many1Till digitToInteger isNotDigit
-    pure $ ExpressionLiteral $ wholeNumber + (foldr foldIntoRational (toRational 0) decimalPlaces)
+    pure $ ExpressionLiteral $ foldIntoRational wholeNumber decimalPlaces
 
-  digitToInteger :: P Integer
-  digitToInteger = digit >>= fromChar >>> big >>> pure
+digitToInteger :: P Integer
+digitToInteger = digit >>= fromChar >>> big >>> pure
 
-  -- | Note: `fromEnum` returns the ASCII code for the character. So subtract the code for 
-  -- | `0` to retrieve the actual integer value
-  fromChar :: Char -> Int
-  fromChar char = (fromEnum char) - (fromEnum '0')
+fromChar :: Char -> Int
+fromChar char = case digitToInt char of
+  Nothing -> unsafeThrow "Cannot convert 'non number' Char to Int"
+  Just value -> value
 
-  isNotDigit :: P Unit
-  isNotDigit = notFollowedBy $ digit
+isNotDigit :: P Unit
+isNotDigit = notFollowedBy $ digit
 
-  foldIntoRational :: Integer -> Rational -> Rational
-  foldIntoRational element accumulator = accumulator + (element % newDenominator)
+foldIntoRational :: Rational -> List Integer -> Rational
+foldIntoRational base decimalPlaces = foldl folder base $ mapWithIndex (\i v -> Tuple i v) decimalPlaces
+  where
+  folder :: Rational -> (Tuple Int Integer) -> Rational
+  folder accumulator (Tuple index element) = accumulator + (element % newDenominator)
     where
-    newDenominator = (big 10) * denominator accumulator
+    newDenominator = pow (big 10) (big (index + one))
 
 variableOrUnaryFunctionCall :: P Expression -> P Expression
 variableOrUnaryFunctionCall p = do

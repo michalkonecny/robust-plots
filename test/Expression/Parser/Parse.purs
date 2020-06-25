@@ -47,6 +47,28 @@ parseTests =
         -- then
         expectedResult = "0.1"
       equal expectedResult result
+    test "SHOULD parse as '0.001' WHEN input is '0.001'" do
+      let
+        -- given
+        input = "0.001"
+
+        -- when
+        result = fromExpect $ parse input
+
+        -- then
+        expectedResult = "0.001"
+      equal expectedResult result
+    test "SHOULD parse as '0.123' WHEN input is '0.123'" do
+      let
+        -- given
+        input = "0.123"
+
+        -- when
+        result = fromExpect $ parse input
+
+        -- then
+        expectedResult = "0.123"
+      equal expectedResult result
     test "SHOULD parse as 'x+y' WHEN input is 'x+y'" do
       let
         -- given
