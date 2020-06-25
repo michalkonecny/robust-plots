@@ -64,7 +64,7 @@ digitToInteger = digit >>= fromChar >>> big >>> pure
 
 fromChar :: Char -> Int
 fromChar char = case digitToInt char of
-  Nothing -> unsafeThrow "Cannot convert 'non-number' Char to Int"
+  Nothing -> unsafeThrow "Cannot convert 'non-integer' Char to Int"
   Just value -> value
 
 isNotDigit :: P Unit
