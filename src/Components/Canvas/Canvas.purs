@@ -30,7 +30,8 @@ type State operations
     }
 
 data CanvasMessage
-  = Dragged Delta
+  = Dragged Delta 
+  | StoppedDragging
 
 type Input operations
   = { operations :: operations
@@ -100,7 +101,9 @@ handleAction controller = case _ of
     pure unit
   StartDrag delta -> do
     H.modify_ _ { oldDelta = delta, isDragging = true }
-  EndDrag -> H.modify_ _ { isDragging = false }
+  EndDrag -> do 
+    H.modify_ _ { isDragging = false }
+    H.raise StoppedDragging 
   Drag delta -> do
     state <- H.get
     when state.isDragging do
