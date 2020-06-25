@@ -29,9 +29,9 @@ alterPlot alterF id = map mapper
 initialBounds :: XYBounds
 initialBounds = xyBounds (-one) one (-one) one
 
-toMaybePlotCommandWithId :: XYBounds -> ExpressionPlot -> Maybe (Tuple PlotCommand Id)
-toMaybePlotCommandWithId newBounds plot = case plot.expression of
-  Just expression -> Just $ Tuple (robustPlot newBounds expression plot.expressionText) plot.id
+toMaybePlotCommandWithId :: Int -> XYBounds -> ExpressionPlot -> Maybe (Tuple PlotCommand Id)
+toMaybePlotCommandWithId segmentCount newBounds plot = case plot.expression of
+  Just expression -> Just $ Tuple (robustPlot segmentCount newBounds expression plot.expressionText) plot.id
   Nothing -> Nothing
 
 toMaybeDrawCommand :: ExpressionPlot -> Maybe (DrawCommand Unit)

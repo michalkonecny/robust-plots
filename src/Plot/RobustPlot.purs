@@ -16,15 +16,12 @@ import IntervalArith.Approx (Approx, boundsNumber, fromRationalBoundsPrec)
 import IntervalArith.Misc (Rational, rationalToNumber, toRational)
 import Types (Polygon, Position, Size, XYBounds, Bounds)
 
-segmentCount :: Int
-segmentCount = 10
-
-drawRobustPlot :: Size -> Bounds -> XYBounds -> Expression -> String -> DrawCommand Unit
-drawRobustPlot canvasSize fullXBounds bounds expression label = drawCommands
+drawRobustPlot :: Int -> Size -> Bounds -> XYBounds -> Expression -> String -> DrawCommand Unit
+drawRobustPlot segmentCount canvasSize fullXBounds bounds expression label = drawCommands
   where
   f = evaluateWithX expression
 
-  segmentEnclosures = plotEnclosures canvasSize fullXBounds bounds f
+  segmentEnclosures = plotEnclosures segmentCount canvasSize fullXBounds bounds f
 
   drawCommands = drawPlot segmentEnclosures
 
@@ -37,8 +34,8 @@ evaluateWithX expression x = value
     Left _ -> zero -- TODO Handle any evaluation erros 
     Right v -> v
 
-plotEnclosures :: Size -> Bounds -> XYBounds -> (Approx -> Approx) -> Array Polygon
-plotEnclosures canvasSize fullXBounds bounds f = segmentEnclosures
+plotEnclosures :: Int -> Size -> Bounds -> XYBounds -> (Approx -> Approx) -> Array Polygon
+plotEnclosures segmentCount canvasSize fullXBounds bounds f = segmentEnclosures
   where
   rangeX = bounds.xBounds.upper - bounds.xBounds.lower
 
