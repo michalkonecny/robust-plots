@@ -1,26 +1,21 @@
 module Components.BoundsInput where
 
 import Prelude
-
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Either (Either(..))
-import Data.Enum (fromEnum)
-import Data.Foldable (foldr)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Ratio (denominator, (%))
 import Effect.Class (class MonadEffect)
 import Expression.Parser (token, P, digitToInteger, isNotDigit, foldIntoRational)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import IntervalArith.Misc (Integer, Rational, big, rationalToNumber, toRational)
+import IntervalArith.Misc (Rational, rationalToNumber, toRational)
 import Text.Parsing.Parser (runParser)
-import Text.Parsing.Parser.Combinators (lookAhead, notFollowedBy, many1Till)
+import Text.Parsing.Parser.Combinators (lookAhead, many1Till)
 import Text.Parsing.Parser.Expr (buildExprParser)
 import Text.Parsing.Parser.String (char)
-import Text.Parsing.Parser.Token (digit)
 import Types (XYBounds)
 
 type BoundsInputSlot p
