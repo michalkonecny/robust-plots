@@ -37,7 +37,7 @@ data Bound
   | YUpper
 
 data BoundsInputMessage
-  = Updated XYBounds
+  = UpdatedBoundsInput XYBounds
 
 data Action
   = Init
@@ -170,7 +170,7 @@ handleAction = case _ of
           Nothing -> H.modify_ _ { error = Just $ "Failed to parse lower Y bound" }
           Just yLower -> case maybeYUpper of
             Nothing -> H.modify_ _ { error = Just $ "Failed to parse upper Y bound" }
-            Just yUpper -> H.raise (Updated { xBounds: { lower: xLower, upper: xUpper }, yBounds: { lower: yLower, upper: yUpper } })
+            Just yUpper -> H.raise (UpdatedBoundsInput { xBounds: { lower: xLower, upper: xUpper }, yBounds: { lower: yLower, upper: yUpper } })
 
 parse :: String -> Maybe Rational
 parse input = case runParser input expressionParser of

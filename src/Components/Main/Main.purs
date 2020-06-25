@@ -1,18 +1,21 @@
 module Components.Main where
 
 import Prelude
+
+import Components.BatchInput (batchInputComponent)
 import Components.BoundsInput (boundsInputComponent)
 import Components.Canvas (canvasComponent)
 import Components.Canvas.Controller (canvasController)
 import Components.ExpressionInput (expressionInputComponent)
 import Components.ExpressionInput.Controller (expressionInputController)
-import Components.Main.Types (ChildSlots, Config, State)
 import Components.Main.Action (Action(..), handleAction)
 import Components.Main.Helper (initialBounds, newPlot)
+import Components.Main.Types (ChildSlots, Config, State)
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT)
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
+import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Effect.Class (class MonadEffect)
 import Halogen as H
@@ -27,6 +30,8 @@ _canvas = SProxy :: SProxy "canvas"
 _expressionInput = SProxy :: SProxy "expressionInput"
 
 _boundsInput = SProxy :: SProxy "boundsInput"
+
+_batchInput = SProxy :: SProxy "batchInput"
 
 mainComponent :: forall query input output. H.Component HH.HTML query input output (ReaderT Config Aff)
 mainComponent =
@@ -58,6 +63,8 @@ mainComponent =
     , commandSetId: 0
     , clearPlot: pure unit
     , queue: initialJobQueue
+    , batchCount: 5
+    , segmentCount : 10
     }
 
   render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
@@ -74,6 +81,7 @@ mainComponent =
             [ HE.onClick $ toActionEvent Clear ]
             [ HH.text "Clear plots" ]
         , HH.slot _boundsInput 1 boundsInputComponent state.bounds (Just <<< HandleBoundsInput)
+        , HH.slot _batchInput 1 batchInputComponent (Tuple state.batchCount state.segmentCount) (Just <<< HandleBatchInput)
         , HH.button
             [ HE.onClick $ toActionEvent $ ResetBounds ]
             [ HH.text "Reset" ]

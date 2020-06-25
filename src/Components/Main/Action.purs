@@ -1,6 +1,8 @@
 module Components.Main.Action where
 
 import Prelude
+
+import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..))
 import Components.Canvas (CanvasMessage(..))
 import Components.ExpressionInput (ExpressionInputMessage(..))
@@ -37,6 +39,7 @@ data Action
   | HandleScroll H.SubscriptionId WheelEvent
   | HandleCanvas CanvasMessage
   | HandleBoundsInput BoundsInputMessage
+  | HandleBatchInput BatchInputMessage
   | AddPlot
   | ResetBounds
   | DrawPlot
@@ -70,7 +73,7 @@ handleAction action = do
     ResetBounds -> redrawWithBounds state initialBounds
     HandleCanvas (Dragged delta) -> redrawWithBounds state (panBoundsByVector state.input.size state.bounds delta)
     AddPlot -> H.modify_ (_ { plots = state.plots <> [ newPlot (1 + length state.plots) ] })
-    HandleBoundsInput (Updated newBounds) -> redrawWithBounds state newBounds
+    HandleBoundsInput (UpdatedBoundsInput newBounds) -> redrawWithBounds state newBounds
     Init -> do
       document <- H.liftEffect $ Web.document =<< Web.window
       H.subscribe' \id ->
@@ -95,6 +98,7 @@ handleAction action = do
         handleJobResult maybeJobResult newState
       else
         H.modify_ (_ { queue = clearCancelled state.queue })
+    HandleBatchInput (UpdatedBatchInput batchCount segmentCount) -> H.modify_ (_ { batchCount = batchCount, segmentCount = segmentCount })
 
 handleJobResult :: forall output. Maybe JobResult -> State -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 handleJobResult Nothing _ = pure unit
