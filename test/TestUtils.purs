@@ -2,13 +2,15 @@ module Test.TestUtils where
 
 import Prelude
 import Data.String (joinWith)
+import Prim.Row (class Nub, class Union)
+import Record.Builder (build, merge)
 import Test.QuickCheck (Result, (<?>))
 
 type SuiteEqParams1 at t
   = { suitePrefix :: String
     , valuesName :: String
     , fromArbitraryValue :: (at -> t)
-    , eqOpWithInput :: Array t -> (t -> t -> Result)
+    , eqOpWithInput :: Array String -> (t -> t -> Result)
     , eqOpSymbol :: String
     }
 
@@ -16,12 +18,15 @@ type SuiteOrdParams1 at t
   = { suitePrefix :: String
     , valuesName :: String
     , fromArbitraryValue :: (at -> t)
-    , leqOpWithInput :: Array t -> (t -> t -> Result)
+    , leqOpWithInput :: Array String -> (t -> t -> Result)
     , leqOpSymbol :: String
-    , eqOpWithInput :: Array t -> (t -> t -> Result)
+    , eqOpWithInput :: Array String -> (t -> t -> Result)
     , eqOpSymbol :: String
     , makeLeq :: t -> t -> t -- ^ `(makeLeq a b) <= a` and `(makeLeq a b)` should be similar to `b`
     }
+
+extendRecord :: forall t3 t4 t6 t7. Union t4 t7 t6 => Nub t6 t3 => Record t7 -> Record t4 -> Record t3
+extendRecord rec1 rec2 = build (merge rec1) rec2
 
 -- copied from source code of purescript-quickcheck Test.QuickCheck.
 assertOp :: forall a. Eq a => Show a => (a -> a -> Boolean) -> String -> a -> a -> Result
@@ -41,17 +46,16 @@ assertOpMoreHelp op opString moreHelp a b =
     <> moreHelp
 
 assertOpWithInput ::
-  forall t1 t2.
+  forall t1.
   Eq t1 =>
   Show t1 =>
-  Show t2 =>
-  (t1 -> t1 -> Boolean) -> String -> Array t2 -> t1 -> t1 -> Result
+  (t1 -> t1 -> Boolean) -> String -> Array String -> t1 -> t1 -> Result
 assertOpWithInput op opString input = assertOpMoreHelp op opString moreHelp
   where
   moreHelp = "; " <> (joinWith ", " $ map show input)
 
-eqWithInput :: forall t1 t2. Eq t2 => Show t2 => Show t1 => Array t1 -> t2 -> t2 -> Result
+eqWithInput :: forall t2. Eq t2 => Show t2 => Array String -> t2 -> t2 -> Result
 eqWithInput = assertOpWithInput (==) " == "
 
-leqWithInput :: forall t1 t2. Ord t2 => Show t2 => Show t1 => Array t1 -> t2 -> t2 -> Result
+leqWithInput :: forall t2. Ord t2 => Show t2 => Array String -> t2 -> t2 -> Result
 leqWithInput = assertOpWithInput (<=) " <= "

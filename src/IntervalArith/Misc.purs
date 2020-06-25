@@ -15,6 +15,11 @@ import FFI.BigInt (bitLength)
 fromCA :: Array Char -> String
 fromCA = StrCU.fromCharArray
 
+{-- Constants --}
+
+two :: forall t. Semiring t => t
+two = one + one
+
 {-- Power operator --}
 infixl 8 multiplicativePower as ^
 

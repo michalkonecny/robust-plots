@@ -8,7 +8,7 @@ import Test.Unit (TestSuite, suite, test)
 import Test.Unit.QuickCheck (quickCheck)
 
 commutativeRingTests ::
-  forall at t. Arbitrary at => CommutativeRing t => SuiteEqParams1 at t -> TestSuite
+  forall at t. Arbitrary at => CommutativeRing t => Show t => SuiteEqParams1 at t -> TestSuite
 commutativeRingTests params =
   suite (params.suitePrefix <> " forms a commutative ring") do
     commutativeMonoidAddition params
@@ -18,7 +18,7 @@ commutativeRingTests params =
 
 -- distributiveRules params
 commutativeMonoidAddition ::
-  forall at t. Arbitrary at => Semiring t => SuiteEqParams1 at t -> TestSuite
+  forall at t. Arbitrary at => Semiring t => Show t => SuiteEqParams1 at t -> TestSuite
 commutativeMonoidAddition p =
   suite (p.suitePrefix <> " forms a commutative monoid under addition") do
     test
@@ -36,7 +36,7 @@ commutativeMonoidAddition p =
 
             c = p.fromArbitraryValue cA
 
-            eqOp = p.eqOpWithInput [ a, b, c ]
+            eqOp = p.eqOpWithInput $ map show [ a, b, c ]
           in
             ((a + b) + c) `eqOp` (a + (b + c))
     test
@@ -53,7 +53,7 @@ commutativeMonoidAddition p =
           let
             a = p.fromArbitraryValue aA
 
-            eqOp = p.eqOpWithInput [ a ]
+            eqOp = p.eqOpWithInput [ show a ]
           in
             ((a + zero) `eqOp` a)
               &=& (a `eqOp` (a + zero))
@@ -71,12 +71,12 @@ commutativeMonoidAddition p =
 
             b = p.fromArbitraryValue bA
 
-            eqOp = p.eqOpWithInput [ a, b ]
+            eqOp = p.eqOpWithInput $ map show [ a, b ]
           in
             (a + b) `eqOp` (b + a)
 
 commutativeMonoidMultiplication ::
-  forall at t. Arbitrary at => CommutativeRing t => SuiteEqParams1 at t -> TestSuite
+  forall at t. Arbitrary at => CommutativeRing t => Show t => SuiteEqParams1 at t -> TestSuite
 commutativeMonoidMultiplication p =
   suite (p.suitePrefix <> " forms a commutative monoid under multiplication") do
     test
@@ -94,7 +94,7 @@ commutativeMonoidMultiplication p =
 
             c = p.fromArbitraryValue cA
 
-            eqOp = p.eqOpWithInput [ a, b, c ]
+            eqOp = p.eqOpWithInput $ map show [ a, b, c ]
           in
             ((a * b) * c) `eqOp` (a * (b * c))
     test
@@ -111,7 +111,7 @@ commutativeMonoidMultiplication p =
           let
             a = p.fromArbitraryValue aA
 
-            eqOp = p.eqOpWithInput [ a ]
+            eqOp = p.eqOpWithInput [ show a ]
           in
             ((a * one) `eqOp` a)
               &=& (a `eqOp` (a * one))
@@ -129,12 +129,12 @@ commutativeMonoidMultiplication p =
 
             b = p.fromArbitraryValue bA
 
-            eqOp = p.eqOpWithInput [ a, b ]
+            eqOp = p.eqOpWithInput $ map show [ a, b ]
           in
             (a * b) `eqOp` (b * a)
 
 distributiveLaws ::
-  forall at t. Arbitrary at => Semiring t => SuiteEqParams1 at t -> TestSuite
+  forall at t. Arbitrary at => Semiring t => Show t => SuiteEqParams1 at t -> TestSuite
 distributiveLaws p =
   suite (p.suitePrefix <> " satisfies semiring distributive laws") do
     test
@@ -152,7 +152,7 @@ distributiveLaws p =
 
             c = p.fromArbitraryValue cA
 
-            eqOp = p.eqOpWithInput [ a, b, c ]
+            eqOp = p.eqOpWithInput $ map show [ a, b, c ]
           in
             (a * (b + c)) `eqOp` ((a * b) + (a * c))
     test
@@ -170,12 +170,12 @@ distributiveLaws p =
 
             c = p.fromArbitraryValue cA
 
-            eqOp = p.eqOpWithInput [ a, b, c ]
+            eqOp = p.eqOpWithInput $ map show [ a, b, c ]
           in
             ((a + b) * c) `eqOp` ((a * c) + (b * c))
 
 otherLaws ::
-  forall at t. Arbitrary at => CommutativeRing t => SuiteEqParams1 at t -> TestSuite
+  forall at t. Arbitrary at => CommutativeRing t => Show t => SuiteEqParams1 at t -> TestSuite
 otherLaws p =
   suite (p.suitePrefix <> " satisfies other ring laws") do
     test
@@ -192,7 +192,7 @@ otherLaws p =
           let
             a = p.fromArbitraryValue aA
 
-            eqOp = p.eqOpWithInput [ a ]
+            eqOp = p.eqOpWithInput [ show a ]
           in
             ((a - a) `eqOp` zero)
               &=& (((zero - a) + a) `eqOp` zero)
@@ -208,6 +208,6 @@ otherLaws p =
           let
             a = p.fromArbitraryValue aA
 
-            eqOp = p.eqOpWithInput [ a ]
+            eqOp = p.eqOpWithInput [ show a ]
           in
             (zero * a) `eqOp` zero
