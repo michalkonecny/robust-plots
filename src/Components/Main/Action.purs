@@ -1,7 +1,6 @@
 module Components.Main.Action where
 
 import Prelude
-
 import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..))
 import Components.Canvas (CanvasMessage(..))
@@ -65,7 +64,7 @@ handleAction action = do
 
         robust = robustPlot state.bounds expression text
 
-        withRobust = addPlot updatedQueue robust id
+        withRobust = addPlot state.batchCount updatedQueue robust id
       H.modify_ (_ { plots = plots, queue = withRobust })
       handleAction HandleQueue
     Pan direction -> redrawWithBounds state (panBounds state.bounds direction)
@@ -98,7 +97,9 @@ handleAction action = do
         handleJobResult maybeJobResult newState
       else
         H.modify_ (_ { queue = clearCancelled state.queue })
-    HandleBatchInput (UpdatedBatchInput batchCount segmentCount) -> H.modify_ (_ { batchCount = batchCount, segmentCount = segmentCount })
+    HandleBatchInput (UpdatedBatchInput batchCount segmentCount) -> do
+      H.modify_ (_ { batchCount = batchCount, segmentCount = segmentCount })
+      redraw state { batchCount = batchCount, segmentCount = segmentCount }
 
 handleJobResult :: forall output. Maybe JobResult -> State -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 handleJobResult Nothing _ = pure unit
@@ -114,19 +115,24 @@ handleJobResult (Just jobResult) newState =
 fork :: forall output. H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 fork = lift $ lift $ delay $ Milliseconds 0.0
 
-redrawWithBounds :: forall output. State -> XYBounds -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
-redrawWithBounds state newBounds = do
+redraw :: forall output. State -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
+redraw state = do
   let
     canceledQueue = cancelAll state.queue
 
-    robustPlotsWithId = mapMaybe (toMaybePlotCommandWithId newBounds) state.plots
+    robustPlotsWithId = mapMaybe (toMaybePlotCommandWithId state.bounds) state.plots
 
-    withRobust = addManyPlots canceledQueue robustPlotsWithId
-  plots <- lift $ lift $ parSequence $ map (computeExpressionPlot state.input.size newBounds) state.plots
-  clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
-  H.modify_ (_ { plots = plots, queue = withRobust, clearPlot = clearBounds, bounds = newBounds })
+    withRobust = addManyPlots state.batchCount canceledQueue robustPlotsWithId
+  plots <- lift $ lift $ parSequence $ map (computeExpressionPlot state.input.size state.bounds) state.plots
+  clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
+  H.modify_ (_ { plots = plots, queue = withRobust, clearPlot = clearBounds })
   handleAction DrawPlot
   handleAction HandleQueue
+
+redrawWithBounds :: forall output. State -> XYBounds -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
+redrawWithBounds state newBounds = do
+  H.modify_ (_ { bounds = newBounds })
+  redraw state { bounds = newBounds }
 
 computeExpressionPlot :: Size -> XYBounds -> ExpressionPlot -> Aff (ExpressionPlot)
 computeExpressionPlot size newBounds plot = case plot.expression of

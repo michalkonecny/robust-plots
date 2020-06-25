@@ -95,22 +95,22 @@ cancelWithBatchId jobQueue batchId = newQueue
 -- | Adds a collection of `PlotCommand`s, with their associated `batchId` to the `Job` queue using `addPlot`.
 -- |
 -- | Running time: `O(n * batchSegmentCount * (batchSegmentCount - 1))`
-addManyPlots :: JobQueue -> Array (Tuple PlotCommand Id) -> JobQueue
-addManyPlots jobQueue plots = foldl foldIntoJob jobQueue plots
+addManyPlots :: Int -> JobQueue -> Array (Tuple PlotCommand Id) -> JobQueue
+addManyPlots batchSegmentCount jobQueue plots = foldl foldIntoJob jobQueue plots
   where
   foldIntoJob :: JobQueue -> Tuple PlotCommand Id -> JobQueue
-  foldIntoJob queue (Tuple command batchId) = addPlot queue command batchId
+  foldIntoJob queue (Tuple command batchId) = addPlot batchSegmentCount queue command batchId
 
 -- | Adds a `PlotCommand`, with its associated `batchId` to the `Job` queue.
 -- |
 -- | Running time: `O(batchSegmentCount * (batchSegmentCount - 1))`
-addPlot :: JobQueue -> PlotCommand -> Id -> JobQueue
-addPlot jobQueue (RobustPlot bounds fullXBounds expression label) batchId = foldl (addJob batchId) jobQueue segmentedPlots
+addPlot :: Int -> JobQueue -> PlotCommand -> Id -> JobQueue
+addPlot batchSegmentCount jobQueue (RobustPlot bounds fullXBounds expression label) batchId = foldl (addJob batchId) jobQueue segmentedPlots
   where
-  segmentedPlots = segmentRobust fullXBounds bounds expression label
+  segmentedPlots = segmentRobust batchSegmentCount fullXBounds bounds expression label
 
 -- Rough and Empty plot should be perfomed synchronously 
-addPlot _ _ _ = unsafeThrow "Cannot batch non robust plot command"
+addPlot _ _ _ _ = unsafeThrow "Cannot batch non robust plot command"
 
 -- | Sets the `Job` at the front of the queue as running.
 -- |
@@ -133,9 +133,6 @@ isCancelled jobQueue id = elem id jobQueue.cancelled
 --------------------------------------------------------------------
 -- Internal functions 
 --------------------------------------------------------------------
-batchSegmentCount :: Int
-batchSegmentCount = 5
-
 insertAll :: forall a f b. Foldable f => Ord b => (a -> b) -> f a -> S.Set b -> S.Set b
 insertAll mapper toInsert set = foldr (S.insert <<< mapper) set toInsert
 
@@ -169,8 +166,8 @@ addJob batchId jobQueue command = jobQueue { queue = newQueue, currentId = newCu
 
   newQueue = Q.push jobQueue.queue { id: newCurrentId, command, batchId }
 
-segmentRobust :: Bounds -> XYBounds -> Expression -> String -> Array PlotCommand
-segmentRobust fullXBounds bounds expression label = commands
+segmentRobust :: Int -> Bounds -> XYBounds -> Expression -> String -> Array PlotCommand
+segmentRobust batchSegmentCount fullXBounds bounds expression label = commands
   where
   rangeX = bounds.xBounds.upper - bounds.xBounds.lower
 
