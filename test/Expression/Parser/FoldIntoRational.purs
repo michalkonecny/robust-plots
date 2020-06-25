@@ -3,8 +3,6 @@ module Test.Expression.Parser.FoldIntoRational
   ) where
 
 import Prelude
-
-import Data.Foldable (foldl)
 import Data.List (List, fromFoldable)
 import Data.Ratio ((%))
 import Expression.Parser (foldIntoRational)

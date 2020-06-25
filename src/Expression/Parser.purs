@@ -1,7 +1,6 @@
 module Expression.Parser where
 
 import Prelude
-
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.BigInt (pow)
@@ -11,6 +10,7 @@ import Data.Foldable (foldl)
 import Data.Identity (Identity)
 import Data.List (List, mapWithIndex)
 import Data.Maybe (Maybe(..))
+import Data.Ord (abs)
 import Data.Ratio ((%))
 import Data.Tuple (Tuple(..))
 import Effect.Exception.Unsafe (unsafeThrow)
@@ -42,18 +42,22 @@ identifier = token.identifier
 literalExpression :: P Expression
 literalExpression = ExpressionLiteral <$> literal
 
+sign :: P (Rational -> Rational)
+sign = (char '-' $> negate) <|> (char '+' $> identity) <|> pure identity
+
 literal :: P Rational
 literal = do
-  interger <- token.integer
+  addSign <- sign 
+  integer <- token.integer
   let
-    rationalInteger = toRational interger
-  (lookAhead (char '.') *> asRational rationalInteger) <|> (pure rationalInteger)
-  where
-  asRational :: Rational -> P Rational
-  asRational wholeNumber = do
-    _ <- token.dot
-    decimalPlaces <- many1Till digitToInteger isNotDigit
-    pure $ foldIntoRational wholeNumber decimalPlaces
+    rationalInteger = toRational $ abs integer
+  (lookAhead (char '.') *> asRational addSign rationalInteger) <|> (pure $ addSign rationalInteger)
+
+asRational :: (Rational -> Rational) -> Rational -> P Rational
+asRational addSign wholeNumber = do
+  _ <- token.dot
+  decimalPlaces <- many1Till digitToInteger isNotDigit
+  pure $ addSign $ foldIntoRational wholeNumber decimalPlaces
 
 digitToInteger :: P Integer
 digitToInteger = digit >>= fromChar >>> big >>> pure
@@ -66,6 +70,8 @@ fromChar char = case digitToInt char of
 isNotDigit :: P Unit
 isNotDigit = notFollowedBy $ digit
 
+-- | Folds a `List` of decimal values into a `Rational` starting at a base `Rational` value. This only works with 
+-- | positive values and hence the sign should be handled outside this function.
 foldIntoRational :: Rational -> List Integer -> Rational
 foldIntoRational base decimalPlaces = foldl folder base $ mapWithIndex (\i v -> Tuple i v) decimalPlaces
   where
