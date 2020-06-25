@@ -1,21 +1,18 @@
 module Components.BoundsInput where
 
 import Prelude
-import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Effect.Class (class MonadEffect)
-import Expression.Parser (token, P, digitToInteger, isNotDigit, foldIntoRational)
+import Expression.Parser (P, literal)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import IntervalArith.Misc (Rational, rationalToNumber, toRational)
+import IntervalArith.Misc (Rational, rationalToNumber)
 import Text.Parsing.Parser (runParser)
-import Text.Parsing.Parser.Combinators (lookAhead, many1Till)
 import Text.Parsing.Parser.Expr (buildExprParser)
-import Text.Parsing.Parser.String (char)
 import Types (XYBounds)
 
 type BoundsInputSlot p
@@ -182,16 +179,3 @@ parse input = case runParser input expressionParser of
 
 expressionParser :: P Rational
 expressionParser = fix (\p -> buildExprParser [] literal)
-
-literal :: P Rational
-literal = do
-  interger <- token.integer
-  let
-    rationalInteger = toRational interger
-  (lookAhead (char '.') *> asRational rationalInteger) <|> (pure $ rationalInteger)
-  where
-  asRational :: Rational -> P Rational
-  asRational wholeNumber = do
-    _ <- token.dot
-    decimalPlaces <- many1Till digitToInteger isNotDigit
-    pure $ foldIntoRational wholeNumber decimalPlaces

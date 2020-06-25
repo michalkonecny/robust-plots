@@ -39,18 +39,21 @@ reservedOp = token.reservedOp
 identifier :: P String
 identifier = token.identifier
 
-literal :: P Expression
+literalExpression :: P Expression
+literalExpression = ExpressionLiteral <$> literal
+
+literal :: P Rational
 literal = do
   interger <- token.integer
   let
     rationalInteger = toRational interger
-  (lookAhead (char '.') *> asRational rationalInteger) <|> (pure $ ExpressionLiteral rationalInteger)
+  (lookAhead (char '.') *> asRational rationalInteger) <|> (pure rationalInteger)
   where
-  asRational :: Rational -> P Expression
+  asRational :: Rational -> P Rational
   asRational wholeNumber = do
     _ <- token.dot
     decimalPlaces <- many1Till digitToInteger isNotDigit
-    pure $ ExpressionLiteral $ foldIntoRational wholeNumber decimalPlaces
+    pure $ foldIntoRational wholeNumber decimalPlaces
 
 digitToInteger :: P Integer
 digitToInteger = digit >>= fromChar >>> big >>> pure
@@ -89,7 +92,7 @@ variableOrUnaryFunctionCall p = do
       _ -> fail ("Unknown function: " <> idString)
 
 term :: P Expression -> P Expression
-term p = literal <|> brackets p <|> variableOrUnaryFunctionCall p
+term p = literalExpression <|> brackets p <|> variableOrUnaryFunctionCall p
 
 table :: OperatorTable Identity String Expression
 table =
