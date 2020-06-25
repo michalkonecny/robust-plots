@@ -64,16 +64,16 @@ digitToInteger = digit >>= fromChar >>> big >>> pure
 
 fromChar :: Char -> Int
 fromChar char = case digitToInt char of
-  Nothing -> unsafeThrow "Cannot convert 'non number' Char to Int"
+  Nothing -> unsafeThrow "Cannot convert 'non-number' Char to Int"
   Just value -> value
 
 isNotDigit :: P Unit
-isNotDigit = notFollowedBy $ digit
+isNotDigit = notFollowedBy digit
 
 -- | Folds a `List` of decimal values into a `Rational` starting at a base `Rational` value. This only works with 
 -- | positive values and hence the sign should be handled outside this function.
 foldIntoRational :: Rational -> List Integer -> Rational
-foldIntoRational base decimalPlaces = foldl folder base $ mapWithIndex (\i v -> Tuple i v) decimalPlaces
+foldIntoRational base decimalPlaces = foldl folder base $ mapWithIndex Tuple decimalPlaces
   where
   folder :: Rational -> (Tuple Int Integer) -> Rational
   folder accumulator (Tuple index element) = accumulator + (element % newDenominator)
