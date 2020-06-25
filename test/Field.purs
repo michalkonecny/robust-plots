@@ -12,14 +12,14 @@ import Test.Unit.Assert (assert)
 import Test.Unit.QuickCheck (quickCheck)
 
 fieldTests ::
-  forall at t. Arbitrary at => Field t => SuiteEqParams1 at t -> TestSuite
+  forall at t. Arbitrary at => Field t => Show t => SuiteEqParams1 at t -> TestSuite
 fieldTests params =
   suite (params.suitePrefix <> " forms a field") do
     commutativeRingTests params
     divisionRingLaws params
 
 divisionRingLaws ::
-  forall at t. Arbitrary at => DivisionRing t => SuiteEqParams1 at t -> TestSuite
+  forall at t. Arbitrary at => DivisionRing t => Show t => SuiteEqParams1 at t -> TestSuite
 divisionRingLaws p =
   suite (p.suitePrefix <> " satisfies division ring laws") do
     test
@@ -38,7 +38,7 @@ divisionRingLaws p =
           let
             a = p.fromArbitraryValue aA
 
-            eqOp = p.eqOpWithInput [ a ]
+            eqOp = p.eqOpWithInput [ show a ]
           in
             (a `eqOp` zero) |=| 
             (((recip a * a) `eqOp` one)

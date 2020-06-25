@@ -3,13 +3,14 @@ module Expression.Evaluator where
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Expression.Error (Expect, multipleErrors, throw, unknownValue, unsupportedOperation)
+import Expression.Error (Expect, evaluationError, multipleErrors, throw, unknownValue, unsupportedOperation)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 import Expression.VariableMap (VariableMap, lookup)
 import IntervalArith.Approx (Approx, fromRationalPrec)
+import IntervalArith.Approx.Sqrt (sqrtA)
 import IntervalArith.Misc (rationalToNumber)
 import Math (cos, exp, log, pow, sin, sqrt, tan, e, pi)
-import Prelude (add, div, mul, negate, pure, show, sub, ($), (<>))
+import Prelude (add, div, mul, negate, pure, sub, ($), (<>))
 
 presetConstants :: Array (Tuple String Number)
 presetConstants = [ (Tuple "pi" pi), (Tuple "e" e) ]
@@ -43,7 +44,7 @@ roughEvaluateBinaryOperation Power = roughEvaluateArithmeticBinaryOperation pow
 roughEvaluateArithmeticBinaryOperation :: (Number -> Number -> Number) -> VariableMap Number -> Expression -> Expression -> Expect Number
 roughEvaluateArithmeticBinaryOperation operation variableMap leftExpression rightExpression = case roughEvaluate variableMap leftExpression, roughEvaluate variableMap rightExpression of
   Right leftValue, Right rightValue -> pure $ operation leftValue rightValue
-  Left leftError, Left rightError -> multipleErrors $ (show leftError) <> " | " <> (show rightError)
+  Left leftError, Left rightError -> multipleErrors [ leftError, rightError ]
   Left leftError, _ -> throw leftError
   _, Left rightError -> throw rightError
 
@@ -96,29 +97,29 @@ evaluateBinaryOperation Times = evaluateArithmeticBinaryOperation mul
 
 evaluateBinaryOperation Divide = evaluateArithmeticBinaryOperation div
 
-evaluateBinaryOperation Power = (\_ _ _-> unsupportedOperation "pow")
+evaluateBinaryOperation Power = (\_ _ _ -> unsupportedOperation "pow")
 
 evaluateArithmeticBinaryOperation :: (Approx -> Approx -> Approx) -> VariableMap Approx -> Expression -> Expression -> Expect Approx
 evaluateArithmeticBinaryOperation operation variableMap leftExpression rightExpression = case evaluate variableMap leftExpression, evaluate variableMap rightExpression of
   Right leftValue, Right rightValue -> pure $ operation leftValue rightValue
-  Left leftError, Left rightError -> multipleErrors $ (show leftError) <> " | " <> (show rightError)
+  Left leftError, Left rightError -> multipleErrors [ leftError, rightError ]
   Left leftError, _ -> throw leftError
   _, Left rightError -> throw rightError
 
 evaluateUnaryOperation :: UnaryOperation -> VariableMap Approx -> Expression -> Expect Approx
 evaluateUnaryOperation (Neg) = evaluateNegate
 
-evaluateUnaryOperation (Sqrt) = (\_ _-> unsupportedOperation "sqrt")
+evaluateUnaryOperation (Sqrt) = evaluateSqrt
 
-evaluateUnaryOperation (Exp) = (\_ _-> unsupportedOperation "exp")
+evaluateUnaryOperation (Exp) = (\_ _ -> unsupportedOperation "exp")
 
-evaluateUnaryOperation (Log) = (\_ _-> unsupportedOperation "log")
+evaluateUnaryOperation (Log) = (\_ _ -> unsupportedOperation "log")
 
-evaluateUnaryOperation (Sine) = (\_ _-> unsupportedOperation "sin")
+evaluateUnaryOperation (Sine) = (\_ _ -> unsupportedOperation "sin")
 
-evaluateUnaryOperation (Cosine) = (\_ _-> unsupportedOperation "cos")
+evaluateUnaryOperation (Cosine) = (\_ _ -> unsupportedOperation "cos")
 
-evaluateUnaryOperation (Tan) = (\_ _-> unsupportedOperation "tan")
+evaluateUnaryOperation (Tan) = (\_ _ -> unsupportedOperation "tan")
 
 evaluateFunction :: (Approx -> Approx) -> VariableMap Approx -> Expression -> Expect Approx
 evaluateFunction op variableMap expression = case evaluate variableMap expression of
@@ -129,3 +130,10 @@ evaluateNegate :: VariableMap Approx -> Expression -> Expect Approx
 evaluateNegate variableMap expression = case evaluate variableMap expression of
   Left error -> throw error
   Right value -> pure $ -value
+
+evaluateSqrt :: VariableMap Approx -> Expression -> Expect Approx
+evaluateSqrt variableMap expression = case evaluate variableMap expression of
+  Left error -> throw error
+  Right value -> case sqrtA value of
+    Just result -> pure result
+    _ -> evaluationError "sqrt parameter out of range"

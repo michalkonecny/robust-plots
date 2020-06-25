@@ -49,7 +49,7 @@ dyadicTests_Scaling =
             -- then
             expected = d
           in
-            eqWithInput [ d, fromInteger (big i) ] expected result
+            eqWithInput [ show d, show i ] expected result
     test "SHOULD HOLD n = scale (scale n (-i)) i FOR ALL integers n and i>=0"
       $ quickCheck \dPre iPre ->
           let
@@ -64,7 +64,7 @@ dyadicTests_Scaling =
             -- then
             expected = d
           in
-            eqWithInput [ d, fromInteger (big i) ] expected result
+            eqWithInput [ show d, show i ] expected result
 
 dyadicTests_Order :: TestSuite
 dyadicTests_Order = totalOrderTests dyadicOrdParams
@@ -86,7 +86,7 @@ dyadicTests_ToRational =
 
             right = (toRational d1) + (toRational d2)
           in
-            eqWithInput [ d1, d2 ] left right
+            eqWithInput [ show d1, show d2 ] left right
 
 dyadicTests_ToNumber :: TestSuite
 dyadicTests_ToNumber =
@@ -131,7 +131,7 @@ dyadicTests_ToNumber =
             d2N = dyadicToNumber d2'
           -- then
           in
-            leqWithInput [ d1', d2' ] d1N d2N
+            leqWithInput [ show d1', show d2' ] d1N d2N
 
 dyadicOrdParams :: SuiteOrdParams1 ArbitraryDyadic Dyadic
 dyadicOrdParams =
