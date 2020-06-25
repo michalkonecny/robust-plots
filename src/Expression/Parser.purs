@@ -3,11 +3,17 @@ module Expression.Parser where
 import Prelude
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
+import Data.BigInt (pow)
+import Data.Char.Unicode (digitToInt)
 import Data.Either (Either(..))
-import Data.Enum (fromEnum)
-import Data.Foldable (foldr)
+import Data.Foldable (foldl)
 import Data.Identity (Identity)
-import Data.Ratio (denominator, (%))
+import Data.List (List, mapWithIndex)
+import Data.Maybe (Maybe(..))
+import Data.Ord (abs)
+import Data.Ratio ((%))
+import Data.Tuple (Tuple(..))
+import Effect.Exception.Unsafe (unsafeThrow)
 import Expression.Error (Expect, parseError)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 import IntervalArith.Misc (Rational, Integer, big, toRational)
@@ -33,34 +39,46 @@ reservedOp = token.reservedOp
 identifier :: P String
 identifier = token.identifier
 
-literal :: P Expression
+literalExpression :: P Expression
+literalExpression = ExpressionLiteral <$> literal
+
+sign :: P (Rational -> Rational)
+sign = (char '-' $> negate) <|> (char '+' $> identity) <|> pure identity
+
+literal :: P Rational
 literal = do
-  interger <- token.integer
+  addSign <- sign 
+  integer <- token.integer
   let
-    rationalInteger = toRational interger
-  (lookAhead (char '.') *> asRational rationalInteger) <|> (pure $ ExpressionLiteral rationalInteger)
+    rationalInteger = toRational $ abs integer
+  (lookAhead (char '.') *> asRational addSign rationalInteger) <|> (pure $ addSign rationalInteger)
+
+asRational :: (Rational -> Rational) -> Rational -> P Rational
+asRational addSign wholeNumber = do
+  _ <- token.dot
+  decimalPlaces <- many1Till digitToInteger isNotDigit
+  pure $ addSign $ foldIntoRational wholeNumber decimalPlaces
+
+digitToInteger :: P Integer
+digitToInteger = digit >>= fromChar >>> big >>> pure
+
+fromChar :: Char -> Int
+fromChar char = case digitToInt char of
+  Nothing -> unsafeThrow "Cannot convert 'non-integer' Char to Int"
+  Just value -> value
+
+isNotDigit :: P Unit
+isNotDigit = notFollowedBy digit
+
+-- | Folds a `List` of decimal values into a `Rational` starting at a base `Rational` value. This only works with 
+-- | positive values and hence the sign should be handled outside this function.
+foldIntoRational :: Rational -> List Integer -> Rational
+foldIntoRational base decimalPlaces = foldl folder base $ mapWithIndex Tuple decimalPlaces
   where
-  asRational :: Rational -> P Expression
-  asRational wholeNumber = do
-    _ <- token.dot
-    decimalPlaces <- many1Till digitToInteger isNotDigit
-    pure $ ExpressionLiteral $ wholeNumber + (foldr foldIntoRational (toRational 0) decimalPlaces)
-
-  digitToInteger :: P Integer
-  digitToInteger = digit >>= fromChar >>> big >>> pure
-
-  -- | Note: `fromEnum` returns the ASCII code for the character. So subtract the code for 
-  -- | `0` to retrieve the actual integer value
-  fromChar :: Char -> Int
-  fromChar char = (fromEnum char) - (fromEnum '0')
-
-  isNotDigit :: P Unit
-  isNotDigit = notFollowedBy $ digit
-
-  foldIntoRational :: Integer -> Rational -> Rational
-  foldIntoRational element accumulator = accumulator + (element % newDenominator)
+  folder :: Rational -> (Tuple Int Integer) -> Rational
+  folder accumulator (Tuple index element) = accumulator + (element % newDenominator)
     where
-    newDenominator = (big 10) * denominator accumulator
+    newDenominator = pow (big 10) (big (index + one))
 
 variableOrUnaryFunctionCall :: P Expression -> P Expression
 variableOrUnaryFunctionCall p = do
@@ -80,7 +98,7 @@ variableOrUnaryFunctionCall p = do
       _ -> fail ("Unknown function: " <> idString)
 
 term :: P Expression -> P Expression
-term p = literal <|> brackets p <|> variableOrUnaryFunctionCall p
+term p = literalExpression <|> brackets p <|> variableOrUnaryFunctionCall p
 
 table :: OperatorTable Identity String Expression
 table =

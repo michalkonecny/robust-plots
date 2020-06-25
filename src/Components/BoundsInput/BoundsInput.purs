@@ -1,26 +1,18 @@
 module Components.BoundsInput where
 
 import Prelude
-
-import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Either (Either(..))
-import Data.Enum (fromEnum)
-import Data.Foldable (foldr)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Ratio (denominator, (%))
 import Effect.Class (class MonadEffect)
-import Expression.Parser (token, P)
+import Expression.Parser (P, literal)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import IntervalArith.Misc (Integer, Rational, big, rationalToNumber, toRational)
+import IntervalArith.Misc (Rational, rationalToNumber)
 import Text.Parsing.Parser (runParser)
-import Text.Parsing.Parser.Combinators (lookAhead, notFollowedBy, many1Till)
 import Text.Parsing.Parser.Expr (buildExprParser)
-import Text.Parsing.Parser.String (char)
-import Text.Parsing.Parser.Token (digit)
 import Types (XYBounds)
 
 type BoundsInputSlot p
@@ -187,32 +179,3 @@ parse input = case runParser input expressionParser of
 
 expressionParser :: P Rational
 expressionParser = fix (\p -> buildExprParser [] literal)
-
-literal :: P Rational
-literal = do
-  interger <- token.integer
-  let
-    rationalInteger = toRational interger
-  (lookAhead (char '.') *> asRational rationalInteger) <|> (pure $ rationalInteger)
-  where
-  asRational :: Rational -> P Rational
-  asRational wholeNumber = do
-    _ <- token.dot
-    decimalPlaces <- many1Till digitToInteger isNotDigit
-    pure $ wholeNumber + (foldr foldIntoRational (toRational 0) decimalPlaces)
-
-  digitToInteger :: P Integer
-  digitToInteger = digit >>= fromChar >>> big >>> pure
-
-  -- | Note: `fromEnum` returns the ASCII code for the character. So subtract the code for 
-  -- | `0` to retrieve the actual integer value
-  fromChar :: Char -> Int
-  fromChar char = (fromEnum char) - (fromEnum '0')
-
-  isNotDigit :: P Unit
-  isNotDigit = notFollowedBy $ digit
-
-  foldIntoRational :: Integer -> Rational -> Rational
-  foldIntoRational element accumulator = accumulator + (element % newDenominator)
-    where
-    newDenominator = (big 10) * denominator accumulator
