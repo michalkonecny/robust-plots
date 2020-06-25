@@ -24,4 +24,4 @@ runCommand _ (Empty bounds) = clearAndDrawGridLines bounds
 
 runCommand canvasSize (RoughPlot bounds expression label) = drawRoughPlot canvasSize bounds expression label
 
-runCommand canvasSize (RobustPlot bounds fullXBounds expression label) = drawRobustPlot canvasSize fullXBounds bounds expression label
+runCommand canvasSize (RobustPlot segmentCount bounds fullXBounds expression label) = drawRobustPlot segmentCount canvasSize fullXBounds bounds expression label

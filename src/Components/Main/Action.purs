@@ -62,7 +62,7 @@ handleAction action = do
 
         updatedQueue = cancelWithBatchId state.queue id
 
-        robust = robustPlot state.bounds expression text
+        robust = robustPlot state.segmentCount state.bounds expression text
 
         withRobust = addPlot state.batchCount updatedQueue robust id
       H.modify_ (_ { plots = plots, queue = withRobust })
@@ -120,7 +120,7 @@ redraw state = do
   let
     canceledQueue = cancelAll state.queue
 
-    robustPlotsWithId = mapMaybe (toMaybePlotCommandWithId state.bounds) state.plots
+    robustPlotsWithId = mapMaybe (toMaybePlotCommandWithId state.segmentCount state.bounds) state.plots
 
     withRobust = addManyPlots state.batchCount canceledQueue robustPlotsWithId
   plots <- lift $ lift $ parSequence $ map (computeExpressionPlot state.input.size state.bounds) state.plots

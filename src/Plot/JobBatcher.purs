@@ -105,9 +105,9 @@ addManyPlots batchSegmentCount jobQueue plots = foldl foldIntoJob jobQueue plots
 -- |
 -- | Running time: `O(batchSegmentCount * (batchSegmentCount - 1))`
 addPlot :: Int -> JobQueue -> PlotCommand -> Id -> JobQueue
-addPlot batchSegmentCount jobQueue (RobustPlot bounds fullXBounds expression label) batchId = foldl (addJob batchId) jobQueue segmentedPlots
+addPlot batchSegmentCount jobQueue (RobustPlot segmentCount bounds fullXBounds expression label) batchId = foldl (addJob batchId) jobQueue segmentedPlots
   where
-  segmentedPlots = segmentRobust batchSegmentCount fullXBounds bounds expression label
+  segmentedPlots = segmentRobust batchSegmentCount segmentCount fullXBounds bounds expression label
 
 -- Rough and Empty plot should be perfomed synchronously 
 addPlot _ _ _ _ = unsafeThrow "Cannot batch non robust plot command"
@@ -166,8 +166,8 @@ addJob batchId jobQueue command = jobQueue { queue = newQueue, currentId = newCu
 
   newQueue = Q.push jobQueue.queue { id: newCurrentId, command, batchId }
 
-segmentRobust :: Int -> Bounds -> XYBounds -> Expression -> String -> Array PlotCommand
-segmentRobust batchSegmentCount fullXBounds bounds expression label = commands
+segmentRobust :: Int -> Int -> Bounds -> XYBounds -> Expression -> String -> Array PlotCommand
+segmentRobust batchSegmentCount segmentCount fullXBounds bounds expression label = commands
   where
   rangeX = bounds.xBounds.upper - bounds.xBounds.lower
 
@@ -183,6 +183,6 @@ segmentRobust batchSegmentCount fullXBounds bounds expression label = commands
   toDomainX segmentX = (segmentX * segmentWidth) + bounds.xBounds.lower
 
   toPlotCommand :: Rational -> Rational -> PlotCommand
-  toPlotCommand lower upper = RobustPlot commandBounds fullXBounds expression label
+  toPlotCommand lower upper = RobustPlot segmentCount commandBounds fullXBounds expression label
     where
     commandBounds = bounds { xBounds = { lower, upper } }

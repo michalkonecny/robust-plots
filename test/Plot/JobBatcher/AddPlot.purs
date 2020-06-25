@@ -39,9 +39,9 @@ addPlotTests =
         Left error -> failure (show error)
         Right expression -> do
           let
-            plotCommand = robustPlot bounds expression label
+            plotCommand = robustPlot 10 bounds expression label
 
-            queueWithPlot = addPlot emptyQueue plotCommand batchId
+            queueWithPlot = addPlot 5 emptyQueue plotCommand batchId
 
             checkJobWithCommonInfo = checkJob bounds label expression batchId
 
@@ -59,7 +59,7 @@ checkJob _ _ _ _ id _ _ Nothing = failure $ "Expected Job " <> (show id) <> " bu
 checkJob fullBounds label expression batchId id lower upper (Just job) = do
   equal id job.id
   equal batchId job.batchId
-  equal (RobustPlot (fullBounds { xBounds = { lower, upper } }) fullBounds.xBounds expression label) job.command
+  equal (RobustPlot 10 (fullBounds { xBounds = { lower, upper } }) fullBounds.xBounds expression label) job.command
 
 parseAndSimplify :: String -> Expect Expression
 parseAndSimplify rawExpression = valueOrEvaluationError
