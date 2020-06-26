@@ -22,6 +22,7 @@ type State
   = { input :: String
     , error :: Maybe String
     , id :: Int
+    , status :: Status
     }
 
 data ExpressionInputMessage
@@ -31,6 +32,14 @@ data Action
   = Init
   | HandleInput String
   | Parse
+  | Status Status
+
+data Status
+  = Off
+  | Rough
+  | Robust
+
+derive instance statusEq :: Eq Status
 
 expressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> Int -> H.Component HH.HTML query String ExpressionInputMessage m
 expressionInputComponent controller id =
@@ -51,6 +60,7 @@ initialState id input =
   { input
   , error: Nothing
   , id
+  , status: Robust
   }
 
 render :: forall slots m. State -> HH.ComponentHTML Action slots m
@@ -61,11 +71,40 @@ render state =
         , HE.onValueChange $ toValueChangeActionEvent
         , HP.value state.input
         ]
-      , HH.button
-          [ HE.onClick $ toActionEvent Parse ]
-          [ HH.text "Plot" ]
-      , HH.p_
-          [ HH.text $ fromMaybe "" state.error ]
+    , HH.button
+        [ HE.onClick $ toActionEvent Parse ]
+        [ HH.text "Plot" ]
+    , HH.form_
+        [ HH.input
+            [ HP.type_ HP.InputRadio
+            , HE.onChecked $ toCheckedEvent (Status Off)
+            , HP.id_ "offCheckBox"
+            , HP.checked (state.status == Off)
+            ]
+        , HH.label
+            [ HP.for "offCheckBox" ]
+            [ HH.text "Off" ]
+        , HH.input
+            [ HP.type_ HP.InputRadio
+            , HE.onChecked $ toCheckedEvent (Status Rough)
+            , HP.id_ "roughCheckBox"
+            , HP.checked (state.status == Rough)
+            ]
+        , HH.label
+            [ HP.for "roughCheckBox" ]
+            [ HH.text "Rough" ]
+        , HH.input
+            [ HP.type_ HP.InputRadio
+            , HE.onChecked $ toCheckedEvent (Status Robust)
+            , HP.id_ "robustCheckBox"
+            , HP.checked (state.status == Robust)
+            ]
+        , HH.label
+            [ HP.for "robustCheckBox" ]
+            [ HH.text "Rough and Robust" ]
+        ]
+    , HH.p_
+        [ HH.text $ fromMaybe "" state.error ]
     ]
 
 toValueChangeActionEvent :: String -> Maybe Action
@@ -73,6 +112,10 @@ toValueChangeActionEvent value = Just $ HandleInput value
 
 toActionEvent :: forall a. Action -> a -> Maybe Action
 toActionEvent action _ = Just action
+
+toCheckedEvent :: Action -> Boolean -> Maybe Action
+toCheckedEvent action true = Just action
+toCheckedEvent action false = Nothing
 
 handleAction :: forall m. MonadEffect m => ExpressionInputController -> Action -> H.HalogenM State Action () ExpressionInputMessage m Unit
 handleAction controller = case _ of
@@ -88,12 +131,12 @@ handleAction controller = case _ of
       Left parseError -> H.modify_ _ { error = Just $ show parseError }
       Right expression -> case checkExpression expression of
         Left evaluationError -> H.modify_ _ { error = Just $ show evaluationError }
-        Right _ -> do 
+        Right _ -> do
           H.modify_ _ { error = Nothing }
           H.raise (Parsed id (controller.clean expression) input)
-  HandleInput input -> do
-    H.modify_ _ { input = input }
-    pure unit
+  HandleInput input -> H.modify_ _ { input = input }
+
+  Status status -> H.modify_ _ { status = status }
 
 checkExpression :: Expression -> Expect Number
 checkExpression expression = roughEvaluate (presetConstants <> [ Tuple "x" 0.0 ]) expression

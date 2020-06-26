@@ -1,7 +1,6 @@
 module Components.Main.Types where
 
 import Prelude
-
 import Components.BatchInput (BatchInputSlot)
 import Components.BoundsInput (BoundsInputSlot)
 import Components.Canvas (CanvasSlot, Input)
@@ -16,7 +15,6 @@ type State
   = { input :: Input (DrawCommand Unit)
     , bounds :: XYBounds
     , plots :: Array ExpressionPlot
-    , commandSetId :: Int
     , clearPlot :: DrawCommand Unit
     , batchCount :: Int
     , segmentCount :: Int

@@ -59,7 +59,6 @@ mainComponent =
     , plots:
         [ newPlot 1
         ]
-    , commandSetId: 0
     , clearPlot: pure unit
     , batchCount: 5
     , segmentCount : 10
