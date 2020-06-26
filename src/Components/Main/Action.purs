@@ -84,7 +84,10 @@ handleAction action = do
         changeInY = WE.deltaY event
       when (changeInY /= 0.0) do
         H.liftEffect $ E.preventDefault (WE.toEvent event)
-        handleAction $ Zoom (changeInY < 0.0)
+        redrawWithoutRobustWithBounds state (zoomBounds state.bounds (changeInY < 0.0))
+        _ <- forkWithDelay 500.0 -- Subsiquent code is placed on the end of the JS event queue
+        newState <- H.get
+        redraw newState
     DrawPlot -> H.modify_ (_ { input { operations = foldDrawCommands state } })
     HandleQueue -> do
       if (hasJobs state.queue) then do
@@ -110,8 +113,11 @@ handleJobResult (Just jobResult) newState =
     handleAction DrawPlot
     handleAction HandleQueue
 
+forkWithDelay :: forall output. Number -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
+forkWithDelay duration = lift $ lift $ delay $ Milliseconds duration
+
 fork :: forall output. H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
-fork = lift $ lift $ delay $ Milliseconds 0.0
+fork = forkWithDelay 0.0
 
 redraw :: forall output. State -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 redraw state = do
