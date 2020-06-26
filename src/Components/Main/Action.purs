@@ -64,8 +64,16 @@ handleAction action = do
         withRobust = addPlot state.batchCount updatedQueue robust id
       H.modify_ (_ { plots = plots, queue = withRobust })
       handleAction HandleQueue
-    Pan direction -> redrawWithBounds state (panBounds state.bounds direction)
-    Zoom isZoomIn -> redrawWithBounds state (zoomBounds state.bounds isZoomIn)
+    Pan direction -> do
+      redrawWithoutRobustWithBounds state (panBounds state.bounds direction)
+      _ <- forkWithDelay 500.0 -- Subsiquent code is placed on the end of the JS event queue
+      newState <- H.get
+      redraw newState
+    Zoom isZoomIn -> do
+      redrawWithoutRobustWithBounds state (zoomBounds state.bounds isZoomIn)
+      _ <- forkWithDelay 500.0 -- Subsiquent code is placed on the end of the JS event queue
+      newState <- H.get
+      redraw newState
     ResetBounds -> redrawWithBounds state initialBounds
     HandleCanvas (Dragged delta) -> redrawWithoutRobustWithBounds state (panBoundsByVector state.input.size state.bounds delta)
     HandleCanvas StoppedDragging -> redraw state
@@ -84,10 +92,7 @@ handleAction action = do
         changeInY = WE.deltaY event
       when (changeInY /= 0.0) do
         H.liftEffect $ E.preventDefault (WE.toEvent event)
-        redrawWithoutRobustWithBounds state (zoomBounds state.bounds (changeInY < 0.0))
-        _ <- forkWithDelay 500.0 -- Subsiquent code is placed on the end of the JS event queue
-        newState <- H.get
-        redraw newState
+        handleAction $ Zoom (changeInY < 0.0)
     DrawPlot -> H.modify_ (_ { input { operations = foldDrawCommands state } })
     HandleQueue -> do
       if (hasJobs state.queue) then do
