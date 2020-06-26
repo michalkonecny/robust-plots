@@ -46,10 +46,10 @@ queueHasJobs :: ExpressionPlot -> Boolean
 queueHasJobs plot = hasJobs plot.queue
 
 anyPlotHasJobs :: Array ExpressionPlot -> Boolean
-anyPlotHasJobs = trueInAnyPlotExpression queueHasJobs
+anyPlotHasJobs = anyPlotExpression queueHasJobs
 
-trueInAnyPlotExpression :: (ExpressionPlot -> Boolean) -> Array ExpressionPlot -> Boolean
-trueInAnyPlotExpression f = (foldl (||) false) <<< (map f)
+anyPlotExpression :: (ExpressionPlot -> Boolean) -> Array ExpressionPlot -> Boolean
+anyPlotExpression f = (foldl (||) false) <<< (map f)
 
 cancelAllPlotJobs :: Array ExpressionPlot -> Array ExpressionPlot
 cancelAllPlotJobs = map (\plot -> plot { queue = cancelAll plot.queue })
@@ -58,7 +58,7 @@ clearAllCancelled :: Array ExpressionPlot -> Array ExpressionPlot
 clearAllCancelled = map (\plot -> plot { queue = clearCancelled plot.queue })
 
 isCancelledInAnyPlot :: Job -> Array ExpressionPlot -> Boolean
-isCancelledInAnyPlot job = trueInAnyPlotExpression (\plot -> isCancelled plot.queue job.id)
+isCancelledInAnyPlot job = anyPlotExpression (\plot -> isCancelled plot.queue job.id)
 
 setFirstRunningJob :: Array ExpressionPlot -> Array ExpressionPlot
 setFirstRunningJob plots = case uncons plots of
