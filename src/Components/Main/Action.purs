@@ -140,13 +140,9 @@ redrawWithBounds state newBounds = do
 
 redrawWithoutRobustWithBounds :: forall output. State -> XYBounds -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 redrawWithoutRobustWithBounds state newBounds = do
-  let
-    canceledQueue = cancelAll state.queue
-
-    robustPlotsWithId = mapMaybe (toMaybePlotCommandWithId state.segmentCount newBounds) state.plots
   plots <- lift $ lift $ parSequence $ map (computeExpressionPlot state.input.size newBounds) state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
-  H.modify_ (_ { plots = plots, queue = canceledQueue, clearPlot = clearBounds, bounds = newBounds })
+  H.modify_ (_ { plots = plots, queue = cancelAll state.queue, clearPlot = clearBounds, bounds = newBounds })
   handleAction DrawPlot
 
 computeExpressionPlot :: Size -> XYBounds -> ExpressionPlot -> Aff (ExpressionPlot)
