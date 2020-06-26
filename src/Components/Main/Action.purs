@@ -118,10 +118,10 @@ handleJobResult (Just jobResult) newState =
     handleAction HandleQueue
 
 clearAddPlotCommands :: Int -> Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
-clearAddPlotCommands batchCount segmentCount size newBounds = parSequence <<< (map mapper)
+clearAddPlotCommands batchCount segmentCount size newBounds = parSequence <<< (map clearAddPlot)
   where
-  mapper :: ExpressionPlot -> Aff ExpressionPlot
-  mapper plot = case plot.expression of
+  clearAddPlot :: ExpressionPlot -> Aff ExpressionPlot
+  clearAddPlot plot = case plot.expression of
     Nothing -> pure plot
     Just expression -> do
       let
