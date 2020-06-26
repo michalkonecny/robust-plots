@@ -57,17 +57,17 @@ handleAction action = do
       let
         robust = robustPlot state.segmentCount state.bounds expression text
 
-        f :: ExpressionPlot -> ExpressionPlot
-        f plot =
+        updatePlot :: ExpressionPlot -> ExpressionPlot
+        updatePlot plot =
           plot
             { expressionText = text
             , expression = Just expression
             , drawCommands = newRoughCommands
             , queue = addPlot state.batchCount (cancelAll plot.queue) robust id
             }
-
-      H.modify_ (_ { plots = alterPlot f id state.plots })
+      H.modify_ (_ { plots = alterPlot updatePlot id state.plots })
       handleAction HandleQueue
+    HandleExpressionInput (ChangedStatus id status) -> pure unit -- TODO
     Pan direction -> redrawWithDelayAndBounds state (panBounds state.bounds direction)
     Zoom isZoomIn -> redrawWithDelayAndBounds state (zoomBounds state.bounds isZoomIn)
     ResetBounds -> redrawWithBounds state initialBounds

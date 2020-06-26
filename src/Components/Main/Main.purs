@@ -103,7 +103,7 @@ mainComponent =
         , HH.slot _canvas 1 (canvasComponent canvasController) state.input (Just <<< HandleCanvas)
         ]
     where
-    inputs = map (\plot -> HH.slot _expressionInput plot.id (expressionInputComponent expressionInputController plot.id) plot.expressionText (Just <<< HandleExpressionInput)) state.plots
+    inputs = map (\plot -> HH.slot _expressionInput plot.id (expressionInputComponent expressionInputController plot.id) (Tuple plot.expressionText plot.status ) (Just <<< HandleExpressionInput)) state.plots
 
 toActionEvent :: forall a. Action -> a -> Maybe Action
 toActionEvent action _ = Just action

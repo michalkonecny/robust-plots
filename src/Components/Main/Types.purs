@@ -4,7 +4,7 @@ import Prelude
 import Components.BatchInput (BatchInputSlot)
 import Components.BoundsInput (BoundsInputSlot)
 import Components.Canvas (CanvasSlot, Input)
-import Components.ExpressionInput (ExpressionInputSlot)
+import Components.ExpressionInput (ExpressionInputSlot, Status)
 import Data.Maybe (Maybe)
 import Draw.Commands (DrawCommand)
 import Expression.Syntax (Expression)
@@ -26,6 +26,7 @@ type ExpressionPlot
     , drawCommands :: DrawCommand Unit
     , id :: Int
     , queue :: JobQueue
+    , status :: Status
     }
 
 type ChildSlots

@@ -1,6 +1,8 @@
 module Components.Main.Helper where
 
 import Prelude
+
+import Components.ExpressionInput (Status(..))
 import Components.Main.Types (ExpressionPlot, State)
 import Data.Array (cons, fold, foldl, mapMaybe, uncons)
 import Data.Maybe (Maybe(..))
@@ -13,7 +15,7 @@ import Plot.JobBatcher (Job, JobResult, cancelAll, clearCancelled, hasJobs, init
 import Types (Id, Size, XYBounds, Bounds)
 
 newPlot :: Int -> ExpressionPlot
-newPlot id = { expressionText: "", expression: Nothing, id, drawCommands: pure unit, queue: initialJobQueue }
+newPlot id = { expressionText: "", expression: Nothing, id, drawCommands: pure unit, queue: initialJobQueue, status: Robust }
 
 updateExpressionPlotCommands :: DrawCommand Unit -> ExpressionPlot -> ExpressionPlot
 updateExpressionPlotCommands commands plot = plot { drawCommands = fold [ plot.drawCommands, commands ] }

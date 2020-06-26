@@ -1,7 +1,6 @@
 module Components.ExpressionInput where
 
 import Prelude
-
 import Components.ExpressionInput.Controller (ExpressionInputController)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -27,10 +26,12 @@ type State
 
 data ExpressionInputMessage
   = Parsed Int Expression String
+  | ChangedStatus Int Status
 
 data Action
   = Init
   | HandleInput String
+  | HandleMessage (Tuple String Status)
   | Parse
   | Status Status
 
@@ -41,7 +42,7 @@ data Status
 
 derive instance statusEq :: Eq Status
 
-expressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> Int -> H.Component HH.HTML query String ExpressionInputMessage m
+expressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> Int -> H.Component HH.HTML query (Tuple String Status) ExpressionInputMessage m
 expressionInputComponent controller id =
   H.mkComponent
     { initialState: initialState id
@@ -50,17 +51,17 @@ expressionInputComponent controller id =
         H.mkEval
           $ H.defaultEval
               { handleAction = handleAction controller
-              , receive = Just <<< HandleInput
+              , receive = Just <<< HandleMessage
               , initialize = Just Init
               }
     }
 
-initialState :: Int -> String -> State
-initialState id input =
+initialState :: Int -> Tuple String Status -> State
+initialState id (Tuple input status) =
   { input
   , error: Nothing
   , id
-  , status: Robust
+  , status
   }
 
 render :: forall slots m. State -> HH.ComponentHTML Action slots m
@@ -115,7 +116,8 @@ toActionEvent action _ = Just action
 
 toCheckedEvent :: Action -> Boolean -> Maybe Action
 toCheckedEvent action true = Just action
-toCheckedEvent action false = Nothing
+
+toCheckedEvent _ false = Nothing
 
 handleAction :: forall m. MonadEffect m => ExpressionInputController -> Action -> H.HalogenM State Action () ExpressionInputMessage m Unit
 handleAction controller = case _ of
@@ -135,8 +137,11 @@ handleAction controller = case _ of
           H.modify_ _ { error = Nothing }
           H.raise (Parsed id (controller.clean expression) input)
   HandleInput input -> H.modify_ _ { input = input }
-
-  Status status -> H.modify_ _ { status = status }
+  HandleMessage (Tuple input status) -> H.modify_ _ { input = input, status = status }
+  Status status -> do
+    { id } <- H.get
+    H.modify_ _ { status = status }
+    H.raise (ChangedStatus id status)
 
 checkExpression :: Expression -> Expect Number
 checkExpression expression = roughEvaluate (presetConstants <> [ Tuple "x" 0.0 ]) expression
