@@ -18,7 +18,6 @@ type State
     , plots :: Array ExpressionPlot
     , commandSetId :: Int
     , clearPlot :: DrawCommand Unit
-    , queue :: JobQueue
     , batchCount :: Int
     , segmentCount :: Int
     }
@@ -28,6 +27,7 @@ type ExpressionPlot
     , expressionText :: String
     , drawCommands :: DrawCommand Unit
     , id :: Int
+    , queue :: JobQueue
     }
 
 type ChildSlots

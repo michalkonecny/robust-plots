@@ -22,7 +22,6 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import IntervalArith.Misc (toRational)
-import Plot.JobBatcher (initialJobQueue)
 import Types (Direction(..))
 
 _canvas = SProxy :: SProxy "canvas"
@@ -62,7 +61,6 @@ mainComponent =
         ]
     , commandSetId: 0
     , clearPlot: pure unit
-    , queue: initialJobQueue
     , batchCount: 5
     , segmentCount : 10
     }
