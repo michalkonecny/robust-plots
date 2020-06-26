@@ -5,11 +5,10 @@ import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..))
 import Components.Canvas (CanvasMessage(..))
 import Components.ExpressionInput (ExpressionInputMessage(..))
-import Components.Main.Helper (alterPlot, anyPlotHasJobs, clearAllCancelled, foldDrawCommands, initialBounds, isCancelledInAnyPlot, newPlot, runFirstJob, setFirstRunningJob, updateExpressionPlotCommands)
+import Components.Main.Helper (alterPlot, anyPlotHasJobs, clearAllCancelled, foldDrawCommands, initialBounds, isCancelledInAnyPlot, newPlot, runFirstJob, clearAddPlotCommands, setFirstRunningJob, updateExpressionPlotCommands)
 import Components.Main.Types (ChildSlots, Config, State, ExpressionPlot)
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.Trans.Class (lift)
-import Control.Parallel (parSequence)
 import Data.Array (length)
 import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff, Milliseconds(..), delay)
@@ -20,7 +19,7 @@ import Plot.JobBatcher (JobResult, addPlot, cancelAll)
 import Plot.Pan (panBounds, panBoundsByVector)
 import Plot.PlotController (computePlotAsync)
 import Plot.Zoom (zoomBounds)
-import Types (Direction, Size, XYBounds)
+import Types (Direction, XYBounds)
 import Web.Event.Event as E
 import Web.HTML (window) as Web
 import Web.HTML.HTMLDocument as HTMLDocument
@@ -116,22 +115,6 @@ handleJobResult (Just jobResult) newState =
     H.modify_ (_ { plots = alterPlot (updateExpressionPlotCommands jobResult.drawCommands) jobResult.job.batchId newState.plots })
     handleAction DrawPlot
     handleAction HandleQueue
-
-clearAddPlotCommands :: Int -> Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
-clearAddPlotCommands batchCount segmentCount size newBounds = parSequence <<< (map clearAddPlot)
-  where
-  clearAddPlot :: ExpressionPlot -> Aff ExpressionPlot
-  clearAddPlot plot = case plot.expression of
-    Nothing -> pure plot
-    Just expression -> do
-      let
-        robust = robustPlot segmentCount newBounds expression plot.expressionText
-
-        cancelledQueue = cancelAll plot.queue
-
-        queueWithPlot = addPlot batchCount cancelledQueue robust plot.id
-      drawCommands <- computePlotAsync size $ roughPlot newBounds expression plot.expressionText
-      pure $ plot { queue = queueWithPlot, roughDrawCommands = drawCommands, robustDrawCommands = pure unit }
 
 forkWithDelay :: forall output. Number -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 forkWithDelay duration = lift $ lift $ delay $ Milliseconds duration
