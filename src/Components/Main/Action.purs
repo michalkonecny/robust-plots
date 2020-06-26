@@ -167,10 +167,3 @@ redrawWithoutRobustWithBounds state newBounds = do
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
   H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds })
   handleAction DrawPlot
-
-computeExpressionPlot :: Size -> XYBounds -> ExpressionPlot -> Aff (ExpressionPlot)
-computeExpressionPlot size newBounds plot = case plot.expression of
-  Nothing -> pure plot
-  Just expression -> do
-    drawCommands <- computePlotAsync size $ roughPlot newBounds expression plot.expressionText
-    pure $ plot { roughDrawCommands = drawCommands }
