@@ -23,7 +23,8 @@ type State
 type ExpressionPlot
   = { expression :: Maybe Expression
     , expressionText :: String
-    , drawCommands :: DrawCommand Unit
+    , robustDrawCommands :: DrawCommand Unit
+    , roughDrawCommands :: DrawCommand Unit
     , id :: Int
     , queue :: JobQueue
     , status :: Status

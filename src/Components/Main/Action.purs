@@ -62,12 +62,15 @@ handleAction action = do
           plot
             { expressionText = text
             , expression = Just expression
-            , drawCommands = newRoughCommands
+            , roughDrawCommands = newRoughCommands
+            , robustDrawCommands = pure unit
             , queue = addPlot state.batchCount (cancelAll plot.queue) robust id
             }
       H.modify_ (_ { plots = alterPlot updatePlot id state.plots })
       handleAction HandleQueue
-    HandleExpressionInput (ChangedStatus id status) -> pure unit -- TODO
+    HandleExpressionInput (ChangedStatus id status) -> do
+      H.modify_ (_ { plots = alterPlot (_ { status = status }) id state.plots })
+      handleAction DrawPlot
     Pan direction -> redrawWithDelayAndBounds state (panBounds state.bounds direction)
     Zoom isZoomIn -> redrawWithDelayAndBounds state (zoomBounds state.bounds isZoomIn)
     ResetBounds -> redrawWithBounds state initialBounds
@@ -128,7 +131,7 @@ clearAddPlotCommands batchCount segmentCount size newBounds = parSequence <<< (m
 
         queueWithPlot = addPlot batchCount cancelledQueue robust plot.id
       drawCommands <- computePlotAsync size $ roughPlot newBounds expression plot.expressionText
-      pure $ plot { queue = queueWithPlot, drawCommands = drawCommands }
+      pure $ plot { queue = queueWithPlot, roughDrawCommands = drawCommands, robustDrawCommands = pure unit }
 
 forkWithDelay :: forall output. Number -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 forkWithDelay duration = lift $ lift $ delay $ Milliseconds duration
@@ -170,4 +173,4 @@ computeExpressionPlot size newBounds plot = case plot.expression of
   Nothing -> pure plot
   Just expression -> do
     drawCommands <- computePlotAsync size $ roughPlot newBounds expression plot.expressionText
-    pure $ plot { drawCommands = drawCommands }
+    pure $ plot { roughDrawCommands = drawCommands }

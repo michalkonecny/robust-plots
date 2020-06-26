@@ -15,10 +15,18 @@ import Plot.JobBatcher (Job, JobResult, cancelAll, clearCancelled, hasJobs, init
 import Types (Id, Size, XYBounds, Bounds)
 
 newPlot :: Int -> ExpressionPlot
-newPlot id = { expressionText: "", expression: Nothing, id, drawCommands: pure unit, queue: initialJobQueue, status: Robust }
+newPlot id =
+  { expressionText: ""
+  , expression: Nothing
+  , id
+  , robustDrawCommands: pure unit
+  , roughDrawCommands: pure unit
+  , queue: initialJobQueue
+  , status: Robust
+  }
 
 updateExpressionPlotCommands :: DrawCommand Unit -> ExpressionPlot -> ExpressionPlot
-updateExpressionPlotCommands commands plot = plot { drawCommands = fold [ plot.drawCommands, commands ] }
+updateExpressionPlotCommands commands plot = plot { robustDrawCommands = fold [ plot.robustDrawCommands, commands ] }
 
 alterPlot :: (ExpressionPlot -> ExpressionPlot) -> Id -> Array ExpressionPlot -> Array ExpressionPlot
 alterPlot alterF id = map mapper
@@ -72,7 +80,10 @@ runFirstJob size xBounds plots = case uncons plots of
 
 toMaybeDrawCommand :: ExpressionPlot -> Maybe (DrawCommand Unit)
 toMaybeDrawCommand plot = case plot.expression of
-  Just expression -> Just plot.drawCommands
+  Just expression -> case plot.status of 
+    Off -> Nothing
+    Rough -> Just plot.roughDrawCommands
+    Robust -> Just $ fold [ plot.roughDrawCommands, plot.robustDrawCommands ]  
   Nothing -> Nothing
 
 foldDrawCommands :: State -> DrawCommand Unit
