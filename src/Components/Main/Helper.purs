@@ -1,17 +1,15 @@
 module Components.Main.Helper where
 
 import Prelude
-
 import Components.ExpressionInput (Status(..))
 import Components.Main.Types (ExpressionPlot, State)
 import Control.Parallel (parSequence)
 import Data.Array (cons, fold, foldl, mapMaybe, uncons)
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..))
 import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff)
 import IntervalArith.Misc (Rational)
-import Plot.Commands (PlotCommand, robustPlot, roughPlot)
+import Plot.Commands (robustPlot, roughPlot)
 import Plot.JobBatcher (Job, JobResult, addPlot, cancelAll, clearCancelled, hasJobs, initialJobQueue, isCancelled, runFirst, setRunning)
 import Plot.PlotController (computePlotAsync)
 import Types (Id, Size, XYBounds, Bounds)
@@ -39,11 +37,6 @@ alterPlot alterF id = map mapper
 initialBounds :: XYBounds
 initialBounds = xyBounds (-one) one (-one) one
 
-toMaybePlotCommandWithId :: Int -> XYBounds -> ExpressionPlot -> Maybe (Tuple PlotCommand Id)
-toMaybePlotCommandWithId segmentCount newBounds plot = case plot.expression of
-  Just expression -> Just $ Tuple (robustPlot segmentCount newBounds expression plot.expressionText) plot.id
-  Nothing -> Nothing
-
 queueHasJobs :: ExpressionPlot -> Boolean
 queueHasJobs plot = hasJobs plot.queue
 
@@ -69,7 +62,7 @@ setFirstRunningJob plots = case uncons plots of
     if queueHasJobs head then
       cons (head { queue = setRunning head.queue }) tail
     else
-      setFirstRunningJob tail
+      cons head $ setFirstRunningJob tail
 
 runFirstJob :: Size -> Bounds -> Array ExpressionPlot -> Aff (Maybe JobResult)
 runFirstJob size xBounds plots = case uncons plots of
@@ -82,10 +75,10 @@ runFirstJob size xBounds plots = case uncons plots of
 
 toMaybeDrawCommand :: ExpressionPlot -> Maybe (DrawCommand Unit)
 toMaybeDrawCommand plot = case plot.expression of
-  Just expression -> case plot.status of 
+  Just expression -> case plot.status of
     Off -> Nothing
     Rough -> Just plot.roughDrawCommands
-    Robust -> Just $ fold [ plot.roughDrawCommands, plot.robustDrawCommands ]  
+    Robust -> Just $ fold [ plot.roughDrawCommands, plot.robustDrawCommands ]
   Nothing -> Nothing
 
 foldDrawCommands :: State -> DrawCommand Unit
