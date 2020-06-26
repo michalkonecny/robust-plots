@@ -8,7 +8,6 @@ import Test.Plot.JobBatcher.InitialJobQueue (initialJobQueueTests)
 import Test.Plot.JobBatcher.HasJobs (hasJobsTests)
 import Test.Plot.JobBatcher.ClearCancelled (clearCancelledTests)
 import Test.Plot.JobBatcher.CancelAll (cancelAllTests)
-import Test.Plot.JobBatcher.CancelWithBatchId (cancelWithBatchIdTests)
 import Test.Plot.JobBatcher.SetRunning (setRunningTests)
 import Test.Plot.JobBatcher.IsCancelled (isCancelledTests)
 import Test.Plot.JobBatcher.AddPlot (addPlotTests)
@@ -19,7 +18,6 @@ jobBatcherTests = do
   hasJobsTests
   clearCancelledTests
   cancelAllTests
-  cancelWithBatchIdTests
   setRunningTests
   isCancelledTests
   addPlotTests
