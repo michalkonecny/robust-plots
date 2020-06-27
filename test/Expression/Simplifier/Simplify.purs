@@ -202,6 +202,17 @@ simplifyTests =
         -- then
         expectedResult = "(x^(x--1))*(x+((x*x)*logx))"
       equal expectedResult result
+    test "ASSERT simplified f(x) = 1-((x/6)*(1-(x/20))) WHEN f(x) = 1-(x/6)*(1-(x/20))" do
+      let
+        -- given
+        rawExpression = "1-(x/6)*(1-(x/20))"
+
+        -- when
+        result = fromExpect $ parseAndSimplify rawExpression
+
+        -- then
+        expectedResult = "1-((x/6)*(1-(x/20)))"
+      equal expectedResult result
 
 parseAndSimplify :: String -> Expect Expression
 parseAndSimplify rawExpression = valueOrEvaluationError

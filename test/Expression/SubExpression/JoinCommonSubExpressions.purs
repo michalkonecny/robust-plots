@@ -87,6 +87,17 @@ joinCommonSubExpressionsTests =
         -- then
         expectedResult = "let $v2 = x+x in let $v4 = $v2+$v2 in let $v1 = sin$v4 in let $v3 = $v1+$v2 in $v3+$v1"
       equal expectedResult result
+    test "ASSERT f(x) = let $v4 = x/6 in let $v5 = x/20 in let $v2 = 1-$v5 in let $v1 = 1-$v3 in $v4*$v2 WHEN f(x) = 1-(x/6)*(1-(x/20))" do
+      let
+        -- given
+        rawExpression = "1-(x/6)*(1-(x/20))"
+
+        -- when
+        result = fromExpect $ parseAndJoinCommonSubExpressions rawExpression
+
+        -- then
+        expectedResult = "let $v4 = x/6 in let $v5 = x/20 in let $v2 = 1-$v5 in let $v1 = 1-$v3 in $v4*$v2"
+      equal expectedResult result
     test "ASSERT yeilds the same result WHEN f(x) = sin((x+x)+(x+x))+(x+x)+sin((x+x)+(x+x)) WHERE x = n FOR ANY integer n" $ quickCheck
       $ \(n :: Int) -> do
           let
