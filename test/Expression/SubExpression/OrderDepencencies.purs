@@ -25,7 +25,7 @@ orderDepencenciesTests =
 
         expectedValues = "[\"$v1\",\"$v2\"]"
       -- when
-      expectValue (parseAndOrderDependencies rawExpression (orderDepencencies <<< substituteSubExpressions <<< subExpressionToVariableMap <<< splitSubExpressions))
+      expectValue (parseAndOrderDependencies rawExpression pipeline)
         $ \subExpressions -> do
             -- then
             equal expectedKeys (show $ map fst subExpressions)
@@ -39,11 +39,42 @@ orderDepencenciesTests =
 
         expectedValues = "[\"$v1\",\"$v2\",\"$v3\"]"
       -- when
-      expectValue (parseAndOrderDependencies rawExpression (orderDepencencies <<< substituteSubExpressions <<< subExpressionToVariableMap <<< splitSubExpressions))
+      expectValue (parseAndOrderDependencies rawExpression pipeline)
         $ \subExpressions -> do
             -- then
             equal expectedKeys (show $ map fst subExpressions)
             equal expectedValues (show $ map snd subExpressions)
+    test "ASSERT order sub expression dependencies WHEN f(x) = 1-(x/20)" do
+      let
+        -- given
+        rawExpression = "1-(x/20)"
+
+        expectedKeys = "[x/20,1-$v2]"
+
+        expectedValues = "[\"$v2\",\"$v1\"]"
+      -- when
+      expectValue (parseAndOrderDependencies rawExpression pipeline)
+        $ \subExpressions -> do
+            -- then
+            equal expectedKeys (show $ map fst subExpressions)
+            equal expectedValues (show $ map snd subExpressions)
+    test "ASSERT order sub expression dependencies WHEN f(x) = 1-(x/6)*(1-(x/20))" do
+      let
+        -- given
+        rawExpression = "1-(x/6)*(1-(x/20))"
+
+        expectedKeys = "[x/6,x/20,1-$v5,$v4*$v2,1-$v3]"
+
+        expectedValues = "[\"$v4\",\"$v5\",\"$v2\",\"$v3\",\"$v1\"]"
+      -- when
+      expectValue (parseAndOrderDependencies rawExpression pipeline)
+        $ \subExpressions -> do
+            -- then
+            equal expectedKeys (show $ map fst subExpressions)
+            equal expectedValues (show $ map snd subExpressions)
+
+pipeline :: Expression -> Array (Tuple Expression VariableName)
+pipeline = orderDepencencies <<< substituteSubExpressions <<< subExpressionToVariableMap <<< splitSubExpressions
 
 parseAndOrderDependencies :: String -> (Expression -> Array (Tuple Expression VariableName)) -> Expect (Array (Tuple Expression VariableName))
 parseAndOrderDependencies rawExpression op = case parse rawExpression of
