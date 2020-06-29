@@ -1,11 +1,9 @@
 module Plot.RobustPlot where
 
 import Prelude
-import Data.Array (length, tail, zipWith, (..))
+import Data.Array (catMaybes, tail, zipWith, (..))
 import Data.Either (Either(..))
-import Data.Foldable (sum)
-import Data.Int (toNumber)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Number (isFinite)
 import Data.Tuple (Tuple(..))
 import Draw.Actions (drawEnclosure)
@@ -14,7 +12,7 @@ import Expression.Evaluator (evaluate)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, boundsNumber, fromRationalBoundsPrec)
 import IntervalArith.Misc (Rational, rationalToNumber, toRational)
-import Types (Polygon, Position, Size, XYBounds, Bounds)
+import Types (Bounds, Polygon, Size, XYBounds)
 
 drawRobustPlot :: Int -> Size -> Bounds -> XYBounds -> Expression -> String -> DrawCommand Unit
 drawRobustPlot segmentCount canvasSize fullXBounds bounds expression label = drawCommands
@@ -25,16 +23,16 @@ drawRobustPlot segmentCount canvasSize fullXBounds bounds expression label = dra
 
   drawCommands = drawPlot segmentEnclosures
 
-evaluateWithX :: Expression -> Approx -> Approx
+evaluateWithX :: Expression -> Approx -> Maybe Approx
 evaluateWithX expression x = value
   where
   variableMap = [ Tuple "x" x ]
 
   value = case evaluate variableMap expression of
-    Left _ -> zero -- TODO Handle any evaluation erros 
-    Right v -> v
+    Left _ -> Nothing
+    Right v -> Just v
 
-plotEnclosures :: Int -> Size -> Bounds -> XYBounds -> (Approx -> Approx) -> Array Polygon
+plotEnclosures :: Int -> Size -> Bounds -> XYBounds -> (Approx -> Maybe Approx) -> Array (Maybe Polygon)
 plotEnclosures segmentCount canvasSize fullXBounds bounds f = segmentEnclosures
   where
   rangeX = bounds.xBounds.upper - bounds.xBounds.lower
@@ -63,31 +61,33 @@ plotEnclosures segmentCount canvasSize fullXBounds bounds f = segmentEnclosures
   toDomainX :: Rational -> Rational
   toDomainX segmentX = (segmentX * segmentWidth) + bounds.xBounds.lower
 
-  applyExpression :: Rational -> Rational -> Tuple Number Number
-  applyExpression xLower xUpper = boundsNumber $ f $ fromRationalBoundsPrec 50 xLower xUpper
+  applyExpression :: Rational -> Rational -> Maybe (Tuple Number Number)
+  applyExpression xLower xUpper = case f $ fromRationalBoundsPrec 50 xLower xUpper of
+    Nothing -> Nothing
+    Just approxValue -> Just $ boundsNumber approxValue
 
-  toCanvasEnclosure :: Tuple Rational Rational -> Polygon
-  toCanvasEnclosure (Tuple xLower xUpper) = polygon
-    where
-    (Tuple yLower yUpper) = applyExpression xLower xUpper
+  toCanvasEnclosure :: Tuple Rational Rational -> Maybe Polygon
+  toCanvasEnclosure (Tuple xLower xUpper) = case applyExpression xLower xUpper of
+    Nothing -> Nothing
+    Just (Tuple yLower yUpper) -> Just polygon
+      where
+      canvasXLower = toCanvasX xLower
 
-    canvasXLower = toCanvasX xLower
+      canvasXUpper = toCanvasX xUpper
 
-    canvasXUpper = toCanvasX xUpper
+      canvasYLower = toCanvasY yLower
 
-    canvasYLower = toCanvasY yLower
+      canvasYUpper = toCanvasY yUpper
 
-    canvasYUpper = toCanvasY yUpper
+      a = { x: canvasXLower, y: canvasYUpper }
 
-    a = { x: canvasXLower, y: canvasYUpper }
+      b = { x: canvasXUpper, y: canvasYUpper }
 
-    b = { x: canvasXUpper, y: canvasYUpper }
+      c = { x: canvasXUpper, y: canvasYLower }
 
-    c = { x: canvasXUpper, y: canvasYLower }
+      d = { x: canvasXLower, y: canvasYLower }
 
-    d = { x: canvasXLower, y: canvasYLower }
-
-    polygon = [ a, b, c, d, a ]
+      polygon = [ a, b, c, d, a ]
 
   toCanvasX :: Rational -> Number
   toCanvasX x = rationalToNumber $ ((x - fullXBounds.lower) * canvasSize.width) / fullRangeX
@@ -99,12 +99,5 @@ plotEnclosures segmentCount canvasSize fullXBounds bounds f = segmentEnclosures
 
     safeCanvasY = if isFinite canvasY then canvasY else if canvasY < zero then canvasHeight + one else -one
 
-drawPlot :: Array Polygon -> DrawCommand Unit
-drawPlot ploygons = drawEnclosure true ploygons
-
-toPosition :: Polygon -> Position
-toPosition polygon = { x, y }
-  where
-  x = (sum $ map (\p -> p.x) polygon) / (toNumber $ length polygon)
-
-  y = (sum $ map (\p -> p.y) polygon) / (toNumber $ length polygon)
+drawPlot :: Array (Maybe Polygon) -> DrawCommand Unit
+drawPlot = (drawEnclosure true) <<< catMaybes

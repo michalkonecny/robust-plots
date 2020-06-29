@@ -1,6 +1,7 @@
 module Expression.SubExpression where
 
 import Prelude
+
 import Data.Array (elem, foldr, fromFoldable, null, unsnoc)
 import Data.Map (Map, filterKeys, lookup, toUnfoldable, values)
 import Data.Maybe (Maybe(..))
@@ -53,7 +54,7 @@ orderDepencencies subExpressions = orderDepencenciesWithMap [] subExpressions
       if null newExtractedValueArray then
         toUnfoldable remaining
       else
-        orderDepencenciesWithMap newExtractedValueArray newRemaining
+        orderDepencenciesWithMap (extracted <> newExtractedValueArray) newRemaining
 
     canExtractExpression :: Expression -> Boolean
     canExtractExpression (ExpressionUnary _ expression) = canExtract expression

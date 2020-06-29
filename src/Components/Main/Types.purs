@@ -1,11 +1,10 @@
 module Components.Main.Types where
 
 import Prelude
-
 import Components.BatchInput (BatchInputSlot)
 import Components.BoundsInput (BoundsInputSlot)
 import Components.Canvas (CanvasSlot, Input)
-import Components.ExpressionInput (ExpressionInputSlot)
+import Components.ExpressionInput (ExpressionInputSlot, Status)
 import Data.Maybe (Maybe)
 import Draw.Commands (DrawCommand)
 import Expression.Syntax (Expression)
@@ -16,9 +15,7 @@ type State
   = { input :: Input (DrawCommand Unit)
     , bounds :: XYBounds
     , plots :: Array ExpressionPlot
-    , commandSetId :: Int
     , clearPlot :: DrawCommand Unit
-    , queue :: JobQueue
     , batchCount :: Int
     , segmentCount :: Int
     }
@@ -26,8 +23,11 @@ type State
 type ExpressionPlot
   = { expression :: Maybe Expression
     , expressionText :: String
-    , drawCommands :: DrawCommand Unit
+    , robustDrawCommands :: DrawCommand Unit
+    , roughDrawCommands :: DrawCommand Unit
     , id :: Int
+    , queue :: JobQueue
+    , status :: Status
     }
 
 type ChildSlots

@@ -380,6 +380,21 @@ roughEvaluateTests =
         -- then
         expectedResult = show 0.5
       equal expectedResult result
+    test "ASSERT f(x) = 0.5 WHEN f(x) = 1-(x/6)*(1-(x/20)) AND x = 0.0" do
+      let
+        -- given
+        x = 0.0
+
+        variables = [ (Tuple "x" x) ] <> presetConstants
+
+        rawExpression = "1-(x/6)*(1-(x/20))"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate variables rawExpression
+
+        -- then
+        expectedResult = show 1.0
+      equal expectedResult result
     test "SHOULD throw error 'Unknown value: x' WHEN f(x) = 1 / (1 + (100 * (x ^ 2))) AND x is undefined" do
       let
         -- given

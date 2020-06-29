@@ -22,7 +22,6 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import IntervalArith.Misc (toRational)
-import Plot.JobBatcher (initialJobQueue)
 import Types (Direction(..))
 
 _canvas = SProxy :: SProxy "canvas"
@@ -60,9 +59,7 @@ mainComponent =
     , plots:
         [ newPlot 1
         ]
-    , commandSetId: 0
     , clearPlot: pure unit
-    , queue: initialJobQueue
     , batchCount: 5
     , segmentCount : 10
     }
@@ -106,7 +103,7 @@ mainComponent =
         , HH.slot _canvas 1 (canvasComponent canvasController) state.input (Just <<< HandleCanvas)
         ]
     where
-    inputs = map (\plot -> HH.slot _expressionInput plot.id (expressionInputComponent expressionInputController plot.id) plot.expressionText (Just <<< HandleExpressionInput)) state.plots
+    inputs = map (\plot -> HH.slot _expressionInput plot.id (expressionInputComponent expressionInputController plot.id) (Tuple plot.expressionText plot.status ) (Just <<< HandleExpressionInput)) state.plots
 
 toActionEvent :: forall a. Action -> a -> Maybe Action
 toActionEvent action _ = Just action

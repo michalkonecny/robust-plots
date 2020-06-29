@@ -5,8 +5,6 @@ module Plot.JobBatcher
   , cancelAll
   , addPlot
   , initialJobQueue
-  , cancelWithBatchId
-  , addManyPlots
   , hasJobs
   , runFirst
   , setRunning
@@ -19,7 +17,6 @@ import Data.Array (elem, foldl, foldr, tail, zipWith, (..))
 import Data.Foldable (class Foldable)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Set (Set, empty, insert) as S
-import Data.Tuple (Tuple(..))
 import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff)
 import Effect.Exception.Unsafe (unsafeThrow)
@@ -27,7 +24,7 @@ import Expression.Syntax (Expression)
 import IntervalArith.Misc (Rational, toRational)
 import Plot.Commands (PlotCommand(..))
 import Plot.PlotController (computePlotAsync)
-import Plot.Queue (Queue, empty, null, partition, peek, push, tail, toList) as Q
+import Plot.Queue (Queue, empty, null, peek, push, tail, toList) as Q
 import Types (Id, Size, XYBounds, Bounds)
 
 type JobQueue
@@ -76,30 +73,6 @@ cancelAll :: JobQueue -> JobQueue
 cancelAll jobQueue = cancelRunning $ jobQueue { cancelled = cancelled, queue = Q.empty }
   where
   cancelled = insertAll (_.id) (Q.toList jobQueue.queue) jobQueue.cancelled
-
--- | Adds all the `Job`s that are currently pending, with the given `batchId`, to the set of cancelled `Job`s. If there is a `Job` running then that is canclled also.
--- |
--- | Running time: `O(n)`
-cancelWithBatchId :: JobQueue -> Id -> JobQueue
-cancelWithBatchId jobQueue batchId = newQueue
-  where
-  hasBatchId :: Job -> Boolean
-  hasBatchId job = job.batchId == batchId
-
-  { no: active, yes: cancelledJobs } = Q.partition hasBatchId jobQueue.queue
-
-  cancelledActive = jobQueue { cancelled = insertAll (_.id) (Q.toList cancelledJobs) jobQueue.cancelled, queue = active }
-
-  newQueue = if isRunning hasBatchId jobQueue then cancelRunning $ cancelledActive else cancelledActive
-
--- | Adds a collection of `PlotCommand`s, with their associated `batchId` to the `Job` queue using `addPlot`.
--- |
--- | Running time: `O(n * batchSegmentCount * (batchSegmentCount - 1))`
-addManyPlots :: Int -> JobQueue -> Array (Tuple PlotCommand Id) -> JobQueue
-addManyPlots batchSegmentCount jobQueue plots = foldl foldIntoJob jobQueue plots
-  where
-  foldIntoJob :: JobQueue -> Tuple PlotCommand Id -> JobQueue
-  foldIntoJob queue (Tuple command batchId) = addPlot batchSegmentCount queue command batchId
 
 -- | Adds a `PlotCommand`, with its associated `batchId` to the `Job` queue.
 -- |
