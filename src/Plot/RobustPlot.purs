@@ -12,8 +12,7 @@ import Expression.Differentiator (differentiate)
 import Expression.Evaluator (evaluate)
 import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
-import IntervalArith.Approx (Approx, boundsR, fromRationalBoundsPrec, fromRationalPrec)
-import IntervalArith.Extended (Extended(..))
+import IntervalArith.Approx (Approx, boundsA, fromRationalBoundsPrec, fromRationalPrec, toNumber)
 import IntervalArith.Misc (Rational, rationalToNumber, toRational, two)
 import Types (Bounds, Polygon, Size, XYBounds)
 
@@ -75,19 +74,19 @@ plotEnclosures segmentCount canvasSize fullXBounds bounds f f' = segmentEnclosur
         Nothing -> Nothing
         Just approxGradient -> Just polygon
           where
-          (Tuple yLower yUpper) = boundsR approxValue
+          (Tuple yLower yUpper) = boundsA approxValue
 
-          (Tuple yMidLower yMidUpper) = boundsR midApproxValue
+          (Tuple yMidLower yMidUpper) = boundsA midApproxValue
 
-          (Tuple yLowerGradient yUpperGradient) = boundsR approxGradient
+          (Tuple yLowerGradient yUpperGradient) = boundsA approxGradient
 
-          a = { x: canvasXLower, y: toCanvasY $ yMidLower - ((w * yUpperGradient) / (pure two)) }
+          a = { x: canvasXLower, y: toCanvasY $ yMidLower - ((w * yUpperGradient) / twoA) }
 
-          b = { x: canvasXLower, y: toCanvasY $ yMidUpper - ((w * yLowerGradient) / (pure two)) }
+          b = { x: canvasXLower, y: toCanvasY $ yMidUpper - ((w * yLowerGradient) / twoA) }
 
-          c = { x: canvasXUpper, y: toCanvasY $ yMidUpper + ((w * yUpperGradient) / (pure two)) }
+          c = { x: canvasXUpper, y: toCanvasY $ yMidUpper + ((w * yUpperGradient) / twoA) }
 
-          d = { x: canvasXUpper, y: toCanvasY $ yMidLower + ((w * yLowerGradient) / (pure two)) }
+          d = { x: canvasXUpper, y: toCanvasY $ yMidLower + ((w * yLowerGradient) / twoA) }
 
           polygon = [ a, b, c, d, a ]
     where
@@ -95,7 +94,9 @@ plotEnclosures segmentCount canvasSize fullXBounds bounds f f' = segmentEnclosur
 
     xMid = fromRationalPrec 50 $ (xLower + xUpper) / two
 
-    w = pure $ xUpper - xLower
+    w = fromRationalPrec 50 $ xUpper - xLower
+
+    twoA = fromRationalPrec 50 $ two
 
     canvasXLower = toCanvasX xLower
 
@@ -104,18 +105,14 @@ plotEnclosures segmentCount canvasSize fullXBounds bounds f f' = segmentEnclosur
   toCanvasX :: Rational -> Number
   toCanvasX x = rationalToNumber $ ((x - fullXBounds.lower) * canvasSize.width) / fullRangeX
 
-  toCanvasY :: Extended Rational -> Number
-  toCanvasY (Finite yRational) = safeCanvasY
+  toCanvasY :: Approx -> Number
+  toCanvasY yApprox = safeCanvasY
     where
-    y = rationalToNumber yRational
+    y = toNumber yApprox
 
     canvasY = canvasHeight - (((y - yLowerBound) * canvasHeight) / rangeY)
 
     safeCanvasY = if isFinite canvasY then canvasY else if canvasY < zero then canvasHeight + one else -one
-
-  toCanvasY PosInf = -one
-
-  toCanvasY NegInf = canvasHeight + one
 
 drawPlot :: Array (Maybe Polygon) -> DrawCommand Unit
 drawPlot = (drawEnclosure true) <<< catMaybes
