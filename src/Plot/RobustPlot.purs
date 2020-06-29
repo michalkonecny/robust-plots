@@ -68,7 +68,7 @@ plotEnclosures segmentCount canvasSize fullXBounds bounds f f' = segmentEnclosur
   toCanvasEnclosure :: Tuple Rational Rational -> Maybe Polygon
   toCanvasEnclosure (Tuple xLower xUpper) = case f x of
     Nothing -> Nothing
-    Just approxValue -> case f xMid of
+    Just approxValue -> case f xMidPoint of
       Nothing -> Nothing
       Just midApproxValue -> case f' x of
         Nothing -> Nothing
@@ -80,21 +80,21 @@ plotEnclosures segmentCount canvasSize fullXBounds bounds f f' = segmentEnclosur
 
           (Tuple yLowerGradient yUpperGradient) = boundsA approxGradient
 
-          a = { x: canvasXLower, y: toCanvasY $ yMidLower - ((w * yUpperGradient) / twoA) }
+          a = { x: canvasXLower, y: toCanvasY $ yMidLower - ((enclosureWidth * yUpperGradient) / twoA) }
 
-          b = { x: canvasXLower, y: toCanvasY $ yMidUpper - ((w * yLowerGradient) / twoA) }
+          b = { x: canvasXLower, y: toCanvasY $ yMidUpper - ((enclosureWidth * yLowerGradient) / twoA) }
 
-          c = { x: canvasXUpper, y: toCanvasY $ yMidUpper + ((w * yUpperGradient) / twoA) }
+          c = { x: canvasXUpper, y: toCanvasY $ yMidUpper + ((enclosureWidth * yUpperGradient) / twoA) }
 
-          d = { x: canvasXUpper, y: toCanvasY $ yMidLower + ((w * yLowerGradient) / twoA) }
+          d = { x: canvasXUpper, y: toCanvasY $ yMidLower + ((enclosureWidth * yLowerGradient) / twoA) }
 
           polygon = [ a, b, c, d, a ]
     where
     x = fromRationalBoundsPrec 50 xLower xUpper
 
-    xMid = fromRationalPrec 50 $ (xLower + xUpper) / two
+    xMidPoint = fromRationalPrec 50 $ (xLower + xUpper) / two
 
-    w = fromRationalPrec 50 $ xUpper - xLower
+    enclosureWidth = fromRationalPrec 50 $ xUpper - xLower
 
     twoA = fromRationalPrec 50 $ two
 
