@@ -8,11 +8,13 @@ import Data.Number (isFinite)
 import Data.Tuple (Tuple(..))
 import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
+import Effect.Exception.Unsafe (unsafeThrow)
 import Expression.Differentiator (differentiate)
 import Expression.Evaluator (evaluate)
 import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
-import IntervalArith.Approx (Approx, boundsNumber, fromRationalBoundsPrec)
+import IntervalArith.Approx (Approx, boundsR, fromRationalBoundsPrec, fromRationalPrec)
+import IntervalArith.Extended (Extended(..))
 import IntervalArith.Misc (Rational, rationalToNumber, toRational, two)
 import Types (Bounds, Polygon, Size, XYBounds)
 
@@ -68,50 +70,53 @@ plotEnclosures segmentCount canvasSize fullXBounds bounds f f' = segmentEnclosur
   toCanvasEnclosure :: Tuple Rational Rational -> Maybe Polygon
   toCanvasEnclosure (Tuple xLower xUpper) = case f x of
     Nothing -> Nothing
-    Just approxValue -> case f $ fromRationalPrec xMid of
+    Just approxValue -> case f xMid of
       Nothing -> Nothing
       Just midApproxValue -> case f' x of
         Nothing -> Nothing
         Just approxGradient -> Just polygon
           where
-          (Tuple yLower yUpper) = boundsNumber approxValue
+          (Tuple yLower yUpper) = boundsR approxValue
 
-          (Tuple yMidLower yMidUpper) = boundsNumber midApproxValue
+          (Tuple yMidLower yMidUpper) = boundsR midApproxValue
 
-          (Tuple yLowerGradient yUpperGradient) = boundsNumber approxGradient
+          (Tuple yLowerGradient yUpperGradient) = boundsR approxGradient
 
-          bottomLeft = { x: canvasXLower, y: toCanvasY $ yMidLower - ((w * yLowerGradient) / 2.0) }
+          a = { x: canvasXLower, y: toCanvasY $ yMidLower - ((w * yUpperGradient) / (pure two)) }
 
-          topLeft = { x: canvasXLower, y: toCanvasY $ yMidUpper - ((w * yUpperGradient) / 2.0) }
+          b = { x: canvasXLower, y: toCanvasY $ yMidUpper - ((w * yLowerGradient) / (pure two)) }
 
-          topRight = { x: canvasXUpper, y: toCanvasY $ yMidUpper + ((w * yLowerGradient) / 2.0) }
+          c = { x: canvasXUpper, y: toCanvasY $ yMidUpper + ((w * yUpperGradient) / (pure two)) }
 
-          bottomRight = { x: canvasXUpper, y: toCanvasY $ yMidLower + ((w * yUpperGradient) / 2.0) }
+          d = { x: canvasXUpper, y: toCanvasY $ yMidLower + ((w * yLowerGradient) / (pure two)) }
 
-          polygon = [ bottomLeft, topLeft, topRight, bottomRight, bottomLeft ]
+          polygon = [ a, b, c, d, a ]
     where
     x = fromRationalBoundsPrec 50 xLower xUpper
 
-    xMid = (xLower + xUpper) / two
+    xMid = fromRationalPrec 50 $ (xLower + xUpper) / two
 
-    w = rationalToNumber $ (xUpper - xLower) / two
+    w = pure $ (xUpper - xLower) / two
 
     canvasXLower = toCanvasX xLower
 
     canvasXUpper = toCanvasX xUpper
 
-  fromRationalPrec :: Rational -> Approx
-  fromRationalPrec a = fromRationalBoundsPrec 50 a a
-
   toCanvasX :: Rational -> Number
   toCanvasX x = rationalToNumber $ ((x - fullXBounds.lower) * canvasSize.width) / fullRangeX
 
-  toCanvasY :: Number -> Number
-  toCanvasY y = safeCanvasY
+  toCanvasY :: Extended Rational -> Number
+  toCanvasY (Finite yRational) = safeCanvasY
     where
+    y = rationalToNumber yRational
+
     canvasY = canvasHeight - (((y - yLowerBound) * canvasHeight) / rangeY)
 
     safeCanvasY = if isFinite canvasY then canvasY else if canvasY < zero then canvasHeight + one else -one
+
+  toCanvasY PosInf = -one
+
+  toCanvasY NegInf = canvasHeight + one
 
 drawPlot :: Array (Maybe Polygon) -> DrawCommand Unit
 drawPlot = (drawEnclosure true) <<< catMaybes

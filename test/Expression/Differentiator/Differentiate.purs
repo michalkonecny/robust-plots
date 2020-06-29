@@ -49,6 +49,17 @@ differentiateTests =
         -- then
         expectedResult = "2*x"
       equal expectedResult result
+    test "ASSERT f(x)' = x+x WHEN f(x) = x*x" do
+      let
+        -- given
+        rawExpression = "x*x"
+
+        -- when
+        result = fromExpect $ parseAndDifferentiate rawExpression
+
+        -- then
+        expectedResult = "x+x"
+      equal expectedResult result
     test "ASSERT f(x)' = 12*x WHEN f(x) = 6*(x^2)" do
       let
         -- given
