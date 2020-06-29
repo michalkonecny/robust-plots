@@ -66,11 +66,12 @@ instance semiringExtended :: (Ord a, Semiring a) => Semiring (Extended a) where
   mul a b = (*) <$> a <*> b
 
 instance euclideanRingExtended :: (Ord a, EuclideanRing a) => EuclideanRing (Extended a) where
-  degree (Finite v) = degree v
-  degree e = unsafeThrow $ "Undefined degree of non-finite value"
-  mod (Finite v1) (Finite v2) = Finite $ mod v1 v2
+  degree _ = 1
+  mod (Finite a) (Finite b) = Finite $ mod a b
   mod _ _ = unsafeThrow $ "Undefined modulus of non-finite value(s)"
-  div (Finite v1) (Finite v2) = Finite $ div v1 v2
+  div (Finite a) (Finite b) = Finite $ div a b
+  div PosInf b = if b < zero then NegInf else PosInf
+  div NegInf b = if b < zero then PosInf else NegInf
   div _ _ = unsafeThrow $ "Undefined division of non-finite value(s)"
 
 instance ringExtended :: (Ord a, Ring a) => Ring (Extended a) where
