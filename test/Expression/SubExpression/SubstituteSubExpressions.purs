@@ -24,7 +24,7 @@ substituteSubExpressionsTests =
         -- given
         rawExpression = "sin(x)+sin(x)"
 
-        expectedKeys = "[sinx,$v1+$v1]"
+        expectedKeys = "[sin(x),$v1+$v1]"
         expectedValues = "[\"$v1\",\"$v2\"]"
       -- when
       expectValue (parseAndSubstituteSubExpressions rawExpression (substituteSubExpressions <<< subExpressionToVariableMap <<< splitSubExpressions))
@@ -37,7 +37,7 @@ substituteSubExpressionsTests =
         -- given
         rawExpression = "sin(sin(x))+sin(x)"
 
-        expectedKeys = "[sin$v1,sinx,$v2+$v1]"
+        expectedKeys = "[sin($v1),sin(x),$v2+$v1]"
         expectedValues = "[\"$v2\",\"$v1\",\"$v3\"]"
       -- when
       expectValue (parseAndSubstituteSubExpressions rawExpression (substituteSubExpressions <<< subExpressionToVariableMap <<< splitSubExpressions))

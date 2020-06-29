@@ -21,7 +21,7 @@ orderDepencenciesTests =
         -- given
         rawExpression = "sin(x)+sin(x)"
 
-        expectedKeys = "[sinx,$v1+$v1]"
+        expectedKeys = "[sin(x),$v1+$v1]"
 
         expectedValues = "[\"$v1\",\"$v2\"]"
       -- when
@@ -35,7 +35,7 @@ orderDepencenciesTests =
         -- given
         rawExpression = "sin(sin(x))+sin(x)"
 
-        expectedKeys = "[sinx,sin$v1,$v2+$v1]"
+        expectedKeys = "[sin(x),sin($v1),$v2+$v1]"
 
         expectedValues = "[\"$v1\",\"$v2\",\"$v3\"]"
       -- when

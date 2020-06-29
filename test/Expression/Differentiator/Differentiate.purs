@@ -71,7 +71,7 @@ differentiateTests =
         -- then
         expectedResult = "12*x"
       equal expectedResult result
-    test "ASSERT f(x)' = (x^(x--1))*((x)+((x*x)*(logx))) WHEN f(x) = x^x" do
+    test "ASSERT f(x)' = (x^(x--1))*(x+((x*x)*(log(x)))) WHEN f(x) = x^x" do
       let
         -- given
         rawExpression = "x^x"
@@ -80,7 +80,7 @@ differentiateTests =
         result = fromExpect $ parseAndDifferentiate rawExpression
 
         -- then
-        expectedResult = "(x^(x--1))*(x+((x*x)*(logx)))"
+        expectedResult = "(x^(x--1))*(x+((x*x)*(log(x))))"
       equal expectedResult result
     test "ASSERT f(x)' = (-1)/(x^2) WHEN f(x) = 1/x" do
       let
