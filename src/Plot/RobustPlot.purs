@@ -96,7 +96,7 @@ plotEnclosures segmentCount canvasSize fullXBounds bounds f f' = segmentEnclosur
 
     xMid = fromRationalPrec 50 $ (xLower + xUpper) / two
 
-    w = pure $ (xUpper - xLower) / two
+    w = pure $ xUpper - xLower
 
     canvasXLower = toCanvasX xLower
 
