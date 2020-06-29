@@ -9,6 +9,7 @@ import Components.Main.Helper (alterPlot, anyPlotHasJobs, clearAllCancelled, fol
 import Components.Main.Types (ChildSlots, Config, State, ExpressionPlot)
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.Trans.Class (lift)
+import Control.Parallel (parSequence)
 import Data.Array (length)
 import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff, Milliseconds(..), delay)
@@ -146,7 +147,17 @@ redrawWithBounds state newBounds = do
 
 redrawWithoutRobustWithBounds :: forall output. State -> XYBounds -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 redrawWithoutRobustWithBounds state newBounds = do
-  plots <- lift $ lift $ clearAddPlotCommands state.batchCount state.segmentCount state.input.size newBounds state.plots
+  plots <- mapPlots clearAddDrawRough state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
   H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds })
   handleAction DrawPlot
+  where
+  mapPlots :: (ExpressionPlot -> Aff ExpressionPlot) -> Array ExpressionPlot -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) (Array ExpressionPlot)
+  mapPlots f = lift <<< lift <<< parSequence <<< (map f)
+
+  clearAddDrawRough :: ExpressionPlot -> Aff ExpressionPlot
+  clearAddDrawRough plot = case plot.expression of
+    Nothing -> pure plot
+    Just expression -> do
+      drawCommands <- computePlotAsync state.input.size $ roughPlot newBounds expression plot.expressionText
+      pure $ plot { queue = cancelAll plot.queue, roughDrawCommands = drawCommands, robustDrawCommands = pure unit }
