@@ -102,9 +102,9 @@ handleAction action = do
         handleJobResult maybeJobResult newState
       else
         H.modify_ (_ { plots = clearAllCancelled state.plots })
-    HandleBatchInput (UpdatedBatchInput batchCount segmentCount) -> do
-      H.modify_ (_ { batchCount = batchCount, segmentCount = segmentCount })
-      redraw state { batchCount = batchCount, segmentCount = segmentCount }
+    HandleBatchInput (UpdatedBatchInput segmentCount) -> do
+      H.modify_ (_ { segmentCount = segmentCount })
+      redraw state { segmentCount = segmentCount }
 
 handleJobResult :: forall output. Maybe JobResult -> State -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 handleJobResult Nothing _ = pure unit
