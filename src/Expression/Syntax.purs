@@ -66,8 +66,8 @@ derive instance expressionOrd :: Ord Expression
 instance expressionShow :: Show Expression where
   show (ExpressionVariable name) = name
   show (ExpressionLiteral value) = showLiteral value
-  show (ExpressionUnary unaryOperation expression) = (show unaryOperation) <> (showNestedExpression expression)
-  show (ExpressionBinary binaryOperation leftExpression rightExpression) = (showNestedExpression leftExpression) <> (show binaryOperation) <> (showNestedExpression rightExpression)
+  show (ExpressionUnary unaryOperation expression) = showUnaryExpression unaryOperation expression
+  show (ExpressionBinary binaryOperation leftExpression rightExpression) = (showNestedBinaryExpression leftExpression) <> (show binaryOperation) <> (showNestedBinaryExpression rightExpression)
   show (ExpressionLet name expression parentExpression) = "let " <> name <> " = " <> (show expression) <> " in " <> (show parentExpression)
 
 showLiteral :: Rational -> String
@@ -83,9 +83,16 @@ showLiteral value =
 
   isInteger = numberValue == toNumber integerValue
 
-showNestedExpression :: Expression -> String
-showNestedExpression (ExpressionVariable name) = show $ ExpressionVariable name
+showUnaryExpression :: UnaryOperation -> Expression -> String
+showUnaryExpression Neg expression@(ExpressionVariable name) = (show Neg) <> (show expression)
+showUnaryExpression Neg expression@(ExpressionLiteral value) = (show Neg) <> (show expression)
+showUnaryExpression Exp expression@(ExpressionVariable name) = (show Exp) <> (show expression)
+showUnaryExpression Exp expression@(ExpressionLiteral value) = (show Exp) <> (show expression)
+showUnaryExpression unaryOperation expression = (show unaryOperation) <> "(" <> (show expression) <> ")"
 
-showNestedExpression (ExpressionLiteral value) = show $ ExpressionLiteral value
+showNestedBinaryExpression :: Expression -> String
+showNestedBinaryExpression (ExpressionVariable name) = show $ ExpressionVariable name
 
-showNestedExpression expression = "(" <> (show expression) <> ")"
+showNestedBinaryExpression (ExpressionLiteral value) = show $ ExpressionLiteral value
+
+showNestedBinaryExpression expression = "(" <> (show expression) <> ")"

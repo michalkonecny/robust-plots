@@ -21,7 +21,7 @@ import Test.Unit.QuickCheck (quickCheck)
 joinCommonSubExpressionsTests :: TestSuite
 joinCommonSubExpressionsTests =
   suite "Expression.SubExpression - joinCommonSubExpressions" do
-    test "ASSERT f(x) = let $v1 = sinx in let $v2 = sin$v1 in let $v3 = sin$v2 in let $v4 = $v3+$v2 in $v4+$v1 WHEN f(x) = sin(sin(sin(x))) + sin(sin(x)) + sin(x)" do
+    test "ASSERT f(x) = let $v1 = sin(x) in let $v2 = sin($v1) in let $v3 = sin($v2) in let $v4 = $v3+$v2 in $v4+$v1 WHEN f(x) = sin(sin(sin(x))) + sin(sin(x)) + sin(x)" do
       let
         -- given
         rawExpression = "sin(sin(sin(x))) + sin(sin(x)) + sin(x)"
@@ -30,9 +30,9 @@ joinCommonSubExpressionsTests =
         result = fromExpect $ parseAndJoinCommonSubExpressions rawExpression
 
         -- then
-        expectedResult = "let $v1 = sinx in let $v2 = sin$v1 in let $v3 = sin$v2 in let $v4 = $v3+$v2 in $v4+$v1"
+        expectedResult = "let $v1 = sin(x) in let $v2 = sin($v1) in let $v3 = sin($v2) in let $v4 = $v3+$v2 in $v4+$v1"
       equal expectedResult result
-    test "ASSERT f(x) = let $v1 = sinx in let $v2 = sin$v1 in $v2+$v1 WHEN f(x) = sin(sin(x)) + sin(x)" do
+    test "ASSERT f(x) = let $v1 = sin(x) in let $v2 = sin($v1) in $v2+$v1 WHEN f(x) = sin(sin(x)) + sin(x)" do
       let
         -- given
         rawExpression = "sin(sin(x)) + sin(x)"
@@ -41,7 +41,7 @@ joinCommonSubExpressionsTests =
         result = fromExpect $ parseAndJoinCommonSubExpressions rawExpression
 
         -- then
-        expectedResult = "let $v1 = sinx in let $v2 = sin$v1 in $v2+$v1"
+        expectedResult = "let $v1 = sin(x) in let $v2 = sin($v1) in $v2+$v1"
       equal expectedResult result
     test "ASSERT f(x) = x WHEN f(x) = x" do
       let
@@ -76,7 +76,7 @@ joinCommonSubExpressionsTests =
         -- then
         expectedResult = "let $v1 = x+x in $v1+$v1"
       equal expectedResult result
-    test "ASSERT f(x) = let $v2 = x+x in let $v4 = $v2+$v2 in let $v1 = sin$v4 in let $v3 = $v1+$v2 in $v3+$v1 WHEN f(x) = sin((x+x)+(x+x))+(x+x)+sin((x+x)+(x+x))" do
+    test "ASSERT f(x) = let $v2 = x+x in let $v4 = $v2+$v2 in let $v1 = sin($v4) in let $v3 = $v1+$v2 in $v3+$v1 WHEN f(x) = sin((x+x)+(x+x))+(x+x)+sin((x+x)+(x+x))" do
       let
         -- given
         rawExpression = "sin((x+x)+(x+x))+(x+x)+sin((x+x)+(x+x))"
@@ -85,7 +85,7 @@ joinCommonSubExpressionsTests =
         result = fromExpect $ parseAndJoinCommonSubExpressions rawExpression
 
         -- then
-        expectedResult = "let $v2 = x+x in let $v4 = $v2+$v2 in let $v1 = sin$v4 in let $v3 = $v1+$v2 in $v3+$v1"
+        expectedResult = "let $v2 = x+x in let $v4 = $v2+$v2 in let $v1 = sin($v4) in let $v3 = $v1+$v2 in $v3+$v1"
       equal expectedResult result
     test "ASSERT f(x) = let $v4 = x/6 in let $v5 = x/20 in let $v2 = 1-$v5 in let $v3 = $v4*$v2 in 1-$v3 WHEN f(x) = 1-(x/6)*(1-(x/20))" do
       let

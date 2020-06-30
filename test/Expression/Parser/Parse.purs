@@ -212,6 +212,83 @@ parseTests =
         -- then
         expectedResult = "Parse error: Unknown function: son"
       equal expectedResult result
+    test "SHOULD parse as 'sin(x)' WHEN input is 'sin(x)'" do
+      let
+        -- given
+        input = "sin(x)"
+
+        -- when
+        result = fromExpect $ parse input
+
+        -- then
+        expectedResult = "sin(x)"
+      equal expectedResult result
+    test "SHOULD parse as 'e^x' WHEN input is 'exp(x)'" do
+      let
+        -- given
+        input = "exp(x)"
+
+        -- when
+        result = fromExpect $ parse input
+
+        -- then
+        expectedResult = "e^x"
+      equal expectedResult result
+    test "SHOULD parse as 'e^5' WHEN input is 'exp(5)'" do
+      let
+        -- given
+        input = "exp(5)"
+
+        -- when
+        result = fromExpect $ parse input
+
+        -- then
+        expectedResult = "e^5"
+      equal expectedResult result
+    test "SHOULD parse as 'cos(x)' WHEN input is 'cos(x)'" do
+      let
+        -- given
+        input = "cos(x)"
+
+        -- when
+        result = fromExpect $ parse input
+
+        -- then
+        expectedResult = "cos(x)"
+      equal expectedResult result
+    test "SHOULD parse as 'tan(x)' WHEN input is 'tan(x)'" do
+      let
+        -- given
+        input = "tan(x)"
+
+        -- when
+        result = fromExpect $ parse input
+
+        -- then
+        expectedResult = "tan(x)"
+      equal expectedResult result
+    test "SHOULD parse as 'log(x)' WHEN input is 'log(x)'" do
+      let
+        -- given
+        input = "log(x)"
+
+        -- when
+        result = fromExpect $ parse input
+
+        -- then
+        expectedResult = "log(x)"
+      equal expectedResult result
+    test "SHOULD parse as 'sqrt(x)' WHEN input is 'sqrt(x)'" do
+      let
+        -- given
+        input = "sqrt(x)"
+
+        -- when
+        result = fromExpect $ parse input
+
+        -- then
+        expectedResult = "sqrt(x)"
+      equal expectedResult result
 
 fromExpect :: Expect Expression -> String
 fromExpect (Right expression) = show expression

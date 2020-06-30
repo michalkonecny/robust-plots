@@ -8,10 +8,12 @@ import Data.Number (isFinite)
 import Data.Tuple (Tuple(..))
 import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
+import Expression.Differentiator (differentiate)
 import Expression.Evaluator (evaluate)
+import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
-import IntervalArith.Approx (Approx, boundsNumber, fromRationalBoundsPrec)
-import IntervalArith.Misc (Rational, rationalToNumber, toRational)
+import IntervalArith.Approx (Approx, boundsA, fromRationalBoundsPrec, fromRationalPrec, toNumber)
+import IntervalArith.Misc (Rational, rationalToNumber, toRational, two)
 import Types (Bounds, Polygon, Size, XYBounds)
 
 drawRobustPlot :: Int -> Size -> Bounds -> XYBounds -> Expression -> String -> DrawCommand Unit
@@ -19,7 +21,9 @@ drawRobustPlot segmentCount canvasSize fullXBounds bounds expression label = dra
   where
   f = evaluateWithX expression
 
-  segmentEnclosures = plotEnclosures segmentCount canvasSize fullXBounds bounds f
+  f' = (evaluateWithX <<< simplify <<< differentiate) expression
+
+  segmentEnclosures = plotEnclosures segmentCount canvasSize fullXBounds bounds f f'
 
   drawCommands = drawPlot segmentEnclosures
 
@@ -32,8 +36,8 @@ evaluateWithX expression x = value
     Left _ -> Nothing
     Right v -> Just v
 
-plotEnclosures :: Int -> Size -> Bounds -> XYBounds -> (Approx -> Maybe Approx) -> Array (Maybe Polygon)
-plotEnclosures segmentCount canvasSize fullXBounds bounds f = segmentEnclosures
+plotEnclosures :: Int -> Size -> Bounds -> XYBounds -> (Approx -> Maybe Approx) -> (Approx -> Maybe Approx) -> Array (Maybe Polygon)
+plotEnclosures segmentCount canvasSize fullXBounds bounds f f' = segmentEnclosures
   where
   rangeX = bounds.xBounds.upper - bounds.xBounds.lower
 
@@ -61,40 +65,51 @@ plotEnclosures segmentCount canvasSize fullXBounds bounds f = segmentEnclosures
   toDomainX :: Rational -> Rational
   toDomainX segmentX = (segmentX * segmentWidth) + bounds.xBounds.lower
 
-  applyExpression :: Rational -> Rational -> Maybe (Tuple Number Number)
-  applyExpression xLower xUpper = case f $ fromRationalBoundsPrec 50 xLower xUpper of
-    Nothing -> Nothing
-    Just approxValue -> Just $ boundsNumber approxValue
-
   toCanvasEnclosure :: Tuple Rational Rational -> Maybe Polygon
-  toCanvasEnclosure (Tuple xLower xUpper) = case applyExpression xLower xUpper of
+  toCanvasEnclosure (Tuple xLower xUpper) = case f x of
     Nothing -> Nothing
-    Just (Tuple yLower yUpper) -> Just polygon
-      where
-      canvasXLower = toCanvasX xLower
+    Just approxValue -> case f xMidPoint of
+      Nothing -> Nothing
+      Just midApproxValue -> case f' x of
+        Nothing -> Nothing
+        Just approxGradient -> Just polygon
+          where
+          (Tuple yLower yUpper) = boundsA approxValue
 
-      canvasXUpper = toCanvasX xUpper
+          (Tuple yMidLower yMidUpper) = boundsA midApproxValue
 
-      canvasYLower = toCanvasY yLower
+          (Tuple yLowerGradient yUpperGradient) = boundsA approxGradient
 
-      canvasYUpper = toCanvasY yUpper
+          a = { x: canvasXLower, y: toCanvasY $ yMidLower - ((enclosureWidth * yUpperGradient) / twoA) }
 
-      a = { x: canvasXLower, y: canvasYUpper }
+          b = { x: canvasXLower, y: toCanvasY $ yMidUpper - ((enclosureWidth * yLowerGradient) / twoA) }
 
-      b = { x: canvasXUpper, y: canvasYUpper }
+          c = { x: canvasXUpper, y: toCanvasY $ yMidUpper + ((enclosureWidth * yUpperGradient) / twoA) }
 
-      c = { x: canvasXUpper, y: canvasYLower }
+          d = { x: canvasXUpper, y: toCanvasY $ yMidLower + ((enclosureWidth * yLowerGradient) / twoA) }
 
-      d = { x: canvasXLower, y: canvasYLower }
+          polygon = [ a, b, c, d, a ]
+    where
+    x = fromRationalBoundsPrec 50 xLower xUpper
 
-      polygon = [ a, b, c, d, a ]
+    xMidPoint = fromRationalPrec 50 $ (xLower + xUpper) / two
+
+    enclosureWidth = fromRationalPrec 50 $ xUpper - xLower
+
+    twoA = fromRationalPrec 50 $ two
+
+    canvasXLower = toCanvasX xLower
+
+    canvasXUpper = toCanvasX xUpper
 
   toCanvasX :: Rational -> Number
   toCanvasX x = rationalToNumber $ ((x - fullXBounds.lower) * canvasSize.width) / fullRangeX
 
-  toCanvasY :: Number -> Number
-  toCanvasY y = safeCanvasY
+  toCanvasY :: Approx -> Number
+  toCanvasY yApprox = safeCanvasY
     where
+    y = toNumber yApprox
+
     canvasY = canvasHeight - (((y - yLowerBound) * canvasHeight) / rangeY)
 
     safeCanvasY = if isFinite canvasY then canvasY else if canvasY < zero then canvasHeight + one else -one

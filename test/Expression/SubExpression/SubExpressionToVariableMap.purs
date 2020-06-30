@@ -24,7 +24,7 @@ subExpressionToVariableMapTests =
         -- given
         rawExpression = "sin(x)+sin(x)"
 
-        expectedKeys = "[sinx,(sinx)+(sinx)]"
+        expectedKeys = "[sin(x),(sin(x))+(sin(x))]"
         expectedValues = "[\"$v1\",\"$v2\"]"
       -- when
       expectValue (parseAndBuildSubExpresionMap rawExpression (subExpressionToVariableMap <<< splitSubExpressions))
@@ -37,7 +37,7 @@ subExpressionToVariableMapTests =
         -- given
         rawExpression = "sin(sin(x))+sin(x)"
 
-        expectedKeys = "[sinx,sin(sinx),(sin(sinx))+(sinx)]"
+        expectedKeys = "[sin(x),sin(sin(x)),(sin(sin(x)))+(sin(x))]"
         expectedValues = "[\"$v1\",\"$v2\",\"$v3\"]"
       -- when
       expectValue (parseAndBuildSubExpresionMap rawExpression (subExpressionToVariableMap <<< splitSubExpressions))

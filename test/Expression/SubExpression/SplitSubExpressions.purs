@@ -23,7 +23,7 @@ splitSubExpressionsTests =
         -- given
         rawExpression = "sin(x)+sin(x)"
 
-        expected = "[sinx,(sinx)+(sinx)]"
+        expected = "[sin(x),(sin(x))+(sin(x))]"
       -- when
       expectValue (parseAndSplitSubExpressions rawExpression splitSubExpressions)
         $ \subExpressions -> do
@@ -34,7 +34,7 @@ splitSubExpressionsTests =
         -- given
         rawExpression = "sin(sin(x))+sin(x)"
 
-        expected = "[sinx,sin(sinx),(sin(sinx))+(sinx)]"
+        expected = "[sin(x),sin(sin(x)),(sin(sin(x)))+(sin(x))]"
       -- when
       expectValue (parseAndSplitSubExpressions rawExpression splitSubExpressions)
         $ \subExpressions -> do

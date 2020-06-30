@@ -196,6 +196,14 @@ boundsR a = biapply (Tuple f f) (bounds a)
   where
   f = map toRational
 
+boundsA :: Approx -> Tuple Approx Approx
+boundsA a = Tuple (lowerA a) (upperA a)
+
+toNumber :: Approx -> Number
+toNumber a = (l + u) / two
+  where 
+    (Tuple l u) = boundsNumber a
+
 boundsNumber :: Approx -> Tuple Number Number
 boundsNumber a = biapply (Tuple f f) (bounds a)
   where
@@ -205,7 +213,7 @@ boundsNumber a = biapply (Tuple f f) (bounds a)
 
   f (Finite d) = dyadicToNumber d
 
--- |Gives the lower bound of an 'Approx' as an exact 'Approx'.
+-- | Gives the lower bound of an 'Approx' as an exact 'Approx'.
 lowerA :: Approx -> Approx
 lowerA Bottom = Bottom
 
