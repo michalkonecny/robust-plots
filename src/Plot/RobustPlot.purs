@@ -1,10 +1,12 @@
 module Plot.RobustPlot where
 
 import Prelude
-import Data.Array (catMaybes, tail, zipWith, (..))
+import Data.Array (catMaybes, fromFoldable, tail, zipWith, (..))
 import Data.Either (Either(..))
+import Data.List (List, singleton)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Number (isFinite)
+import Data.Ord (abs)
 import Data.Tuple (Tuple(..))
 import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
@@ -12,7 +14,7 @@ import Expression.Differentiator (differentiate)
 import Expression.Evaluator (evaluate)
 import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
-import IntervalArith.Approx (Approx, boundsA, fromRationalBoundsPrec, fromRationalPrec, toNumber)
+import IntervalArith.Approx (Approx, boundsA, fromRationalBoundsPrec, fromRationalPrec, toNumber, upperBound)
 import IntervalArith.Misc (Rational, rationalToNumber, toRational, two)
 import Types (Bounds, Polygon, Size, XYBounds)
 
@@ -116,3 +118,34 @@ plotEnclosures segmentCount canvasSize fullXBounds bounds f f' = segmentEnclosur
 
 drawPlot :: Array (Maybe Polygon) -> DrawCommand Unit
 drawPlot = (drawEnclosure true) <<< catMaybes
+
+segmentDomain :: Approx -> Approx -> (Approx -> Maybe Approx) -> Rational -> Rational -> Array Approx
+segmentDomain accuracyTarget onePixel f'' l u = fromFoldable $ segementDomainF 0 l u
+  where
+  bisect :: Int -> Rational -> Rational -> Rational -> List Approx
+  bisect depth lower mid upper = (segementDomainF (depth + one) lower mid) <> (segementDomainF (depth + one) mid upper)
+
+  segementDomainF :: Int -> Rational -> Rational -> List Approx
+  segementDomainF depth lower upper = segments
+    where
+    x = fromRationalBoundsPrec 50 lower upper
+
+    mid = (lower + upper) / two
+
+    segments =
+      if depth < 5 then
+        bisect depth lower mid upper
+      else
+        if depth >= 15 then
+          singleton x
+        else
+          segmentBasedOnDerivative depth lower mid upper x
+
+  segmentBasedOnDerivative :: Int -> Rational -> Rational -> Rational -> Approx -> List Approx
+  segmentBasedOnDerivative depth lower mid upper x = case f'' x of
+    Nothing -> singleton x
+    Just deltaGradient ->
+      if abs (upperBound deltaGradient) < upperBound onePixel then
+        singleton x
+      else
+        bisect depth lower mid upper
