@@ -18,14 +18,13 @@ import IntervalArith.Approx (Approx, better, boundsA, boundsNumber, centreA, fro
 import IntervalArith.Misc (Rational, rationalToNumber, toRational, two)
 import Types (Bounds, Polygon, Size, XYBounds)
 
-drawRobustPlot :: Int -> Size -> Bounds -> XYBounds -> Expression -> String -> DrawCommand Unit
-drawRobustPlot segmentCount canvasSize fullXBounds bounds expression label = drawCommands
+drawRobustPlot :: Size -> Bounds -> XYBounds -> Expression -> String -> DrawCommand Unit
+drawRobustPlot canvasSize fullXBounds bounds expression label = drawCommands
   where
-  
   ev :: forall a. (Expression -> a -> Maybe a) -> ExpressionEvaluator a
   ev = buildExpressionEvaluator expression
 
-  segmentEnclosures = plotEnclosures segmentCount canvasSize fullXBounds bounds (ev evaluateWithX) (ev evaluateNumberWithX)
+  segmentEnclosures = plotEnclosures canvasSize fullXBounds bounds (ev evaluateWithX) (ev evaluateNumberWithX)
 
   drawCommands = drawPlot segmentEnclosures
 
@@ -56,17 +55,15 @@ type ExpressionEvaluator a
 buildExpressionEvaluator :: forall a. Expression -> (Expression -> a -> Maybe a) -> ExpressionEvaluator a
 buildExpressionEvaluator expression evaluator = { f, f', f'' }
   where
-    f = evaluator expression
+  f = evaluator expression
 
-    f' = (evaluator <<< simplify <<< differentiate) expression
+  f' = (evaluator <<< simplify <<< differentiate) expression
 
-    f'' = (evaluator <<< simplify <<< secondDifferentiate) expression
+  f'' = (evaluator <<< simplify <<< secondDifferentiate) expression
 
-plotEnclosures :: Int -> Size -> Bounds -> XYBounds -> ExpressionEvaluator Approx -> ExpressionEvaluator Number -> Array (Maybe Polygon)
-plotEnclosures segmentCount canvasSize fullXBounds bounds evaluator evaluatorN = segmentEnclosures
+plotEnclosures :: Size -> Bounds -> XYBounds -> ExpressionEvaluator Approx -> ExpressionEvaluator Number -> Array (Maybe Polygon)
+plotEnclosures canvasSize fullXBounds bounds evaluator evaluatorN = segmentEnclosures
   where
-  rangeX = bounds.xBounds.upper - bounds.xBounds.lower
-
   rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
   fullRangeX = rationalToNumber $ fullXBounds.upper - fullXBounds.lower
@@ -74,8 +71,6 @@ plotEnclosures segmentCount canvasSize fullXBounds bounds evaluator evaluatorN =
   accuracyTarget = 0.1
 
   domainSegments = segmentDomain accuracyTarget evaluatorN bounds.xBounds.lower bounds.xBounds.upper
-
-  segmentWidth = rangeX / (toRational segmentCount)
 
   segmentEnclosures = map toCanvasEnclosure domainSegments
 
@@ -87,13 +82,8 @@ plotEnclosures segmentCount canvasSize fullXBounds bounds evaluator evaluatorN =
 
   canvasWidth = rationalToNumber canvasSize.width
 
-  halfRangeX = rangeX / (toRational 2)
-
   toRange :: Rational -> Rational -> Tuple Rational Rational
   toRange lower upper = Tuple lower upper
-
-  toDomainX :: Rational -> Rational
-  toDomainX segmentX = (segmentX * segmentWidth) + bounds.xBounds.lower
 
   toCanvasEnclosure :: Approx -> Maybe Polygon
   toCanvasEnclosure x = case evaluator.f x of
@@ -186,8 +176,10 @@ segmentDomain accuracyTarget evaluator l u = fromFoldable $ segementDomainF 0 l 
   segmentBasedOnDerivative depth lower mid upper x (Just a1) (Just a2) (Just b) =
     let
       w = rationalToNumber $ mid - lower
-      a = (a1+a2)/two
-      h = if abs b > one then abs ((a * w * w) / b)  else abs (a * w * w)
+
+      a = (a1 + a2) / two
+
+      h = if abs b > one then abs ((a * w * w) / b) else abs (a * w * w)
     in
       if h > accuracyTarget then
         bisect depth lower mid upper
