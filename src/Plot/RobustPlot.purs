@@ -2,7 +2,6 @@ module Plot.RobustPlot where
 
 import Prelude
 import Data.Array (catMaybes, fromFoldable)
-import Data.Either (Either(..))
 import Data.List (List, singleton)
 import Data.Maybe (Maybe(..))
 import Data.Number (isFinite)
@@ -10,13 +9,11 @@ import Data.Ord (abs)
 import Data.Tuple (Tuple(..))
 import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
-import Expression.Differentiator (differentiate, secondDifferentiate)
-import Expression.Evaluator (evaluate, roughEvaluate)
-import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, better, boundsA, boundsNumber, centreA, fromRationalBoundsPrec, fromRationalPrec, toNumber, upperBound)
 import IntervalArith.Misc (Rational, rationalToNumber, toRational, two)
 import Types (Bounds, Polygon, Size, XYBounds)
+import Plot.PlotEvaluator (buildExpressionEvaluator, evaluateWithX, evaluateNumberWithX, ExpressionEvaluator)
 
 drawRobustPlot :: Size -> Bounds -> XYBounds -> Expression -> String -> DrawCommand Unit
 drawRobustPlot canvasSize fullXBounds bounds expression label = drawCommands
@@ -27,39 +24,6 @@ drawRobustPlot canvasSize fullXBounds bounds expression label = drawCommands
   segmentEnclosures = plotEnclosures canvasSize fullXBounds bounds (ev evaluateWithX) (ev evaluateNumberWithX)
 
   drawCommands = drawPlot segmentEnclosures
-
-evaluateWithX :: Expression -> Approx -> Maybe Approx
-evaluateWithX expression x = value
-  where
-  variableMap = [ Tuple "x" x ]
-
-  value = case evaluate variableMap expression of
-    Left _ -> Nothing
-    Right v -> Just v
-
-evaluateNumberWithX :: Expression -> Number -> Maybe Number
-evaluateNumberWithX expression x = value
-  where
-  variableMap = [ Tuple "x" x ]
-
-  value = case roughEvaluate variableMap expression of
-    Left _ -> Nothing
-    Right v -> Just v
-
-type ExpressionEvaluator a
-  = { f :: a -> Maybe a
-    , f' :: a -> Maybe a
-    , f'' :: a -> Maybe a
-    }
-
-buildExpressionEvaluator :: forall a. Expression -> (Expression -> a -> Maybe a) -> ExpressionEvaluator a
-buildExpressionEvaluator expression evaluator = { f, f', f'' }
-  where
-  f = evaluator expression
-
-  f' = (evaluator <<< simplify <<< differentiate) expression
-
-  f'' = (evaluator <<< simplify <<< secondDifferentiate) expression
 
 plotEnclosures :: Size -> Bounds -> XYBounds -> ExpressionEvaluator Approx -> ExpressionEvaluator Number -> Array (Maybe Polygon)
 plotEnclosures canvasSize fullXBounds bounds evaluator evaluatorN = segmentEnclosures
