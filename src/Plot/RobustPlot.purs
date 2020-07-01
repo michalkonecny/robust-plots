@@ -1,20 +1,20 @@
 module Plot.RobustPlot where
 
 import Prelude
-import Data.Array (catMaybes, fromFoldable, tail, zipWith, (..))
+import Data.Array (catMaybes, fromFoldable)
 import Data.Either (Either(..))
 import Data.List (List, singleton)
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..))
 import Data.Number (isFinite)
 import Data.Ord (abs)
 import Data.Tuple (Tuple(..))
 import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
-import Expression.Differentiator (differentiate)
-import Expression.Evaluator (evaluate)
+import Expression.Differentiator (differentiate, secondDifferentiate)
+import Expression.Evaluator (evaluate, roughEvaluate)
 import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
-import IntervalArith.Approx (Approx, boundsA, fromRationalBoundsPrec, fromRationalPrec, toNumber, upperBound)
+import IntervalArith.Approx (Approx, better, boundsA, boundsNumber, centreA, fromRationalBoundsPrec, fromRationalPrec, toNumber, upperBound)
 import IntervalArith.Misc (Rational, rationalToNumber, toRational, two)
 import Types (Bounds, Polygon, Size, XYBounds)
 
@@ -25,7 +25,9 @@ drawRobustPlot segmentCount canvasSize fullXBounds bounds expression label = dra
 
   f' = (evaluateWithX <<< simplify <<< differentiate) expression
 
-  segmentEnclosures = plotEnclosures segmentCount canvasSize fullXBounds bounds f f'
+  f'' = (evaluateNumberWithX <<< simplify <<< secondDifferentiate) expression
+
+  segmentEnclosures = plotEnclosures segmentCount canvasSize fullXBounds bounds { f, f', f'' }
 
   drawCommands = drawPlot segmentEnclosures
 
@@ -38,18 +40,35 @@ evaluateWithX expression x = value
     Left _ -> Nothing
     Right v -> Just v
 
-plotEnclosures :: Int -> Size -> Bounds -> XYBounds -> (Approx -> Maybe Approx) -> (Approx -> Maybe Approx) -> Array (Maybe Polygon)
-plotEnclosures segmentCount canvasSize fullXBounds bounds f f' = segmentEnclosures
+evaluateNumberWithX :: Expression -> Number -> Maybe Number
+evaluateNumberWithX expression x = value
+  where
+  variableMap = [ Tuple "x" x ]
+
+  value = case roughEvaluate variableMap expression of
+    Left _ -> Nothing
+    Right v -> Just v
+
+type ExpressionEvaluator
+  = { f :: Approx -> Maybe Approx
+    , f' :: Approx -> Maybe Approx
+    , f'' :: Number -> Maybe Number
+    }
+
+plotEnclosures :: Int -> Size -> Bounds -> XYBounds -> ExpressionEvaluator -> Array (Maybe Polygon)
+plotEnclosures segmentCount canvasSize fullXBounds bounds evaluator = segmentEnclosures
   where
   rangeX = bounds.xBounds.upper - bounds.xBounds.lower
 
   rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
-  fullRangeX = fullXBounds.upper - fullXBounds.lower
+  fullRangeX = rationalToNumber $ fullXBounds.upper - fullXBounds.lower
 
-  domainBreakpoints = map (toRational >>> toDomainX) $ 0 .. segmentCount
+  accuracyTarget = one
 
-  domainSegments = zipWith toRange domainBreakpoints (fromMaybe [] (tail domainBreakpoints))
+  onePixel = rationalToNumber $ (bounds.yBounds.upper - bounds.yBounds.lower) / canvasSize.height
+
+  domainSegments = segmentDomain accuracyTarget onePixel evaluator.f'' bounds.xBounds.lower bounds.xBounds.upper
 
   segmentWidth = rangeX / (toRational segmentCount)
 
@@ -57,7 +76,11 @@ plotEnclosures segmentCount canvasSize fullXBounds bounds f f' = segmentEnclosur
 
   yLowerBound = rationalToNumber bounds.yBounds.lower
 
+  xLowerBound = rationalToNumber fullXBounds.lower
+
   canvasHeight = rationalToNumber canvasSize.height
+
+  canvasWidth = rationalToNumber canvasSize.width
 
   halfRangeX = rangeX / (toRational 2)
 
@@ -67,12 +90,12 @@ plotEnclosures segmentCount canvasSize fullXBounds bounds f f' = segmentEnclosur
   toDomainX :: Rational -> Rational
   toDomainX segmentX = (segmentX * segmentWidth) + bounds.xBounds.lower
 
-  toCanvasEnclosure :: Tuple Rational Rational -> Maybe Polygon
-  toCanvasEnclosure (Tuple xLower xUpper) = case f x of
+  toCanvasEnclosure :: Approx -> Maybe Polygon
+  toCanvasEnclosure x = case evaluator.f x of
     Nothing -> Nothing
-    Just approxValue -> case f xMidPoint of
+    Just approxValue -> case evaluator.f xMidPoint of
       Nothing -> Nothing
-      Just midApproxValue -> case f' x of
+      Just midApproxValue -> case evaluator.f' x of
         Nothing -> Nothing
         Just approxGradient -> Just polygon
           where
@@ -92,20 +115,22 @@ plotEnclosures segmentCount canvasSize fullXBounds bounds f f' = segmentEnclosur
 
           polygon = [ a, b, c, d, a ]
     where
-    x = fromRationalBoundsPrec 50 xLower xUpper
+    (Tuple xLower xUpper) = boundsNumber x
 
-    xMidPoint = fromRationalPrec 50 $ (xLower + xUpper) / two
+    (Tuple xLA xUA) = boundsA x
 
-    enclosureWidth = fromRationalPrec 50 $ xUpper - xLower
+    xMidPoint = centreA x
 
-    twoA = fromRationalPrec 50 $ two
+    enclosureWidth = xUA - xLA
+
+    twoA = fromRationalPrec 50 two
 
     canvasXLower = toCanvasX xLower
 
     canvasXUpper = toCanvasX xUpper
 
-  toCanvasX :: Rational -> Number
-  toCanvasX x = rationalToNumber $ ((x - fullXBounds.lower) * canvasSize.width) / fullRangeX
+  toCanvasX :: Number -> Number
+  toCanvasX x = ((x - xLowerBound) * canvasWidth) / fullRangeX
 
   toCanvasY :: Approx -> Number
   toCanvasY yApprox = safeCanvasY
@@ -119,11 +144,16 @@ plotEnclosures segmentCount canvasSize fullXBounds bounds f f' = segmentEnclosur
 drawPlot :: Array (Maybe Polygon) -> DrawCommand Unit
 drawPlot = (drawEnclosure true) <<< catMaybes
 
-segmentDomain :: Approx -> Approx -> (Approx -> Maybe Approx) -> Rational -> Rational -> Array Approx
+isOutSideCanvas :: XYBounds -> Approx -> Boolean
+isOutSideCanvas bounds = better (fromRationalBoundsPrec 50 bounds.yBounds.lower bounds.yBounds.upper)
+
+segmentDomain :: Number -> Number -> (Number -> Maybe Number) -> Rational -> Rational -> Array Approx
 segmentDomain accuracyTarget onePixel f'' l u = fromFoldable $ segementDomainF 0 l u
   where
   bisect :: Int -> Rational -> Rational -> Rational -> List Approx
   bisect depth lower mid upper = (segementDomainF (depth + one) lower mid) <> (segementDomainF (depth + one) mid upper)
+
+  three = one + two
 
   segementDomainF :: Int -> Rational -> Rational -> List Approx
   segementDomainF depth lower upper = segments
@@ -132,20 +162,27 @@ segmentDomain accuracyTarget onePixel f'' l u = fromFoldable $ segementDomainF 0
 
     mid = (lower + upper) / two
 
+    bottom = rationalToNumber $ lower + ((upper - lower) / three)
+
+    top = rationalToNumber $ lower + (((upper - lower) * two) / three)
+
     segments =
       if depth < 5 then
         bisect depth lower mid upper
       else
-        if depth >= 15 then
+        if depth >= 10 then
           singleton x
         else
-          segmentBasedOnDerivative depth lower mid upper x
+          segmentBasedOnDerivative depth lower mid upper x (f'' bottom) (f'' top)
 
-  segmentBasedOnDerivative :: Int -> Rational -> Rational -> Rational -> Approx -> List Approx
-  segmentBasedOnDerivative depth lower mid upper x = case f'' x of
-    Nothing -> singleton x
-    Just deltaGradient ->
-      if abs (upperBound deltaGradient) < upperBound onePixel then
-        singleton x
-      else
-        bisect depth lower mid upper
+  segmentBasedOnDerivative :: Int -> Rational -> Rational -> Rational -> Approx -> Maybe Number -> Maybe Number -> List Approx
+  segmentBasedOnDerivative depth lower mid upper x (Just gL) (Just gU) =
+    if abs (gU - gL) > onePixel then
+      bisect depth lower mid upper
+    else
+      singleton x
+
+  segmentBasedOnDerivative _ _ _ _ x _ _ = singleton x
+
+approxToRational :: Approx -> Rational
+approxToRational = upperBound >>> toRational
