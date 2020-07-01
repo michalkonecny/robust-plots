@@ -21,13 +21,11 @@ import Types (Bounds, Polygon, Size, XYBounds)
 drawRobustPlot :: Int -> Size -> Bounds -> XYBounds -> Expression -> String -> DrawCommand Unit
 drawRobustPlot segmentCount canvasSize fullXBounds bounds expression label = drawCommands
   where
-  f = evaluateWithX expression
+  
+  ev :: forall a. (Expression -> a -> Maybe a) -> ExpressionEvaluator a
+  ev = buildExpressionEvaluator expression
 
-  f' = (evaluateWithX <<< simplify <<< differentiate) expression
-
-  f'' = (evaluateNumberWithX <<< simplify <<< secondDifferentiate) expression
-
-  segmentEnclosures = plotEnclosures segmentCount canvasSize fullXBounds bounds { f, f', f'' }
+  segmentEnclosures = plotEnclosures segmentCount canvasSize fullXBounds bounds (ev evaluateWithX) (ev evaluateNumberWithX)
 
   drawCommands = drawPlot segmentEnclosures
 
@@ -49,14 +47,23 @@ evaluateNumberWithX expression x = value
     Left _ -> Nothing
     Right v -> Just v
 
-type ExpressionEvaluator
-  = { f :: Approx -> Maybe Approx
-    , f' :: Approx -> Maybe Approx
-    , f'' :: Number -> Maybe Number
+type ExpressionEvaluator a
+  = { f :: a -> Maybe a
+    , f' :: a -> Maybe a
+    , f'' :: a -> Maybe a
     }
 
-plotEnclosures :: Int -> Size -> Bounds -> XYBounds -> ExpressionEvaluator -> Array (Maybe Polygon)
-plotEnclosures segmentCount canvasSize fullXBounds bounds evaluator = segmentEnclosures
+buildExpressionEvaluator :: forall a. Expression -> (Expression -> a -> Maybe a) -> ExpressionEvaluator a
+buildExpressionEvaluator expression evaluator = { f, f', f'' }
+  where
+    f = evaluator expression
+
+    f' = (evaluator <<< simplify <<< differentiate) expression
+
+    f'' = (evaluator <<< simplify <<< secondDifferentiate) expression
+
+plotEnclosures :: Int -> Size -> Bounds -> XYBounds -> ExpressionEvaluator Approx -> ExpressionEvaluator Number -> Array (Maybe Polygon)
+plotEnclosures segmentCount canvasSize fullXBounds bounds evaluator evaluatorN = segmentEnclosures
   where
   rangeX = bounds.xBounds.upper - bounds.xBounds.lower
 
@@ -64,11 +71,9 @@ plotEnclosures segmentCount canvasSize fullXBounds bounds evaluator = segmentEnc
 
   fullRangeX = rationalToNumber $ fullXBounds.upper - fullXBounds.lower
 
-  accuracyTarget = one
+  accuracyTarget = 0.1
 
-  onePixel = rationalToNumber $ (bounds.yBounds.upper - bounds.yBounds.lower) / canvasSize.height
-
-  domainSegments = segmentDomain accuracyTarget onePixel evaluator.f'' bounds.xBounds.lower bounds.xBounds.upper
+  domainSegments = segmentDomain accuracyTarget evaluatorN bounds.xBounds.lower bounds.xBounds.upper
 
   segmentWidth = rangeX / (toRational segmentCount)
 
@@ -147,8 +152,8 @@ drawPlot = (drawEnclosure true) <<< catMaybes
 isOutSideCanvas :: XYBounds -> Approx -> Boolean
 isOutSideCanvas bounds = better (fromRationalBoundsPrec 50 bounds.yBounds.lower bounds.yBounds.upper)
 
-segmentDomain :: Number -> Number -> (Number -> Maybe Number) -> Rational -> Rational -> Array Approx
-segmentDomain accuracyTarget onePixel f'' l u = fromFoldable $ segementDomainF 0 l u
+segmentDomain :: Number -> ExpressionEvaluator Number -> Rational -> Rational -> Array Approx
+segmentDomain accuracyTarget evaluator l u = fromFoldable $ segementDomainF 0 l u
   where
   bisect :: Int -> Rational -> Rational -> Rational -> List Approx
   bisect depth lower mid upper = (segementDomainF (depth + one) lower mid) <> (segementDomainF (depth + one) mid upper)
@@ -162,9 +167,11 @@ segmentDomain accuracyTarget onePixel f'' l u = fromFoldable $ segementDomainF 0
 
     mid = (lower + upper) / two
 
-    bottom = rationalToNumber $ lower + ((upper - lower) / three)
+    range = upper - lower
 
-    top = rationalToNumber $ lower + (((upper - lower) * two) / three)
+    a1 = rationalToNumber $ lower + (range / three)
+
+    a2 = rationalToNumber $ lower + ((range * two) / three)
 
     segments =
       if depth < 5 then
@@ -173,16 +180,21 @@ segmentDomain accuracyTarget onePixel f'' l u = fromFoldable $ segementDomainF 0
         if depth >= 10 then
           singleton x
         else
-          segmentBasedOnDerivative depth lower mid upper x (f'' bottom) (f'' top)
+          segmentBasedOnDerivative depth lower mid upper x (evaluator.f'' a1) (evaluator.f'' a2) (evaluator.f' $ rationalToNumber mid)
 
-  segmentBasedOnDerivative :: Int -> Rational -> Rational -> Rational -> Approx -> Maybe Number -> Maybe Number -> List Approx
-  segmentBasedOnDerivative depth lower mid upper x (Just gL) (Just gU) =
-    if abs (gU - gL) > onePixel then
-      bisect depth lower mid upper
-    else
-      singleton x
+  segmentBasedOnDerivative :: Int -> Rational -> Rational -> Rational -> Approx -> Maybe Number -> Maybe Number -> Maybe Number -> List Approx
+  segmentBasedOnDerivative depth lower mid upper x (Just a1) (Just a2) (Just b) =
+    let
+      w = rationalToNumber $ mid - lower
+      a = (a1+a2)/two
+      h = if abs b > one then abs ((a * w * w) / b)  else abs (a * w * w)
+    in
+      if h > accuracyTarget then
+        bisect depth lower mid upper
+      else
+        singleton x
 
-  segmentBasedOnDerivative _ _ _ _ x _ _ = singleton x
+  segmentBasedOnDerivative _ _ _ _ x _ _ _ = singleton x
 
 approxToRational :: Approx -> Rational
 approxToRational = upperBound >>> toRational

@@ -8,14 +8,13 @@ import Data.Either (Either(..))
 import Data.String (joinWith)
 import Data.Tuple (Tuple(..))
 import Effect.Exception.Unsafe (unsafeThrow)
-import Expression.Differentiator (secondDifferentiate)
 import Expression.Parser (parse)
 import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
-import IntervalArith.Approx (Approx, boundsNumber, fromRationalPrec)
+import IntervalArith.Approx (Approx, boundsNumber)
 import IntervalArith.Misc (toRational)
 import Plot.JobBatcher (initialJobQueue)
-import Plot.RobustPlot (evaluateWithX, segmentDomain)
+import Plot.RobustPlot (buildExpressionEvaluator, evaluateNumberWithX, segmentDomain)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
 
@@ -27,19 +26,17 @@ segmentDomainTests =
         -- given
         jobQueue = initialJobQueue
 
-        expression = (simplify <<< secondDifferentiate <<< parseAndSimplify) "x"
+        expression = parseAndSimplify "x"
 
-        f'' = evaluateWithX expression
+        evaluator = buildExpressionEvaluator expression evaluateNumberWithX
 
-        accuracyTarget = fromRationalPrec 50 one
+        accuracyTarget = 0.1
 
         l = -one
 
         u = one
 
-        onePixel = fromRationalPrec 50 $ (u - l) / toRational 500
-
-        segments = segmentDomain accuracyTarget onePixel f'' l u
+        segments = segmentDomain accuracyTarget evaluator l u
 
         -- then
         expected =
@@ -84,25 +81,23 @@ segmentDomainTests =
         -- given
         jobQueue = initialJobQueue
 
-        expression = (simplify <<< secondDifferentiate <<< parseAndSimplify) "x*x*x"
+        expression = parseAndSimplify "x*x*x"
 
-        f'' = evaluateWithX expression
+        evaluator = buildExpressionEvaluator expression evaluateNumberWithX
 
-        accuracyTarget = fromRationalPrec 50 one
+        accuracyTarget = 0.1
 
         l = -toRational 28
 
         u = toRational 28
 
-        onePixel = fromRationalPrec 50 $ (u - l) / toRational 500
-
-        segments = segmentDomain accuracyTarget onePixel f'' l u
+        segments = segmentDomain accuracyTarget evaluator l u
 
         -- then
         expected = ""
 
         expectedCount = 32
-      --equal expectedCount $ length segments
+      equal expectedCount $ length segments
       equal expected $ showSegments segments
 
 showSegments :: Array Approx -> String
