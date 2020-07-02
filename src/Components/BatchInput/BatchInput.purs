@@ -55,12 +55,12 @@ render state =
         , HP.value state.batchCount
         , HP.id_ "batchCount"
         ]
-    , HH.br_
-    , HH.p_
-        [ HH.text $ outputMessage state.batchCount ]
     , HH.button
         [ HE.onClick $ toActionEvent Update ]
         [ HH.text "Update" ]
+    , HH.br_
+    , HH.p_
+        [ HH.text $ outputMessage state.batchCount ]
     ]
 
 outputMessage :: String -> String

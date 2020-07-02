@@ -1,7 +1,6 @@
 module Components.AccuracyInput where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Number (fromString)
@@ -56,12 +55,12 @@ render state =
         , HP.value state.accuracy
         , HP.id_ "accuracy"
         ]
-    , HH.br_
-    , HH.p_
-        [ HH.text $ outputMessage state.accuracy ]
     , HH.button
         [ HE.onClick $ toActionEvent Update ]
         [ HH.text "Update" ]
+    , HH.br_
+    , HH.p_
+        [ HH.text $ outputMessage state.accuracy ]
     ]
 
 outputMessage :: String -> String
