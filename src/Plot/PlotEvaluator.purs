@@ -34,8 +34,8 @@ type ExpressionEvaluator a
     , f'' :: a -> Maybe a
     }
 
-buildExpressionEvaluator :: forall a. Expression -> (Expression -> a -> Maybe a) -> ExpressionEvaluator a
-buildExpressionEvaluator expression evaluator = { f, f', f'' }
+buildExpressionEvaluator :: forall a. (Expression -> a -> Maybe a) -> Expression -> ExpressionEvaluator a
+buildExpressionEvaluator evaluator expression = { f, f', f'' }
   where
   f = evaluator expression
 
@@ -44,7 +44,7 @@ buildExpressionEvaluator expression evaluator = { f, f', f'' }
   f'' = (evaluator <<< simplify <<< secondDifferentiate) expression
 
 numberExpressionEvaluator :: Expression -> ExpressionEvaluator Number
-numberExpressionEvaluator expression = buildExpressionEvaluator expression evaluateN
+numberExpressionEvaluator = buildExpressionEvaluator evaluateN
 
 approxExpressionEvaluator :: Expression -> ExpressionEvaluator Approx
-approxExpressionEvaluator expression = buildExpressionEvaluator expression evaluateA
+approxExpressionEvaluator = buildExpressionEvaluator evaluateA
