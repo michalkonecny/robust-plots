@@ -3,6 +3,9 @@ module Misc.Array where
 import Prelude
 import Data.Array (length, singleton, slice, (..))
 
+-- | Seperates an array into a specified number of arrays. If the specified number of sub arrays is 
+-- | larger than the number of elements then the array of sub-arrays will be split into singleton 
+-- | arrays, one for each element.
 split :: forall a. Int -> Array a -> Array (Array a)
 split splits values =
   if splits >= valuesCount then
