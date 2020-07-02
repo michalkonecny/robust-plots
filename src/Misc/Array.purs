@@ -5,10 +5,10 @@ import Data.Array (length, singleton, slice, (..))
 
 split :: forall a. Int -> Array a -> Array (Array a)
 split splits values =
-  if splits > valuesCount then
+  if splits >= valuesCount then
     map singleton values
   else
-    map splitValues (0 .. splits)
+    map splitValues $ 0 .. (splits - 1)
   where
   valuesCount = length values
 
@@ -16,7 +16,9 @@ split splits values =
 
   splitValues :: Int -> Array a
   splitValues index =
-    if index + perSplit - 1 > valuesCount then
-      slice index (valuesCount - 1) values
+    if i + perSplit > valuesCount || index == splits - 1 then
+      slice i valuesCount values
     else
-      slice index (index + perSplit - 1) values
+      slice i (i + perSplit) values
+    where
+    i = index * perSplit

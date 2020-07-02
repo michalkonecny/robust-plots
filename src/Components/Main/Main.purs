@@ -60,7 +60,7 @@ mainComponent =
         [ newPlot 1
         ]
     , clearPlot: pure unit
-    , batchCount: 1
+    , batchCount: 5
     , segmentCount : 50
     }
 

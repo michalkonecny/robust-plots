@@ -12,35 +12,30 @@ import Draw.Commands (DrawCommand)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, better, boundsA, boundsNumber, centreA, fromRationalBoundsPrec, fromRationalPrec, toNumber, upperBound)
 import IntervalArith.Misc (Rational, rationalToNumber, toRational, two)
-import Types (Bounds, Polygon, Size, XYBounds)
-import Plot.PlotEvaluator (buildExpressionEvaluator, evaluateWithX, evaluateNumberWithX, ExpressionEvaluator)
+import Types (Polygon, Size, XYBounds)
+import Plot.PlotEvaluator (ExpressionEvaluator, buildExpressionEvaluator, evaluateWithX)
 
-drawRobustPlot :: Size -> Bounds -> XYBounds -> Expression -> String -> DrawCommand Unit
-drawRobustPlot canvasSize fullXBounds bounds expression label = drawCommands
+drawRobustPlot :: Size -> XYBounds -> Expression -> Array Approx -> String -> DrawCommand Unit
+drawRobustPlot canvasSize bounds expression domainSegments label = drawCommands
   where
-  ev :: forall a. (Expression -> a -> Maybe a) -> ExpressionEvaluator a
-  ev = buildExpressionEvaluator expression
+  expressionEvaluator = buildExpressionEvaluator expression evaluateWithX
 
-  segmentEnclosures = plotEnclosures canvasSize fullXBounds bounds (ev evaluateWithX) (ev evaluateNumberWithX)
+  segmentEnclosures = plotEnclosures canvasSize bounds domainSegments expressionEvaluator
 
   drawCommands = drawPlot segmentEnclosures
 
-plotEnclosures :: Size -> Bounds -> XYBounds -> ExpressionEvaluator Approx -> ExpressionEvaluator Number -> Array (Maybe Polygon)
-plotEnclosures canvasSize fullXBounds bounds evaluator evaluatorN = segmentEnclosures
+plotEnclosures :: Size -> XYBounds -> Array Approx -> ExpressionEvaluator Approx -> Array (Maybe Polygon)
+plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
   where
   rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
-  fullRangeX = rationalToNumber $ fullXBounds.upper - fullXBounds.lower
-
-  accuracyTarget = 0.1
-
-  domainSegments = segmentDomain accuracyTarget evaluatorN bounds.xBounds.lower bounds.xBounds.upper
+  rangeX = rationalToNumber $ bounds.xBounds.upper - bounds.xBounds.lower
 
   segmentEnclosures = map toCanvasEnclosure domainSegments
 
   yLowerBound = rationalToNumber bounds.yBounds.lower
 
-  xLowerBound = rationalToNumber fullXBounds.lower
+  xLowerBound = rationalToNumber bounds.xBounds.lower
 
   canvasHeight = rationalToNumber canvasSize.height
 
@@ -89,7 +84,7 @@ plotEnclosures canvasSize fullXBounds bounds evaluator evaluatorN = segmentEnclo
     canvasXUpper = toCanvasX xUpper
 
   toCanvasX :: Number -> Number
-  toCanvasX x = ((x - xLowerBound) * canvasWidth) / fullRangeX
+  toCanvasX x = ((x - xLowerBound) * canvasWidth) / rangeX
 
   toCanvasY :: Approx -> Number
   toCanvasY yApprox = safeCanvasY

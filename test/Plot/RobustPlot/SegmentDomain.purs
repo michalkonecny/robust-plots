@@ -12,9 +12,9 @@ import Expression.Parser (parse)
 import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, boundsNumber)
-import IntervalArith.Misc (toRational)
 import Plot.JobBatcher (initialJobQueue)
-import Plot.RobustPlot (buildExpressionEvaluator, evaluateNumberWithX, segmentDomain)
+import Plot.PlotEvaluator (buildExpressionEvaluator, evaluateNumberWithX)
+import Plot.RobustPlot (segmentDomain)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
 
@@ -72,29 +72,6 @@ segmentDomainTests =
             <> "(0.8125,0.875),"
             <> "(0.875,0.9375),"
             <> "(0.9375,1.0)"
-
-        expectedCount = 32
-      equal expectedCount $ length segments
-      equal expected $ showSegments segments
-    test "SHOULD segment domain into 32 segments WHEN f''(x) = 0 AND accuracyTarget = 1 AND onePixel = 1 AND domain = [-1, 1]" do
-      let
-        -- given
-        jobQueue = initialJobQueue
-
-        expression = parseAndSimplify "x*x*x"
-
-        evaluator = buildExpressionEvaluator expression evaluateNumberWithX
-
-        accuracyTarget = 0.1
-
-        l = -toRational 28
-
-        u = toRational 28
-
-        segments = segmentDomain accuracyTarget evaluator l u
-
-        -- then
-        expected = ""
 
         expectedCount = 32
       equal expectedCount $ length segments

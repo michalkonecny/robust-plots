@@ -6,7 +6,7 @@ import Prelude
 import Components.Main.Helper (initialBounds)
 import Plot.Commands (PlotCommand(..))
 import Plot.JobBatcher (Job, hasJobs, initialJobQueue)
-import Plot.Queue (push)
+import Misc.Queue (push)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (assert, assertFalse)
 
