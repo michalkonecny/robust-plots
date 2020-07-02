@@ -79,10 +79,10 @@ cancelAll jobQueue = cancelRunning $ jobQueue { cancelled = cancelled, queue = Q
 -- | Adds a plot with its associated `batchId` to the `Job` queue.
 -- |
 -- | Running time: `O(batchSegmentCount * (batchSegmentCount - 1))`
-addPlot :: Int -> JobQueue -> XYBounds -> Expression -> String -> Id -> JobQueue
-addPlot batchSegmentCount jobQueue bounds expression label batchId = foldl (addJob batchId) jobQueue segmentedPlots
+addPlot :: Number -> Int -> JobQueue -> XYBounds -> Expression -> String -> Id -> JobQueue
+addPlot accuracyTarget batchSegmentCount jobQueue bounds expression label batchId = foldl (addJob batchId) jobQueue segmentedPlots
   where
-  segmentedPlots = segmentRobust batchSegmentCount bounds expression label
+  segmentedPlots = segmentRobust accuracyTarget batchSegmentCount bounds expression label
 
 -- | Sets the `Job` at the front of the queue as running.
 -- |
@@ -138,11 +138,9 @@ addJob batchId jobQueue command = jobQueue { queue = newQueue, currentId = newCu
 
   newQueue = Q.push jobQueue.queue { id: newCurrentId, command, batchId }
 
-segmentRobust :: Int -> XYBounds -> Expression -> String -> Array PlotCommand
-segmentRobust batchSegmentCount bounds expression label = commands
+segmentRobust :: Number -> Int -> XYBounds -> Expression -> String -> Array PlotCommand
+segmentRobust accuracyTarget batchSegmentCount bounds expression label = commands
   where
-  accuracyTarget = 0.1
-
   evaluator = numberExpressionEvaluator expression
 
   domainSegments = segmentDomain accuracyTarget evaluator bounds.xBounds.lower bounds.xBounds.upper

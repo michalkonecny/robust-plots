@@ -1,6 +1,8 @@
 module Components.Main.Types where
 
 import Prelude
+
+import Components.AccuracyInput (AccuracyInputSlot)
 import Components.BatchInput (BatchInputSlot)
 import Components.BoundsInput (BoundsInputSlot)
 import Components.Canvas (CanvasSlot, Input)
@@ -17,6 +19,7 @@ type State
     , plots :: Array ExpressionPlot
     , clearPlot :: DrawCommand Unit
     , batchCount :: Int
+    , accuracy :: Number
     }
 
 type ExpressionPlot
@@ -34,6 +37,7 @@ type ChildSlots
     , expressionInput :: ExpressionInputSlot Int
     , boundsInput :: BoundsInputSlot Int
     , batchInput :: BatchInputSlot Int
+    , accuracyInput :: AccuracyInputSlot Int
     )
 
 type Config

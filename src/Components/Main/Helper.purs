@@ -87,8 +87,8 @@ foldDrawCommands state = fold $ [ state.clearPlot ] <> mapMaybe toMaybeDrawComma
 xyBounds :: Rational -> Rational -> Rational -> Rational -> XYBounds
 xyBounds xLower xUpper yLower yUpper = { xBounds: { upper: xUpper, lower: xLower }, yBounds: { upper: yUpper, lower: yLower } }
 
-clearAddPlotCommands :: Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
-clearAddPlotCommands batchCount size newBounds = parSequence <<< (map clearAddPlot)
+clearAddPlotCommands :: Number -> Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
+clearAddPlotCommands accuracy batchCount size newBounds = parSequence <<< (map clearAddPlot)
   where
   clearAddPlot :: ExpressionPlot -> Aff ExpressionPlot
   clearAddPlot plot = case plot.expression of
@@ -97,6 +97,6 @@ clearAddPlotCommands batchCount size newBounds = parSequence <<< (map clearAddPl
       let
         cancelledQueue = cancelAll plot.queue
 
-        queueWithPlot = addPlot batchCount cancelledQueue newBounds expression plot.expressionText plot.id
+        queueWithPlot = addPlot accuracy batchCount cancelledQueue newBounds expression plot.expressionText plot.id
       drawCommands <- computePlotAsync size $ roughPlot newBounds expression plot.expressionText
       pure $ plot { queue = queueWithPlot, roughDrawCommands = drawCommands, robustDrawCommands = pure unit }
