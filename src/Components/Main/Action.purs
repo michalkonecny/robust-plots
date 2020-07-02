@@ -100,9 +100,9 @@ handleAction action = do
         handleJobResult maybeJobResult newState
       else
         H.modify_ (_ { plots = clearAllCancelled state.plots })
-    HandleBatchInput (UpdatedBatchInput segmentCount) -> do
-      H.modify_ (_ { segmentCount = segmentCount })
-      redraw state { segmentCount = segmentCount }
+    HandleBatchInput (UpdatedBatchInput batchCount) -> do
+      H.modify_ (_ { batchCount = batchCount })
+      redraw state { batchCount = batchCount }
 
 handleJobResult :: forall output. Maybe JobResult -> State -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 handleJobResult Nothing _ = pure unit
@@ -123,7 +123,7 @@ fork = forkWithDelay 0.0
 
 redrawWithDelayAndBounds :: forall output. State -> XYBounds -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 redrawWithDelayAndBounds state newBounds = do
-  plots <- lift $ lift $ clearAddPlotCommands state.batchCount state.segmentCount state.input.size newBounds state.plots
+  plots <- lift $ lift $ clearAddPlotCommands state.batchCount state.input.size newBounds state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
   H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds })
   handleAction DrawPlot
@@ -132,7 +132,7 @@ redrawWithDelayAndBounds state newBounds = do
 
 redraw :: forall output. State -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 redraw state = do
-  plots <- lift $ lift $ clearAddPlotCommands state.batchCount state.segmentCount state.input.size state.bounds state.plots
+  plots <- lift $ lift $ clearAddPlotCommands state.batchCount state.input.size state.bounds state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
   H.modify_ (_ { plots = plots, clearPlot = clearBounds })
   handleAction DrawPlot

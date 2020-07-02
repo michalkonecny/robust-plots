@@ -87,8 +87,8 @@ foldDrawCommands state = fold $ [ state.clearPlot ] <> mapMaybe toMaybeDrawComma
 xyBounds :: Rational -> Rational -> Rational -> Rational -> XYBounds
 xyBounds xLower xUpper yLower yUpper = { xBounds: { upper: xUpper, lower: xLower }, yBounds: { upper: yUpper, lower: yLower } }
 
-clearAddPlotCommands :: Int -> Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
-clearAddPlotCommands batchCount segmentCount size newBounds = parSequence <<< (map clearAddPlot)
+clearAddPlotCommands :: Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
+clearAddPlotCommands batchCount size newBounds = parSequence <<< (map clearAddPlot)
   where
   clearAddPlot :: ExpressionPlot -> Aff ExpressionPlot
   clearAddPlot plot = case plot.expression of

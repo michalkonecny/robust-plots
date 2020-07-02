@@ -61,7 +61,6 @@ mainComponent =
         ]
     , clearPlot: pure unit
     , batchCount: 5
-    , segmentCount : 50
     }
 
   render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
@@ -78,7 +77,7 @@ mainComponent =
             [ HE.onClick $ toActionEvent Clear ]
             [ HH.text "Clear plots" ]
         , HH.slot _boundsInput 1 boundsInputComponent state.bounds (Just <<< HandleBoundsInput)
-        , HH.slot _batchInput 1 batchInputComponent state.segmentCount (Just <<< HandleBatchInput)
+        , HH.slot _batchInput 1 batchInputComponent state.batchCount (Just <<< HandleBatchInput)
         , HH.button
             [ HE.onClick $ toActionEvent $ ResetBounds ]
             [ HH.text "Reset" ]

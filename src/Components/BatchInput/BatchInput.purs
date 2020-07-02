@@ -14,7 +14,7 @@ type BatchInputSlot p
   = forall q. H.Slot q BatchInputMessage p
 
 type State
-  = { segmentCount :: String
+  = { batchCount :: String
     }
 
 data BatchInputMessage
@@ -22,7 +22,7 @@ data BatchInputMessage
 
 data Action
   = Recieve Int
-  | ChangeSegementCount String
+  | ChangeBatchCount String
   | Update
 
 batchInputComponent :: forall query m. MonadEffect m => H.Component HH.HTML query Int BatchInputMessage m
@@ -39,53 +39,53 @@ batchInputComponent =
     }
 
 initialState :: Int -> State
-initialState segmentCount =
-  { segmentCount: show segmentCount
+initialState batchCount =
+  { batchCount: show batchCount
   }
 
 render :: forall slots m. State -> HH.ComponentHTML Action slots m
 render state =
   HH.div_
     [ HH.label
-        [ HP.for "segmentCount" ]
-        [ HH.text "Number of Segments per Batch:" ]
+        [ HP.for "batchCount" ]
+        [ HH.text "Number of Batches:" ]
     , HH.input
         [ HP.type_ HP.InputText
-        , HE.onValueChange $ Just <<< ChangeSegementCount
-        , HP.value state.segmentCount
-        , HP.id_ "segmentCount"
+        , HE.onValueChange $ Just <<< ChangeBatchCount
+        , HP.value state.batchCount
+        , HP.id_ "batchCount"
         ]
     , HH.br_
     , HH.p_
-        [ HH.text $ outputMessage state.segmentCount ]
+        [ HH.text $ outputMessage state.batchCount ]
     , HH.button
         [ HE.onClick $ toActionEvent Update ]
         [ HH.text "Update" ]
     ]
 
 outputMessage :: String -> String
-outputMessage segmentCountString = case checkValid segmentCountString of
+outputMessage batchCountString = case checkValid batchCountString of
   Right errorMessage -> errorMessage
-  Left segmentCount -> "Number of segments: " <> show segmentCount
+  Left _ -> ""
 
 toActionEvent :: forall a. Action -> a -> Maybe Action
 toActionEvent action _ = Just action
 
 handleAction :: forall m. MonadEffect m => Action -> H.HalogenM State Action () BatchInputMessage m Unit
 handleAction = case _ of
-  ChangeSegementCount stringInput -> H.modify_ _ { segmentCount = stringInput }
-  Recieve segmentCount -> H.modify_ _ { segmentCount = show segmentCount }
+  ChangeBatchCount stringInput -> H.modify_ _ { batchCount = stringInput }
+  Recieve batchCount -> H.modify_ _ { batchCount = show batchCount }
   Update -> do
     state <- H.get
-    case checkValid state.segmentCount of
+    case checkValid state.batchCount of
       Right errorMessage -> pure unit -- Do nothing
-      Left segmentCount -> H.raise (UpdatedBatchInput segmentCount)
+      Left batchCount -> H.raise (UpdatedBatchInput batchCount)
 
 checkValid :: String -> Either Int String
-checkValid segmentCountString = case fromString segmentCountString of
-  Nothing -> Right "Failed to parse number of segments per batch"
-  Just segmentCount ->
-    if segmentCount < one then
-      Right "Number of segments per batch must be greater than 1"
+checkValid batchCountString = case fromString batchCountString of
+  Nothing -> Right "Failed to parse number of batches"
+  Just batchCount ->
+    if batchCount < one then
+      Right "Number of batches must be greater than 1"
     else
-      Left segmentCount
+      Left batchCount
