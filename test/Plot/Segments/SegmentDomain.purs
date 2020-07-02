@@ -1,4 +1,4 @@
-module Test.Plot.RobustPlot.SegmentDomain
+module Test.Plot.Segments.SegmentDomain
   ( segmentDomainTests
   ) where
 
@@ -14,13 +14,13 @@ import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, boundsNumber)
 import Plot.JobBatcher (initialJobQueue)
 import Plot.PlotEvaluator (numberExpressionEvaluator)
-import Plot.RobustPlot (segmentDomain)
+import Plot.Segments (segmentDomain)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
 
 segmentDomainTests :: TestSuite
 segmentDomainTests =
-  suite "Plot.RobustPlot - segmentDomain" do
+  suite "Plot.Segments - segmentDomain" do
     test "SHOULD segment domain into 32 segments WHEN f''(x) = 0 AND accuracyTarget = 1 AND onePixel = 1 AND domain = [-1, 1]" do
       let
         -- given

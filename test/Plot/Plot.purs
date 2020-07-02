@@ -4,10 +4,10 @@ module Test.Plot
 
 import Prelude
 import Test.Plot.JobBatcher (jobBatcherTests)
-import Test.Plot.RobustPlot (robustPlotTests)
+import Test.Plot.Segments (segmentsTests)
 import Test.Unit (TestSuite)
 
 plotTests :: TestSuite
 plotTests = do
   jobBatcherTests
-  robustPlotTests
+  segmentsTests

@@ -26,7 +26,7 @@ import Misc.Array (split)
 import Plot.PlotController (computePlotAsync)
 import Plot.PlotEvaluator (numberExpressionEvaluator)
 import Misc.Queue (Queue, empty, null, peek, push, tail, toList) as Q
-import Plot.RobustPlot (segmentDomain)
+import Plot.Segments (segmentDomain)
 import Types (Id, Size, XYBounds, Bounds)
 
 type JobQueue
