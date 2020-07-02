@@ -13,12 +13,12 @@ import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, better, boundsA, boundsNumber, centreA, fromRationalBoundsPrec, fromRationalPrec, toNumber, upperBound)
 import IntervalArith.Misc (Rational, rationalToNumber, toRational, two)
 import Types (Polygon, Size, XYBounds)
-import Plot.PlotEvaluator (ExpressionEvaluator, buildExpressionEvaluator, evaluateWithX)
+import Plot.PlotEvaluator (ExpressionEvaluator, approxExpressionEvaluator)
 
 drawRobustPlot :: Size -> XYBounds -> Expression -> Array Approx -> String -> DrawCommand Unit
 drawRobustPlot canvasSize bounds expression domainSegments label = drawCommands
   where
-  expressionEvaluator = buildExpressionEvaluator expression evaluateWithX
+  expressionEvaluator = approxExpressionEvaluator expression
 
   segmentEnclosures = plotEnclosures canvasSize bounds domainSegments expressionEvaluator
 

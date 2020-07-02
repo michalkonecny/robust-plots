@@ -13,7 +13,7 @@ import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, boundsNumber)
 import Plot.JobBatcher (initialJobQueue)
-import Plot.PlotEvaluator (buildExpressionEvaluator, evaluateNumberWithX)
+import Plot.PlotEvaluator (numberExpressionEvaluator)
 import Plot.RobustPlot (segmentDomain)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
@@ -28,7 +28,7 @@ segmentDomainTests =
 
         expression = parseAndSimplify "x"
 
-        evaluator = buildExpressionEvaluator expression evaluateNumberWithX
+        evaluator = numberExpressionEvaluator expression
 
         accuracyTarget = 0.1
 

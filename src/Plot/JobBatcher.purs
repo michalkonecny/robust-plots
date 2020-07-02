@@ -24,7 +24,7 @@ import IntervalArith.Approx (Approx)
 import Plot.Commands (PlotCommand(..))
 import Misc.Array (split)
 import Plot.PlotController (computePlotAsync)
-import Plot.PlotEvaluator (buildExpressionEvaluator, evaluateNumberWithX)
+import Plot.PlotEvaluator (numberExpressionEvaluator)
 import Misc.Queue (Queue, empty, null, peek, push, tail, toList) as Q
 import Plot.RobustPlot (segmentDomain)
 import Types (Id, Size, XYBounds, Bounds)
@@ -143,7 +143,7 @@ segmentRobust batchSegmentCount bounds expression label = commands
   where
   accuracyTarget = 0.1
 
-  evaluator = buildExpressionEvaluator expression evaluateNumberWithX
+  evaluator = numberExpressionEvaluator expression
 
   domainSegments = segmentDomain accuracyTarget evaluator bounds.xBounds.lower bounds.xBounds.upper
 

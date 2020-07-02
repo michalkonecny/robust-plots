@@ -10,8 +10,8 @@ import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx)
 
-evaluateWithX :: Expression -> Approx -> Maybe Approx
-evaluateWithX expression x = value
+evaluateA :: Expression -> Approx -> Maybe Approx
+evaluateA expression x = value
   where
   variableMap = [ Tuple "x" x ]
 
@@ -19,8 +19,8 @@ evaluateWithX expression x = value
     Left _ -> Nothing
     Right v -> Just v
 
-evaluateNumberWithX :: Expression -> Number -> Maybe Number
-evaluateNumberWithX expression x = value
+evaluateN :: Expression -> Number -> Maybe Number
+evaluateN expression x = value
   where
   variableMap = [ Tuple "x" x ]
 
@@ -42,3 +42,9 @@ buildExpressionEvaluator expression evaluator = { f, f', f'' }
   f' = (evaluator <<< simplify <<< differentiate) expression
 
   f'' = (evaluator <<< simplify <<< secondDifferentiate) expression
+
+numberExpressionEvaluator :: Expression -> ExpressionEvaluator Number
+numberExpressionEvaluator expression = buildExpressionEvaluator expression evaluateN
+
+approxExpressionEvaluator :: Expression -> ExpressionEvaluator Approx
+approxExpressionEvaluator expression = buildExpressionEvaluator expression evaluateA
