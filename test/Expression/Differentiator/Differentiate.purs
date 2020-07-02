@@ -71,6 +71,17 @@ differentiateTests =
         -- then
         expectedResult = "(x*x)+((x+x)*x)"
       equal expectedResult result
+    test "ASSERT f(x)' = (-((100*x)+(100*x)))/((1+((100*x)*x))^2) = 3*(x^2) WHEN f(x) = 1/(1+(100*x*x))" do
+      let
+        -- given
+        rawExpression = "1/(1+(100*x*x))"
+
+        -- when
+        result = fromExpect $ parseAndDifferentiate rawExpression
+
+        -- then
+        expectedResult = "(-((100*x)+(100*x)))/((1+((100*x)*x))^2)"
+      equal expectedResult result
     test "ASSERT f(x)' = 12*x WHEN f(x) = 6*(x^2)" do
       let
         -- given
