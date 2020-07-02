@@ -15,7 +15,7 @@ import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff, Milliseconds(..), delay)
 import Halogen as H
 import Halogen.Query.EventSource as ES
-import Plot.Commands (clear, robustPlot, roughPlot)
+import Plot.Commands (clear, roughPlot)
 import Plot.JobBatcher (JobResult, addPlot, cancelAll)
 import Plot.Pan (panBounds, panBoundsByVector)
 import Plot.PlotController (computePlotAsync)
@@ -55,8 +55,6 @@ handleAction action = do
     HandleExpressionInput (Parsed id expression text) -> do
       newRoughCommands <- lift $ lift $ computePlotAsync state.input.size (roughPlot state.bounds expression text)
       let
-        robust = robustPlot state.segmentCount state.bounds expression text
-
         updatePlot :: ExpressionPlot -> ExpressionPlot
         updatePlot plot =
           plot
@@ -64,7 +62,7 @@ handleAction action = do
             , expression = Just expression
             , roughDrawCommands = newRoughCommands
             , robustDrawCommands = pure unit
-            , queue = addPlot state.batchCount (cancelAll plot.queue) robust id
+            , queue = addPlot state.batchCount (cancelAll plot.queue) state.bounds expression text id
             }
       H.modify_ (_ { plots = alterPlot updatePlot id state.plots })
       handleAction HandleQueue

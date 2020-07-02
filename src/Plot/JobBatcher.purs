@@ -13,18 +13,20 @@ module Plot.JobBatcher
   ) where
 
 import Prelude
-import Data.Array (elem, foldl, foldr, tail, zipWith, (..))
+import Data.Array (elem, foldl, foldr)
 import Data.Foldable (class Foldable)
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..))
 import Data.Set (Set, empty, insert) as S
 import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff)
-import Effect.Exception.Unsafe (unsafeThrow)
 import Expression.Syntax (Expression)
-import IntervalArith.Misc (Rational, toRational)
+import IntervalArith.Approx (Approx)
 import Plot.Commands (PlotCommand(..))
+import Misc.Array (split)
 import Plot.PlotController (computePlotAsync)
-import Plot.Queue (Queue, empty, null, peek, push, tail, toList) as Q
+import Plot.PlotEvaluator (buildExpressionEvaluator, evaluateNumberWithX)
+import Misc.Queue (Queue, empty, null, peek, push, tail, toList) as Q
+import Plot.RobustPlot (segmentDomain)
 import Types (Id, Size, XYBounds, Bounds)
 
 type JobQueue
@@ -74,16 +76,13 @@ cancelAll jobQueue = cancelRunning $ jobQueue { cancelled = cancelled, queue = Q
   where
   cancelled = insertAll (_.id) (Q.toList jobQueue.queue) jobQueue.cancelled
 
--- | Adds a `PlotCommand`, with its associated `batchId` to the `Job` queue.
+-- | Adds a plot with its associated `batchId` to the `Job` queue.
 -- |
 -- | Running time: `O(batchSegmentCount * (batchSegmentCount - 1))`
-addPlot :: Int -> JobQueue -> PlotCommand -> Id -> JobQueue
-addPlot batchSegmentCount jobQueue (RobustPlot segmentCount bounds fullXBounds expression label) batchId = foldl (addJob batchId) jobQueue segmentedPlots
+addPlot :: Int -> JobQueue -> XYBounds -> Expression -> String -> Id -> JobQueue
+addPlot batchSegmentCount jobQueue bounds expression label batchId = foldl (addJob batchId) jobQueue segmentedPlots
   where
-  segmentedPlots = segmentRobust batchSegmentCount segmentCount fullXBounds bounds expression label
-
--- Rough and Empty plot should be perfomed synchronously 
-addPlot _ _ _ _ = unsafeThrow "Cannot batch non robust plot command"
+  segmentedPlots = segmentRobust batchSegmentCount bounds expression label
 
 -- | Sets the `Job` at the front of the queue as running.
 -- |
@@ -139,23 +138,18 @@ addJob batchId jobQueue command = jobQueue { queue = newQueue, currentId = newCu
 
   newQueue = Q.push jobQueue.queue { id: newCurrentId, command, batchId }
 
-segmentRobust :: Int -> Int -> Bounds -> XYBounds -> Expression -> String -> Array PlotCommand
-segmentRobust batchSegmentCount segmentCount fullXBounds bounds expression label = commands
+segmentRobust :: Int -> XYBounds -> Expression -> String -> Array PlotCommand
+segmentRobust batchSegmentCount bounds expression label = commands
   where
-  rangeX = bounds.xBounds.upper - bounds.xBounds.lower
+  accuracyTarget = 0.1
 
-  rangeY = bounds.yBounds.upper - bounds.yBounds.lower
+  evaluator = buildExpressionEvaluator expression evaluateNumberWithX
 
-  segmentWidth = rangeX / (toRational batchSegmentCount)
+  domainSegments = segmentDomain accuracyTarget evaluator bounds.xBounds.lower bounds.xBounds.upper
 
-  batchBreakpoints = map (toRational >>> toDomainX) $ 0 .. batchSegmentCount
+  splitDomainSegments = split batchSegmentCount domainSegments
 
-  commands = zipWith toPlotCommand batchBreakpoints (fromMaybe [] (tail batchBreakpoints))
+  commands = map toPlotCommand splitDomainSegments
 
-  toDomainX :: Rational -> Rational
-  toDomainX segmentX = (segmentX * segmentWidth) + bounds.xBounds.lower
-
-  toPlotCommand :: Rational -> Rational -> PlotCommand
-  toPlotCommand lower upper = RobustPlot segmentCount commandBounds fullXBounds expression label
-    where
-    commandBounds = bounds { xBounds = { lower, upper } }
+  toPlotCommand :: Array Approx -> PlotCommand
+  toPlotCommand segments = RobustPlot bounds expression segments label

@@ -9,7 +9,7 @@ import Data.Maybe (Maybe(..))
 import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff)
 import IntervalArith.Misc (Rational)
-import Plot.Commands (robustPlot, roughPlot)
+import Plot.Commands (roughPlot)
 import Plot.JobBatcher (Job, JobResult, addPlot, cancelAll, clearCancelled, hasJobs, initialJobQueue, isCancelled, runFirst, setRunning)
 import Plot.PlotController (computePlotAsync)
 import Types (Id, Size, XYBounds, Bounds)
@@ -95,10 +95,8 @@ clearAddPlotCommands batchCount segmentCount size newBounds = parSequence <<< (m
     Nothing -> pure plot
     Just expression -> do
       let
-        robust = robustPlot segmentCount newBounds expression plot.expressionText
-
         cancelledQueue = cancelAll plot.queue
 
-        queueWithPlot = addPlot batchCount cancelledQueue robust plot.id
+        queueWithPlot = addPlot batchCount cancelledQueue newBounds expression plot.expressionText plot.id
       drawCommands <- computePlotAsync size $ roughPlot newBounds expression plot.expressionText
       pure $ plot { queue = queueWithPlot, roughDrawCommands = drawCommands, robustDrawCommands = pure unit }
