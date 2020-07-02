@@ -9,9 +9,8 @@ import Expression.Error (Expect, evaluationError, multipleErrors, throw, unknown
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 import Expression.VariableMap (VariableMap, lookup)
 import IntervalArith.Approx (Approx, fromRationalPrec)
-import IntervalArith.Approx.Pow (powA)
 import IntervalArith.Approx.Sqrt (sqrtA)
-import IntervalArith.Misc (Rational, rationalToNumber)
+import IntervalArith.Misc (Rational, multiplicativePowerRecip, rationalToNumber)
 import Math (cos, exp, log, pow, sin, sqrt, tan, e, pi)
 
 presetConstants :: Array (Tuple String Number)
@@ -138,9 +137,7 @@ evaluateSqrt variableMap expression = case evaluate variableMap expression of
 evaluatePow :: VariableMap Approx -> Expression -> Expression -> Expect Approx
 evaluatePow variableMap expression (ExpressionLiteral value) = case asInteger value of
   Just power -> case evaluate variableMap expression of
-    Right expressionResult -> case powA expressionResult power of
-      Just result -> pure result
-      Nothing -> powError
+    Right expressionResult -> pure $ multiplicativePowerRecip expressionResult power
     Left error -> throw error
   Nothing -> powError
 
