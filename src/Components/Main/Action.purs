@@ -51,6 +51,7 @@ data Action
   | DrawPlot
   | HandleQueue
   | HandleResize
+  | ChangeSelectedPlot Int
 
 handleAction :: forall output. Action -> HalogenMain output Unit
 handleAction action = do
@@ -58,7 +59,7 @@ handleAction action = do
   case action of
     Clear -> do
       clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
-      H.modify_ (_ { plots = [ newPlot 1 ], clearPlot = clearBounds })
+      H.modify_ (_ { plots = [ newPlot 0 ], clearPlot = clearBounds, selectedPlot = 0 })
       handleAction DrawPlot
     HandleExpressionInput (Parsed id expression text) -> do
       newRoughCommands <- lift $ lift $ computePlotAsync state.input.size (roughPlot state.bounds expression text)
@@ -82,7 +83,7 @@ handleAction action = do
     ResetBounds -> redrawWithBounds state initialBounds
     HandleCanvas (Dragged delta) -> redrawWithoutRobustWithBounds state (panBoundsByVector state.input.size state.bounds delta)
     HandleCanvas StoppedDragging -> redraw state
-    AddPlot -> H.modify_ (_ { plots = state.plots <> [ newPlot (1 + length state.plots) ] })
+    AddPlot -> H.modify_ (_ { plots = state.plots <> [ newPlot (length state.plots) ] })
     HandleBoundsInput (UpdatedBoundsInput newBounds) -> redrawWithBounds state newBounds
     Init -> do
       window <- H.liftEffect $ Web.toEventTarget <$> Web.window
@@ -112,6 +113,7 @@ handleAction action = do
     HandleAccuracyInput (UpdatedAccuracyInput accuracy) -> do
       H.modify_ (_ { accuracy = accuracy })
       redraw state { accuracy = accuracy }
+    ChangeSelectedPlot plotId -> H.modify_ (_ { selectedPlot = plotId })
     HandleResize -> do
       windowSize <- getWindowSize
       H.liftEffect $ log "Resized"

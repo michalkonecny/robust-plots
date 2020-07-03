@@ -9,9 +9,11 @@ import Effect.Class (class MonadEffect)
 import Expression.Error (Expect)
 import Expression.Evaluator (roughEvaluate, presetConstants)
 import Expression.Syntax (Expression)
+import Halogen (ClassName(..))
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
+import Halogen.HTML.Properties (ButtonType(..))
 import Halogen.HTML.Properties as HP
 
 type ExpressionInputSlot p
@@ -67,16 +69,25 @@ initialState id (Tuple input status) =
 render :: forall slots m. State -> HH.ComponentHTML Action slots m
 render state =
   HH.div_
-    [ HH.input
-        [ HP.type_ HP.InputText
-        , HE.onValueChange $ toValueChangeActionEvent
-        , HP.value state.input
-        ]
-    , HH.button
-        [ HE.onClick $ toActionEvent Parse ]
-        [ HH.text "Plot" ]
-    , HH.form_
-        [ HH.input
+    [ HH.form_
+        [ HH.div [ HP.class_ (ClassName "input-group mb-3") ]
+            [ HH.div
+                [ HP.class_ (ClassName "input-group-prepend") ]
+                [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "f(x)=" ] ]
+            , HH.input
+                [ HP.type_ HP.InputText
+                , HE.onValueChange $ toValueChangeActionEvent
+                , HP.value state.input
+                , HP.class_ (ClassName "form-control")
+                ]
+            , HH.button
+                [ HP.type_ ButtonButton
+                , HP.class_ (ClassName "btn btn-info")
+                , HE.onClick $ toActionEvent Parse
+                ]
+                [ HH.text "Plot" ]
+            ]
+        , HH.input
             [ HP.type_ HP.InputRadio
             , HE.onChecked $ toCheckedEvent (Status Off)
             , HP.id_ "offCheckBox"

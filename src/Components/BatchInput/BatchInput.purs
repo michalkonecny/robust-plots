@@ -5,6 +5,7 @@ import Data.Either (Either(..))
 import Data.Int (fromString)
 import Data.Maybe (Maybe(..))
 import Effect.Class (class MonadEffect)
+import Halogen (ClassName(..))
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -46,21 +47,24 @@ initialState batchCount =
 render :: forall slots m. State -> HH.ComponentHTML Action slots m
 render state =
   HH.div_
-    [ HH.label
-        [ HP.for "batchCount" ]
-        [ HH.text "Number of Batches:" ]
-    , HH.input
-        [ HP.type_ HP.InputText
-        , HE.onValueChange $ Just <<< ChangeBatchCount
-        , HP.value state.batchCount
-        , HP.id_ "batchCount"
-        ]
-    , HH.button
-        [ HE.onClick $ toActionEvent Update ]
-        [ HH.text "Update" ]
-    , HH.br_
-    , HH.p_
+    [ HH.p_
         [ HH.text $ outputMessage state.batchCount ]
+    , HH.div
+        [ HP.class_ (ClassName "input-group mb-3") ]
+        [ HH.div
+            [ HP.class_ (ClassName "input-group-prepend") ]
+            [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Number of Batches:" ] ]
+        , HH.input
+            [ HP.type_ HP.InputText
+            , HE.onValueChange $ Just <<< ChangeBatchCount
+            , HP.value state.batchCount
+            , HP.id_ "batchCount"
+            , HP.class_ (ClassName "form-control")
+            ]
+        , HH.button
+            [ HE.onClick $ toActionEvent Update, HP.class_ (ClassName "btn btn-info") ]
+            [ HH.text "Update" ]
+        ]
     ]
 
 outputMessage :: String -> String
