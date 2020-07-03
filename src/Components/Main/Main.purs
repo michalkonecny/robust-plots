@@ -129,20 +129,26 @@ mainComponent =
                         [ HH.div
                             [ HP.class_ (ClassName "card-header") ]
                             [ HH.div
-                                [ HP.class_ (ClassName "btn-group") ]
+                                [ HP.class_ (ClassName "btn-group pr-1") ]
                                 [ HH.button
                                     [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Pan Left ]
                                     [ HH.text "◄" ]
                                 , HH.button
                                     [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Pan Right ]
                                     [ HH.text "►" ]
-                                , HH.button
+                                ]
+                            , HH.div
+                                [ HP.class_ (ClassName "btn-group pr-1") ]
+                                [ HH.button
                                     [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Pan Down ]
                                     [ HH.text "▼" ]
                                 , HH.button
                                     [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Pan Up ]
                                     [ HH.text "▲" ]
-                                , HH.button
+                                ]
+                            , HH.div
+                                [ HP.class_ (ClassName "btn-group") ]
+                                [ HH.button
                                     [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Zoom true ]
                                     [ HH.text "+" ]
                                 , HH.button

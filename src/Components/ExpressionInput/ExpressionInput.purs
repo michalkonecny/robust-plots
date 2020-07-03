@@ -70,7 +70,8 @@ render :: forall slots m. State -> HH.ComponentHTML Action slots m
 render state =
   HH.div_
     $ [ HH.form_
-          [ HH.div [ HP.class_ (ClassName "input-group mb-3") ]
+          [ HH.div
+              [ HP.class_ (ClassName "input-group mb-3") ]
               [ HH.div
                   [ HP.class_ (ClassName "input-group-prepend") ]
                   [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "f(x)=" ] ]
@@ -87,33 +88,39 @@ render state =
                   ]
                   [ HH.text "Plot" ]
               ]
-          , HH.input
-              [ HP.type_ HP.InputRadio
-              , HE.onChecked $ toCheckedEvent (Status Off)
-              , HP.id_ "offCheckBox"
-              , HP.checked (state.status == Off)
+          , HH.div
+              [ HP.class_ (ClassName "form-check form-check-inline") ]
+              [ HH.input
+                  [ HP.type_ HP.InputRadio
+                  , HE.onChecked $ toCheckedEvent (Status Off)
+                  , HP.id_ "offCheckBox"
+                  , HP.checked (state.status == Off)
+                  , HP.class_ (ClassName "form-check-input")
+                  ]
+              , HH.label
+                  [ HP.for "offCheckBox", HP.class_ (ClassName "form-check-label pr-3") ]
+                  [ HH.text "Off" ]
+              , HH.input
+                  [ HP.type_ HP.InputRadio
+                  , HE.onChecked $ toCheckedEvent (Status Rough)
+                  , HP.id_ "roughCheckBox"
+                  , HP.checked (state.status == Rough)
+                  , HP.class_ (ClassName "form-check-input")
+                  ]
+              , HH.label
+                  [ HP.for "roughCheckBox", HP.class_ (ClassName "form-check-label pr-3") ]
+                  [ HH.text "Rough" ]
+              , HH.input
+                  [ HP.type_ HP.InputRadio
+                  , HE.onChecked $ toCheckedEvent (Status Robust)
+                  , HP.id_ "robustCheckBox"
+                  , HP.checked (state.status == Robust)
+                  , HP.class_ (ClassName "form-check-input")
+                  ]
+              , HH.label
+                  [ HP.for "robustCheckBox", HP.class_ (ClassName "form-check-label") ]
+                  [ HH.text "Rough and Robust" ]
               ]
-          , HH.label
-              [ HP.for "offCheckBox" ]
-              [ HH.text "Off" ]
-          , HH.input
-              [ HP.type_ HP.InputRadio
-              , HE.onChecked $ toCheckedEvent (Status Rough)
-              , HP.id_ "roughCheckBox"
-              , HP.checked (state.status == Rough)
-              ]
-          , HH.label
-              [ HP.for "roughCheckBox" ]
-              [ HH.text "Rough" ]
-          , HH.input
-              [ HP.type_ HP.InputRadio
-              , HE.onChecked $ toCheckedEvent (Status Robust)
-              , HP.id_ "robustCheckBox"
-              , HP.checked (state.status == Robust)
-              ]
-          , HH.label
-              [ HP.for "robustCheckBox" ]
-              [ HH.text "Rough and Robust" ]
           ]
       ]
     <> (errorMessage state.error)

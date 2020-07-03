@@ -93,5 +93,5 @@ handleAction = case _ of
 
 checkValid :: String -> Either Number String
 checkValid accuracyString = case fromString accuracyString of
-  Nothing -> Right "Failed to parse number of accuracyes"
+  Nothing -> Right "Failed to parse Accuracy"
   Just accuracy -> Left accuracy
