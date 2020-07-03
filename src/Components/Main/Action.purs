@@ -41,7 +41,7 @@ data Action
   | Pan Direction
   | Zoom Boolean
   | HandleExpressionInput ExpressionInputMessage
-  | HandleScroll H.SubscriptionId WheelEvent
+  | HandleScroll WheelEvent
   | HandleCanvas CanvasMessage
   | HandleBoundsInput BoundsInputMessage
   | HandleBatchInput BatchInputMessage
@@ -50,7 +50,7 @@ data Action
   | ResetBounds
   | DrawPlot
   | HandleQueue
-  | HandleResize H.SubscriptionId
+  | HandleResize
 
 handleAction :: forall output. Action -> HalogenMain output Unit
 handleAction action = do
@@ -87,10 +87,10 @@ handleAction action = do
     Init -> do
       window <- H.liftEffect $ Web.toEventTarget <$> Web.window
       document <- H.liftEffect $ Web.document =<< Web.window
-      H.subscribe' \id -> ES.eventListenerEventSource WET.wheel (HTMLDocument.toEventTarget document) (map (HandleScroll id) <<< WE.fromEvent)
-      H.subscribe' \id -> ES.eventListenerEventSource (E.EventType "resize") window (const (Just $ HandleResize id))
+      H.subscribe' \id -> ES.eventListenerEventSource WET.wheel (HTMLDocument.toEventTarget document) (map HandleScroll <<< WE.fromEvent)
+      H.subscribe' \id -> ES.eventListenerEventSource (E.EventType "resize") window (const (Just  HandleResize ))
       handleAction Clear
-    HandleScroll _ event -> do
+    HandleScroll event -> do
       let
         changeInY = WE.deltaY event
       when (changeInY /= 0.0) do
@@ -112,7 +112,7 @@ handleAction action = do
     HandleAccuracyInput (UpdatedAccuracyInput accuracy) -> do
       H.modify_ (_ { accuracy = accuracy })
       redraw state { accuracy = accuracy }
-    HandleResize id -> do
+    HandleResize -> do
       H.liftEffect $ log "Resized"
       pure unit
 
