@@ -106,7 +106,9 @@ mainComponent =
                                 ]
                             ]
                         ]
+                    , HH.br_
                     , HH.slot _boundsInput 1 boundsInputComponent state.bounds (Just <<< HandleBoundsInput)
+                    , HH.br_
                     , HH.div
                         [ HP.class_ (ClassName "card") ]
                         [ HH.div

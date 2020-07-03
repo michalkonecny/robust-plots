@@ -85,51 +85,69 @@ render state =
     , HH.div
         [ HP.class_ (ClassName "card-body") ]
         ( [ HH.div
-              [ HP.class_ (ClassName "input-group mb-3") ]
+              [ HP.class_ (ClassName "row") ]
               [ HH.div
-                  [ HP.class_ (ClassName "input-group-prepend") ]
-                  [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Lower X:" ] ]
-              , HH.input
-                  [ HP.type_ HP.InputText
-                  , HE.onValueChange $ toValueChangeActionEvent XLower
-                  , HP.value state.xBounds.lower
-                  , HP.class_ (ClassName "form-control")
+                  [ HP.class_ (ClassName "col-md") ]
+                  [ HH.div
+                      [ HP.class_ (ClassName "input-group mb-3") ]
+                      [ HH.div
+                          [ HP.class_ (ClassName "input-group-prepend") ]
+                          [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Lower X:" ] ]
+                      , HH.input
+                          [ HP.type_ HP.InputText
+                          , HE.onValueChange $ toValueChangeActionEvent XLower
+                          , HP.value state.xBounds.lower
+                          , HP.class_ (ClassName "form-control")
+                          ]
+                      ]
+                  ]
+              , HH.div
+                  [ HP.class_ (ClassName "col-md") ]
+                  [ HH.div
+                      [ HP.class_ (ClassName "input-group mb-3") ]
+                      [ HH.div
+                          [ HP.class_ (ClassName "input-group-prepend") ]
+                          [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Upper X:" ] ]
+                      , HH.input
+                          [ HP.type_ HP.InputText
+                          , HE.onValueChange $ toValueChangeActionEvent XUpper
+                          , HP.value state.xBounds.upper
+                          , HP.class_ (ClassName "form-control")
+                          ]
+                      ]
                   ]
               ]
           , HH.div
-              [ HP.class_ (ClassName "input-group mb-3") ]
+              [ HP.class_ (ClassName "row") ]
               [ HH.div
-                  [ HP.class_ (ClassName "input-group-prepend") ]
-                  [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Upper X:" ] ]
-              , HH.input
-                  [ HP.type_ HP.InputText
-                  , HE.onValueChange $ toValueChangeActionEvent XUpper
-                  , HP.value state.xBounds.upper
-                  , HP.class_ (ClassName "form-control")
+                  [ HP.class_ (ClassName "col-md") ]
+                  [ HH.div
+                      [ HP.class_ (ClassName "input-group mb-3") ]
+                      [ HH.div
+                          [ HP.class_ (ClassName "input-group-prepend") ]
+                          [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Lower Y:" ] ]
+                      , HH.input
+                          [ HP.type_ HP.InputText
+                          , HE.onValueChange $ toValueChangeActionEvent YLower
+                          , HP.value state.yBounds.lower
+                          , HP.class_ (ClassName "form-control")
+                          ]
+                      ]
                   ]
-              ]
-          , HH.div
-              [ HP.class_ (ClassName "input-group mb-3") ]
-              [ HH.div
-                  [ HP.class_ (ClassName "input-group-prepend") ]
-                  [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Lower Y:" ] ]
-              , HH.input
-                  [ HP.type_ HP.InputText
-                  , HE.onValueChange $ toValueChangeActionEvent YLower
-                  , HP.value state.yBounds.lower
-                  , HP.class_ (ClassName "form-control")
-                  ]
-              ]
-          , HH.div
-              [ HP.class_ (ClassName "input-group mb-3") ]
-              [ HH.div
-                  [ HP.class_ (ClassName "input-group-prepend") ]
-                  [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Upper Y:" ] ]
-              , HH.input
-                  [ HP.type_ HP.InputText
-                  , HE.onValueChange $ toValueChangeActionEvent YUpper
-                  , HP.value state.yBounds.upper
-                  , HP.class_ (ClassName "form-control")
+              , HH.div
+                  [ HP.class_ (ClassName "col-md") ]
+                  [ HH.div
+                      [ HP.class_ (ClassName "input-group mb-3") ]
+                      [ HH.div
+                          [ HP.class_ (ClassName "input-group-prepend") ]
+                          [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Upper Y:" ] ]
+                      , HH.input
+                          [ HP.type_ HP.InputText
+                          , HE.onValueChange $ toValueChangeActionEvent YUpper
+                          , HP.value state.yBounds.upper
+                          , HP.class_ (ClassName "form-control")
+                          ]
+                      ]
                   ]
               ]
           ]
