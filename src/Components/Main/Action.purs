@@ -1,7 +1,6 @@
 module Components.Main.Action where
 
 import Prelude
-
 import Components.AccuracyInput (AccuracyInputMessage(..))
 import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..))
@@ -26,14 +25,15 @@ import Plot.PlotController (computePlotAsync)
 import Plot.Zoom (zoomBounds)
 import Types (Direction, XYBounds, Size)
 import Web.Event.Event as E
-import Web.HTML (window, Window) as Web
+import Web.HTML (window) as Web
 import Web.HTML.HTMLDocument as HTMLDocument
 import Web.HTML.Window (document, toEventTarget, innerWidth, innerHeight) as Web
 import Web.UIEvent.WheelEvent (WheelEvent)
 import Web.UIEvent.WheelEvent as WE
 import Web.UIEvent.WheelEvent.EventTypes as WET
 
-type HalogenMain output a = H.HalogenM State Action ChildSlots output (ReaderT Config Aff) a
+type HalogenMain output a
+  = H.HalogenM State Action ChildSlots output (ReaderT Config Aff) a
 
 data Action
   = Clear
@@ -88,7 +88,7 @@ handleAction action = do
       window <- H.liftEffect $ Web.toEventTarget <$> Web.window
       document <- H.liftEffect $ Web.document =<< Web.window
       H.subscribe' \id -> ES.eventListenerEventSource WET.wheel (HTMLDocument.toEventTarget document) (map HandleScroll <<< WE.fromEvent)
-      H.subscribe' \id -> ES.eventListenerEventSource (E.EventType "resize") window (const (Just  HandleResize ))
+      H.subscribe' \id -> ES.eventListenerEventSource (E.EventType "resize") window (const (Just HandleResize))
       handleAction Clear
     HandleScroll event -> do
       let
@@ -113,14 +113,16 @@ handleAction action = do
       H.modify_ (_ { accuracy = accuracy })
       redraw state { accuracy = accuracy }
     HandleResize -> do
+      windowSize <- getWindowSize
       H.liftEffect $ log "Resized"
       pure unit
 
-getWindowSize :: forall output. Web.Window -> HalogenMain output Size
-getWindowSize window = do 
+getWindowSize :: forall output. HalogenMain output Size
+getWindowSize = do
+  window <- H.liftEffect $ Web.window
   width <- H.liftEffect $ Web.innerWidth window
   height <- H.liftEffect $ Web.innerHeight window
-  pure $ { width : toRational width, height: toRational height}
+  pure $ { width: toRational width, height: toRational height }
 
 handleJobResult :: forall output. Maybe JobResult -> State -> HalogenMain output Unit
 handleJobResult Nothing _ = pure unit
