@@ -25,7 +25,6 @@ import Plot.Pan (panBounds, panBoundsByVector)
 import Plot.PlotController (computePlotAsync)
 import Plot.Zoom (zoomBounds)
 import Types (Direction, XYBounds, Size)
-import Web.DOM (Element)
 import Web.DOM.NonElementParentNode (getElementById)
 import Web.Event.Event as E
 import Web.HTML (window) as Web
