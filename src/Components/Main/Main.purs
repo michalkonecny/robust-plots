@@ -3,13 +3,13 @@ module Components.Main where
 import Prelude
 import Components.AccuracyInput (accuracyInputComponent)
 import Components.BatchInput (batchInputComponent)
-import Components.BoundsInput (boundsInputComponent)
+import Components.BoundsInput (initialBounds, boundsInputComponent)
 import Components.Canvas (canvasComponent)
 import Components.Canvas.Controller (canvasController)
 import Components.ExpressionInput (expressionInputComponent)
 import Components.ExpressionInput.Controller (expressionInputController)
 import Components.Main.Action (Action(..), handleAction)
-import Components.Main.Helper (initialBounds, newPlot)
+import Components.Main.Helper (newPlot)
 import Components.Main.Types (ChildSlots, Config, State, ExpressionPlot)
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT)
@@ -95,12 +95,15 @@ mainComponent =
                             ]
                         , HH.div
                             [ HP.class_ (ClassName "card-footer") ]
-                            [ HH.button
-                                [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ AddPlot ]
-                                [ HH.text "Add plot" ]
-                            , HH.button
-                                [ HP.class_ (ClassName "btn btn-danger"), HE.onClick $ toActionEvent Clear ]
-                                [ HH.text "Clear plots" ]
+                            [ HH.div
+                                [ HP.class_ (ClassName "btn-group") ]
+                                [ HH.button
+                                    [ HP.class_ (ClassName "btn btn-success"), HE.onClick $ toActionEvent $ AddPlot ]
+                                    [ HH.text "Add plot" ]
+                                , HH.button
+                                    [ HP.class_ (ClassName "btn btn-danger"), HE.onClick $ toActionEvent Clear ]
+                                    [ HH.text "Clear plots" ]
+                                ]
                             ]
                         ]
                     , HH.slot _boundsInput 1 boundsInputComponent state.bounds (Just <<< HandleBoundsInput)
@@ -114,9 +117,6 @@ mainComponent =
                             [ HH.div
                                 [ HP.class_ (ClassName "btn-group") ]
                                 [ HH.button
-                                    [ HP.class_ (ClassName "btn btn-danger"), HE.onClick $ toActionEvent $ ResetBounds ]
-                                    [ HH.text "Reset" ]
-                                , HH.button
                                     [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Pan Left ]
                                     [ HH.text "◄" ]
                                 , HH.button

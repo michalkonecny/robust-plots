@@ -6,7 +6,7 @@ import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..))
 import Components.Canvas (CanvasMessage(..))
 import Components.ExpressionInput (ExpressionInputMessage(..))
-import Components.Main.Helper (alterPlot, anyPlotHasJobs, clearAllCancelled, foldDrawCommands, initialBounds, isCancelledInAnyPlot, newPlot, runFirstJob, clearAddPlotCommands, setFirstRunningJob, updateExpressionPlotCommands)
+import Components.Main.Helper (alterPlot, anyPlotHasJobs, clearAllCancelled, foldDrawCommands, isCancelledInAnyPlot, newPlot, runFirstJob, clearAddPlotCommands, setFirstRunningJob, updateExpressionPlotCommands)
 import Components.Main.Types (ChildSlots, Config, State, ExpressionPlot)
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.Trans.Class (lift)
@@ -47,7 +47,6 @@ data Action
   | HandleBatchInput BatchInputMessage
   | HandleAccuracyInput AccuracyInputMessage
   | AddPlot
-  | ResetBounds
   | DrawPlot
   | HandleQueue
   | HandleResize
@@ -80,7 +79,6 @@ handleAction action = do
       handleAction DrawPlot
     Pan direction -> redrawWithDelayAndBounds state (panBounds state.bounds direction)
     Zoom isZoomIn -> redrawWithDelayAndBounds state (zoomBounds state.bounds isZoomIn)
-    ResetBounds -> redrawWithBounds state initialBounds
     HandleCanvas (Dragged delta) -> redrawWithoutRobustWithBounds state (panBoundsByVector state.input.size state.bounds delta)
     HandleCanvas StoppedDragging -> redraw state
     AddPlot -> H.modify_ (_ { plots = state.plots <> [ newPlot (length state.plots) ] })

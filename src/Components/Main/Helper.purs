@@ -34,9 +34,6 @@ alterPlot alterF id = map mapper
   mapper :: ExpressionPlot -> ExpressionPlot
   mapper plot = if plot.id == id then alterF plot else plot
 
-initialBounds :: XYBounds
-initialBounds = xyBounds (-one) one (-one) one
-
 queueHasJobs :: ExpressionPlot -> Boolean
 queueHasJobs plot = hasJobs plot.queue
 
@@ -83,9 +80,6 @@ toMaybeDrawCommand plot = case plot.expression of
 
 foldDrawCommands :: State -> DrawCommand Unit
 foldDrawCommands state = fold $ [ state.clearPlot ] <> mapMaybe toMaybeDrawCommand state.plots
-
-xyBounds :: Rational -> Rational -> Rational -> Rational -> XYBounds
-xyBounds xLower xUpper yLower yUpper = { xBounds: { upper: xUpper, lower: xLower }, yBounds: { upper: yUpper, lower: yLower } }
 
 clearAddPlotCommands :: Number -> Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
 clearAddPlotCommands accuracy batchCount size newBounds = parSequence <<< (map clearAddPlot)
