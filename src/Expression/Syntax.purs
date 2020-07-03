@@ -85,9 +85,13 @@ showLiteral value =
 
 showUnaryExpression :: UnaryOperation -> Expression -> String
 showUnaryExpression Neg expression@(ExpressionVariable name) = (show Neg) <> (show expression)
+
 showUnaryExpression Neg expression@(ExpressionLiteral value) = (show Neg) <> (show expression)
+
 showUnaryExpression Exp expression@(ExpressionVariable name) = (show Exp) <> (show expression)
+
 showUnaryExpression Exp expression@(ExpressionLiteral value) = (show Exp) <> (show expression)
+
 showUnaryExpression unaryOperation expression = (show unaryOperation) <> "(" <> (show expression) <> ")"
 
 showNestedBinaryExpression :: Expression -> String

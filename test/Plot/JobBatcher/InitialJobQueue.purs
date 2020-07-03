@@ -5,7 +5,7 @@ module Test.Plot.JobBatcher.InitialJobQueue
 import Prelude
 import Data.Maybe (Maybe(..), isNothing)
 import Data.Set (isEmpty) as S
-import Plot.Queue (null) as Q
+import Misc.Queue (null) as Q
 import Plot.JobBatcher (initialJobQueue)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal, assert)

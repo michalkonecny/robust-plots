@@ -4,7 +4,6 @@ import Prelude
 import Data.Either (Either(..))
 import Data.Int (fromString)
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..))
 import Effect.Class (class MonadEffect)
 import Halogen as H
 import Halogen.HTML as HH
@@ -16,19 +15,17 @@ type BatchInputSlot p
 
 type State
   = { batchCount :: String
-    , segmentCount :: String
     }
 
 data BatchInputMessage
-  = UpdatedBatchInput Int Int
+  = UpdatedBatchInput Int
 
 data Action
-  = Recieve (Tuple Int Int)
+  = Recieve Int
   | ChangeBatchCount String
-  | ChangeSegementCount String
   | Update
 
-batchInputComponent :: forall query m. MonadEffect m => H.Component HH.HTML query (Tuple Int Int) BatchInputMessage m
+batchInputComponent :: forall query m. MonadEffect m => H.Component HH.HTML query Int BatchInputMessage m
 batchInputComponent =
   H.mkComponent
     { initialState: initialState
@@ -41,10 +38,9 @@ batchInputComponent =
               }
     }
 
-initialState :: (Tuple Int Int) -> State
-initialState (Tuple batchCount segmentCount) =
+initialState :: Int -> State
+initialState batchCount =
   { batchCount: show batchCount
-  , segmentCount: show segmentCount
   }
 
 render :: forall slots m. State -> HH.ComponentHTML Action slots m
@@ -59,28 +55,18 @@ render state =
         , HP.value state.batchCount
         , HP.id_ "batchCount"
         ]
-    , HH.br_
-    , HH.label
-        [ HP.for "segmentCount" ]
-        [ HH.text "Number of Segments per Batch:" ]
-    , HH.input
-        [ HP.type_ HP.InputText
-        , HE.onValueChange $ Just <<< ChangeSegementCount
-        , HP.value state.segmentCount
-        , HP.id_ "segmentCount"
-        ]
-    , HH.br_
-    , HH.p_
-        [ HH.text $ outputMessage state.batchCount state.segmentCount ]
     , HH.button
         [ HE.onClick $ toActionEvent Update ]
         [ HH.text "Update" ]
+    , HH.br_
+    , HH.p_
+        [ HH.text $ outputMessage state.batchCount ]
     ]
 
-outputMessage :: String -> String -> String
-outputMessage batchCountString segmentCountString = case checkValid batchCountString segmentCountString of
+outputMessage :: String -> String
+outputMessage batchCountString = case checkValid batchCountString of
   Right errorMessage -> errorMessage
-  Left (Tuple batchCount segmentCount) -> "Number of segments: " <> show (batchCount * segmentCount)
+  Left _ -> ""
 
 toActionEvent :: forall a. Action -> a -> Maybe Action
 toActionEvent action _ = Just action
@@ -88,24 +74,18 @@ toActionEvent action _ = Just action
 handleAction :: forall m. MonadEffect m => Action -> H.HalogenM State Action () BatchInputMessage m Unit
 handleAction = case _ of
   ChangeBatchCount stringInput -> H.modify_ _ { batchCount = stringInput }
-  ChangeSegementCount stringInput -> H.modify_ _ { segmentCount = stringInput }
-  Recieve (Tuple batchCount segmentCount) -> H.modify_ _ { batchCount = show batchCount, segmentCount = show segmentCount }
+  Recieve batchCount -> H.modify_ _ { batchCount = show batchCount }
   Update -> do
     state <- H.get
-    case checkValid state.batchCount state.segmentCount of
+    case checkValid state.batchCount of
       Right errorMessage -> pure unit -- Do nothing
-      Left (Tuple batchCount segmentCount) -> H.raise (UpdatedBatchInput batchCount segmentCount)
+      Left batchCount -> H.raise (UpdatedBatchInput batchCount)
 
-checkValid :: String -> String -> Either (Tuple Int Int) String
-checkValid batchCountString segmentCountString = case fromString batchCountString of
+checkValid :: String -> Either Int String
+checkValid batchCountString = case fromString batchCountString of
   Nothing -> Right "Failed to parse number of batches"
-  Just batchCount -> case fromString segmentCountString of
-    Nothing -> Right "Failed to parse number of segments per batch"
-    Just segmentCount ->
-      if batchCount < one then
-        Right "Number of batches must be greater than 1"
-      else
-        if segmentCount < one then
-          Right "Number of segments per batch must be greater than 1"
-        else
-          Left (Tuple batchCount segmentCount)
+  Just batchCount ->
+    if batchCount < one then
+      Right "Number of batches must be greater than 1"
+    else
+      Left batchCount

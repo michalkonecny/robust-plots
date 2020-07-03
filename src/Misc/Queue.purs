@@ -1,4 +1,4 @@
-module Plot.Queue where
+module Misc.Queue where
 
 import Prelude
 import Data.List as L

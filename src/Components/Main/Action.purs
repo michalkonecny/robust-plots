@@ -1,6 +1,8 @@
 module Components.Main.Action where
 
 import Prelude
+
+import Components.AccuracyInput (AccuracyInputMessage(..))
 import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..))
 import Components.Canvas (CanvasMessage(..))
@@ -15,7 +17,7 @@ import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff, Milliseconds(..), delay)
 import Halogen as H
 import Halogen.Query.EventSource as ES
-import Plot.Commands (clear, robustPlot, roughPlot)
+import Plot.Commands (clear, roughPlot)
 import Plot.JobBatcher (JobResult, addPlot, cancelAll)
 import Plot.Pan (panBounds, panBoundsByVector)
 import Plot.PlotController (computePlotAsync)
@@ -39,6 +41,7 @@ data Action
   | HandleCanvas CanvasMessage
   | HandleBoundsInput BoundsInputMessage
   | HandleBatchInput BatchInputMessage
+  | HandleAccuracyInput AccuracyInputMessage
   | AddPlot
   | ResetBounds
   | DrawPlot
@@ -55,8 +58,6 @@ handleAction action = do
     HandleExpressionInput (Parsed id expression text) -> do
       newRoughCommands <- lift $ lift $ computePlotAsync state.input.size (roughPlot state.bounds expression text)
       let
-        robust = robustPlot state.segmentCount state.bounds expression text
-
         updatePlot :: ExpressionPlot -> ExpressionPlot
         updatePlot plot =
           plot
@@ -64,7 +65,7 @@ handleAction action = do
             , expression = Just expression
             , roughDrawCommands = newRoughCommands
             , robustDrawCommands = pure unit
-            , queue = addPlot state.batchCount (cancelAll plot.queue) robust id
+            , queue = addPlot state.accuracy state.batchCount (cancelAll plot.queue) state.bounds expression text id
             }
       H.modify_ (_ { plots = alterPlot updatePlot id state.plots })
       handleAction HandleQueue
@@ -102,9 +103,12 @@ handleAction action = do
         handleJobResult maybeJobResult newState
       else
         H.modify_ (_ { plots = clearAllCancelled state.plots })
-    HandleBatchInput (UpdatedBatchInput batchCount segmentCount) -> do
-      H.modify_ (_ { batchCount = batchCount, segmentCount = segmentCount })
-      redraw state { batchCount = batchCount, segmentCount = segmentCount }
+    HandleBatchInput (UpdatedBatchInput batchCount) -> do
+      H.modify_ (_ { batchCount = batchCount })
+      redraw state { batchCount = batchCount }
+    HandleAccuracyInput (UpdatedAccuracyInput accuracy) -> do
+      H.modify_ (_ { accuracy = accuracy })
+      redraw state { accuracy = accuracy }
 
 handleJobResult :: forall output. Maybe JobResult -> State -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 handleJobResult Nothing _ = pure unit
@@ -125,7 +129,7 @@ fork = forkWithDelay 0.0
 
 redrawWithDelayAndBounds :: forall output. State -> XYBounds -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 redrawWithDelayAndBounds state newBounds = do
-  plots <- lift $ lift $ clearAddPlotCommands state.batchCount state.segmentCount state.input.size newBounds state.plots
+  plots <- lift $ lift $ clearAddPlotCommands state.accuracy state.batchCount state.input.size newBounds state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
   H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds })
   handleAction DrawPlot
@@ -134,7 +138,7 @@ redrawWithDelayAndBounds state newBounds = do
 
 redraw :: forall output. State -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 redraw state = do
-  plots <- lift $ lift $ clearAddPlotCommands state.batchCount state.segmentCount state.input.size state.bounds state.plots
+  plots <- lift $ lift $ clearAddPlotCommands state.accuracy state.batchCount state.input.size state.bounds state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
   H.modify_ (_ { plots = plots, clearPlot = clearBounds })
   handleAction DrawPlot

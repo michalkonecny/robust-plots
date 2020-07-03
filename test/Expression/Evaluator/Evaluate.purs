@@ -188,17 +188,19 @@ evaluateTests =
       expectValue result
         $ \value ->
             equal true $ consistent value expectedResult
-    test "SHOULD throw error 'Unsupported operation: pow' WHEN f(x) = 2^3" do
+    test "ASSERT f(x) = 8.0 WHEN f(x) = 2^3" do
       let
         -- given
         rawExpression = "2^3"
 
         -- when
-        result = fromExpect $ parseAndEvaluate [] rawExpression
+        result = parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = "Unsupported operation: pow"
-      equal expectedResult result
+        expectedResult = ratioHelp 8 1
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
     test "SHOULD throw error 'Unsupported operation: sin' WHEN f(x) = sin(pi/2)" do
       let
         -- given
@@ -318,7 +320,7 @@ evaluateTests =
       expectValue result
         $ \value ->
             equal true $ consistent value expectedResult
-    test "SHOULD throw error 'Unsupported operation: pow' WHEN f(x) = 1 / (1 + (100 * (x ^ 2))) AND x = 0.0" do
+    test "ASSERT f(x) = 1.0 WHEN f(x) = 1 / (1 + (100 * (x ^ 2))) AND x = 0.0" do
       let
         -- given
         x = 0.0
@@ -328,12 +330,14 @@ evaluateTests =
         rawExpression = "1 / (1 + (100 * (x ^ 2)))"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = parseAndEvaluate variables rawExpression
 
         -- then
-        expectedResult = "Unsupported operation: pow"
-      equal expectedResult result
-    test "SHOULD throw error 'Unsupported operation: pow' WHEN f(x) = 1 / (1 + (100 * (x ^ 2))) AND x = 0.1" do
+        expectedResult = ratioHelp 1 1
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
+    test "ASSERT f(x) = 0.5 WHEN f(x) = 1 / (1 + (100 * (x ^ 2))) AND x = 0.1" do
       let
         -- given
         x = 0.1
@@ -343,11 +347,13 @@ evaluateTests =
         rawExpression = "1 / (1 + (100 * (x ^ 2)))"
 
         -- when
-        result = fromExpect $ parseAndEvaluate variables rawExpression
+        result = parseAndEvaluate variables rawExpression
 
         -- then
-        expectedResult = "Unsupported operation: pow"
-      equal expectedResult result
+        expectedResult = ratioHelp 1 2
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
     test "SHOULD throw error 'Unknown value: a | Unknown value: b' WHEN f(x) = a + b AND a is undefined AND b in undefined" do
       let
         -- given

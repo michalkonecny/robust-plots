@@ -1,6 +1,8 @@
 module Expression.Evaluator where
 
+import Prelude
 import Data.Either (Either(..))
+import Data.Int (round, toNumber)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Expression.Error (Expect, evaluationError, multipleErrors, throw, unknownValue, unsupportedOperation)
@@ -8,9 +10,8 @@ import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..
 import Expression.VariableMap (VariableMap, lookup)
 import IntervalArith.Approx (Approx, fromRationalPrec)
 import IntervalArith.Approx.Sqrt (sqrtA)
-import IntervalArith.Misc (rationalToNumber)
+import IntervalArith.Misc (Rational, multiplicativePowerRecip, rationalToNumber)
 import Math (cos, exp, log, pow, sin, sqrt, tan, e, pi)
-import Prelude (add, div, mul, negate, pure, sub, ($), (<>))
 
 presetConstants :: Array (Tuple String Number)
 presetConstants = [ (Tuple "pi" pi), (Tuple "e" e) ]
@@ -97,7 +98,7 @@ evaluateBinaryOperation Times = evaluateArithmeticBinaryOperation mul
 
 evaluateBinaryOperation Divide = evaluateArithmeticBinaryOperation div
 
-evaluateBinaryOperation Power = (\_ _ _ -> unsupportedOperation "pow")
+evaluateBinaryOperation Power = evaluatePow
 
 evaluateArithmeticBinaryOperation :: (Approx -> Approx -> Approx) -> VariableMap Approx -> Expression -> Expression -> Expect Approx
 evaluateArithmeticBinaryOperation operation variableMap leftExpression rightExpression = case evaluate variableMap leftExpression, evaluate variableMap rightExpression of
@@ -121,11 +122,6 @@ evaluateUnaryOperation (Cosine) = (\_ _ -> unsupportedOperation "cos")
 
 evaluateUnaryOperation (Tan) = (\_ _ -> unsupportedOperation "tan")
 
-evaluateFunction :: (Approx -> Approx) -> VariableMap Approx -> Expression -> Expect Approx
-evaluateFunction op variableMap expression = case evaluate variableMap expression of
-  Left error -> throw error
-  Right value -> pure $ op value
-
 evaluateNegate :: VariableMap Approx -> Expression -> Expect Approx
 evaluateNegate variableMap expression = case evaluate variableMap expression of
   Left error -> throw error
@@ -137,3 +133,22 @@ evaluateSqrt variableMap expression = case evaluate variableMap expression of
   Right value -> case sqrtA value of
     Just result -> pure result
     _ -> evaluationError "sqrt parameter out of range"
+
+evaluatePow :: VariableMap Approx -> Expression -> Expression -> Expect Approx
+evaluatePow variableMap expression (ExpressionLiteral value) = case asInteger value of
+  Just power -> case evaluate variableMap expression of
+    Right expressionResult -> pure $ multiplicativePowerRecip expressionResult power
+    Left error -> throw error
+  Nothing -> powError
+
+evaluatePow _ _ _ = powError
+
+powError :: Expect Approx
+powError = evaluationError "'^' only supported with positive integer powers"
+
+asInteger :: Rational -> Maybe Int
+asInteger value = if numberValue == toNumber integerValue then Just integerValue else Nothing
+  where
+  numberValue = rationalToNumber value
+
+  integerValue = round $ numberValue

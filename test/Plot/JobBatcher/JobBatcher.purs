@@ -10,7 +10,6 @@ import Test.Plot.JobBatcher.ClearCancelled (clearCancelledTests)
 import Test.Plot.JobBatcher.CancelAll (cancelAllTests)
 import Test.Plot.JobBatcher.SetRunning (setRunningTests)
 import Test.Plot.JobBatcher.IsCancelled (isCancelledTests)
-import Test.Plot.JobBatcher.AddPlot (addPlotTests)
 
 jobBatcherTests :: TestSuite
 jobBatcherTests = do
@@ -20,4 +19,3 @@ jobBatcherTests = do
   cancelAllTests
   setRunningTests
   isCancelledTests
-  addPlotTests

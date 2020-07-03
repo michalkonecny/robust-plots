@@ -2,6 +2,7 @@ module Components.Main where
 
 import Prelude
 
+import Components.AccuracyInput (accuracyInputComponent)
 import Components.BatchInput (batchInputComponent)
 import Components.BoundsInput (boundsInputComponent)
 import Components.Canvas (canvasComponent)
@@ -32,6 +33,8 @@ _boundsInput = SProxy :: SProxy "boundsInput"
 
 _batchInput = SProxy :: SProxy "batchInput"
 
+_accuracyInput = SProxy :: SProxy "accuracyInput"
+
 mainComponent :: forall query input output. H.Component HH.HTML query input output (ReaderT Config Aff)
 mainComponent =
   H.mkComponent
@@ -61,7 +64,7 @@ mainComponent =
         ]
     , clearPlot: pure unit
     , batchCount: 5
-    , segmentCount : 10
+    , accuracy: 0.1
     }
 
   render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
@@ -78,7 +81,8 @@ mainComponent =
             [ HE.onClick $ toActionEvent Clear ]
             [ HH.text "Clear plots" ]
         , HH.slot _boundsInput 1 boundsInputComponent state.bounds (Just <<< HandleBoundsInput)
-        , HH.slot _batchInput 1 batchInputComponent (Tuple state.batchCount state.segmentCount) (Just <<< HandleBatchInput)
+        , HH.slot _batchInput 1 batchInputComponent state.batchCount (Just <<< HandleBatchInput)
+        , HH.slot _accuracyInput 1 accuracyInputComponent state.accuracy (Just <<< HandleAccuracyInput)
         , HH.button
             [ HE.onClick $ toActionEvent $ ResetBounds ]
             [ HH.text "Reset" ]
@@ -103,7 +107,7 @@ mainComponent =
         , HH.slot _canvas 1 (canvasComponent canvasController) state.input (Just <<< HandleCanvas)
         ]
     where
-    inputs = map (\plot -> HH.slot _expressionInput plot.id (expressionInputComponent expressionInputController plot.id) (Tuple plot.expressionText plot.status ) (Just <<< HandleExpressionInput)) state.plots
+    inputs = map (\plot -> HH.slot _expressionInput plot.id (expressionInputComponent expressionInputController plot.id) (Tuple plot.expressionText plot.status) (Just <<< HandleExpressionInput)) state.plots
 
 toActionEvent :: forall a. Action -> a -> Maybe Action
 toActionEvent action _ = Just action

@@ -9,7 +9,7 @@ import Data.Maybe (Maybe(..))
 import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff)
 import IntervalArith.Misc (Rational)
-import Plot.Commands (robustPlot, roughPlot)
+import Plot.Commands (roughPlot)
 import Plot.JobBatcher (Job, JobResult, addPlot, cancelAll, clearCancelled, hasJobs, initialJobQueue, isCancelled, runFirst, setRunning)
 import Plot.PlotController (computePlotAsync)
 import Types (Id, Size, XYBounds, Bounds)
@@ -87,18 +87,16 @@ foldDrawCommands state = fold $ [ state.clearPlot ] <> mapMaybe toMaybeDrawComma
 xyBounds :: Rational -> Rational -> Rational -> Rational -> XYBounds
 xyBounds xLower xUpper yLower yUpper = { xBounds: { upper: xUpper, lower: xLower }, yBounds: { upper: yUpper, lower: yLower } }
 
-clearAddPlotCommands :: Int -> Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
-clearAddPlotCommands batchCount segmentCount size newBounds = parSequence <<< (map clearAddPlot)
+clearAddPlotCommands :: Number -> Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
+clearAddPlotCommands accuracy batchCount size newBounds = parSequence <<< (map clearAddPlot)
   where
   clearAddPlot :: ExpressionPlot -> Aff ExpressionPlot
   clearAddPlot plot = case plot.expression of
     Nothing -> pure plot
     Just expression -> do
       let
-        robust = robustPlot segmentCount newBounds expression plot.expressionText
-
         cancelledQueue = cancelAll plot.queue
 
-        queueWithPlot = addPlot batchCount cancelledQueue robust plot.id
+        queueWithPlot = addPlot accuracy batchCount cancelledQueue newBounds expression plot.expressionText plot.id
       drawCommands <- computePlotAsync size $ roughPlot newBounds expression plot.expressionText
       pure $ plot { queue = queueWithPlot, roughDrawCommands = drawCommands, robustDrawCommands = pure unit }

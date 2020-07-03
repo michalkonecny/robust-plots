@@ -1,76 +1,53 @@
 module Plot.RobustPlot where
 
 import Prelude
-import Data.Array (catMaybes, tail, zipWith, (..))
-import Data.Either (Either(..))
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Array (catMaybes)
+import Data.Maybe (Maybe(..))
 import Data.Number (isFinite)
 import Data.Tuple (Tuple(..))
 import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
-import Expression.Differentiator (differentiate)
-import Expression.Evaluator (evaluate)
-import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
-import IntervalArith.Approx (Approx, boundsA, fromRationalBoundsPrec, fromRationalPrec, toNumber)
-import IntervalArith.Misc (Rational, rationalToNumber, toRational, two)
-import Types (Bounds, Polygon, Size, XYBounds)
+import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, fromRationalPrec, toNumber)
+import IntervalArith.Misc (Rational, rationalToNumber, two)
+import Types (Polygon, Size, XYBounds)
+import Plot.PlotEvaluator (ExpressionEvaluator, approxExpressionEvaluator)
 
-drawRobustPlot :: Int -> Size -> Bounds -> XYBounds -> Expression -> String -> DrawCommand Unit
-drawRobustPlot segmentCount canvasSize fullXBounds bounds expression label = drawCommands
+drawRobustPlot :: Size -> XYBounds -> Expression -> Array Approx -> String -> DrawCommand Unit
+drawRobustPlot canvasSize bounds expression domainSegments label = drawCommands
   where
-  f = evaluateWithX expression
+  expressionEvaluator = approxExpressionEvaluator expression
 
-  f' = (evaluateWithX <<< simplify <<< differentiate) expression
-
-  segmentEnclosures = plotEnclosures segmentCount canvasSize fullXBounds bounds f f'
+  segmentEnclosures = plotEnclosures canvasSize bounds domainSegments expressionEvaluator
 
   drawCommands = drawPlot segmentEnclosures
 
-evaluateWithX :: Expression -> Approx -> Maybe Approx
-evaluateWithX expression x = value
+plotEnclosures :: Size -> XYBounds -> Array Approx -> ExpressionEvaluator Approx -> Array (Maybe Polygon)
+plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
   where
-  variableMap = [ Tuple "x" x ]
-
-  value = case evaluate variableMap expression of
-    Left _ -> Nothing
-    Right v -> Just v
-
-plotEnclosures :: Int -> Size -> Bounds -> XYBounds -> (Approx -> Maybe Approx) -> (Approx -> Maybe Approx) -> Array (Maybe Polygon)
-plotEnclosures segmentCount canvasSize fullXBounds bounds f f' = segmentEnclosures
-  where
-  rangeX = bounds.xBounds.upper - bounds.xBounds.lower
-
   rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
-  fullRangeX = fullXBounds.upper - fullXBounds.lower
-
-  domainBreakpoints = map (toRational >>> toDomainX) $ 0 .. segmentCount
-
-  domainSegments = zipWith toRange domainBreakpoints (fromMaybe [] (tail domainBreakpoints))
-
-  segmentWidth = rangeX / (toRational segmentCount)
+  rangeX = rationalToNumber $ bounds.xBounds.upper - bounds.xBounds.lower
 
   segmentEnclosures = map toCanvasEnclosure domainSegments
 
   yLowerBound = rationalToNumber bounds.yBounds.lower
 
+  xLowerBound = rationalToNumber bounds.xBounds.lower
+
   canvasHeight = rationalToNumber canvasSize.height
 
-  halfRangeX = rangeX / (toRational 2)
+  canvasWidth = rationalToNumber canvasSize.width
 
   toRange :: Rational -> Rational -> Tuple Rational Rational
   toRange lower upper = Tuple lower upper
 
-  toDomainX :: Rational -> Rational
-  toDomainX segmentX = (segmentX * segmentWidth) + bounds.xBounds.lower
-
-  toCanvasEnclosure :: Tuple Rational Rational -> Maybe Polygon
-  toCanvasEnclosure (Tuple xLower xUpper) = case f x of
+  toCanvasEnclosure :: Approx -> Maybe Polygon
+  toCanvasEnclosure x = case evaluator.f x of
     Nothing -> Nothing
-    Just approxValue -> case f xMidPoint of
+    Just approxValue -> case evaluator.f xMidPoint of
       Nothing -> Nothing
-      Just midApproxValue -> case f' x of
+      Just midApproxValue -> case evaluator.f' x of
         Nothing -> Nothing
         Just approxGradient -> Just polygon
           where
@@ -90,20 +67,22 @@ plotEnclosures segmentCount canvasSize fullXBounds bounds f f' = segmentEnclosur
 
           polygon = [ a, b, c, d, a ]
     where
-    x = fromRationalBoundsPrec 50 xLower xUpper
+    (Tuple xLower xUpper) = boundsNumber x
 
-    xMidPoint = fromRationalPrec 50 $ (xLower + xUpper) / two
+    (Tuple xLA xUA) = boundsA x
 
-    enclosureWidth = fromRationalPrec 50 $ xUpper - xLower
+    xMidPoint = centreA x
 
-    twoA = fromRationalPrec 50 $ two
+    enclosureWidth = xUA - xLA
+
+    twoA = fromRationalPrec 50 two
 
     canvasXLower = toCanvasX xLower
 
     canvasXUpper = toCanvasX xUpper
 
-  toCanvasX :: Rational -> Number
-  toCanvasX x = rationalToNumber $ ((x - fullXBounds.lower) * canvasSize.width) / fullRangeX
+  toCanvasX :: Number -> Number
+  toCanvasX x = ((x - xLowerBound) * canvasWidth) / rangeX
 
   toCanvasY :: Approx -> Number
   toCanvasY yApprox = safeCanvasY
