@@ -69,7 +69,7 @@ mainComponent =
 
   render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
   render state =
-    HH.div_
+    HH.div_ 
       $ [ HH.h1_
             [ HH.text "Robust plot" ]
         ]
@@ -104,6 +104,7 @@ mainComponent =
         , HH.button
             [ HE.onClick $ toActionEvent $ Zoom false ]
             [ HH.text "-" ]
+        , HH.br_
         , HH.slot _canvas 1 (canvasComponent canvasController) state.input (Just <<< HandleCanvas)
         ]
     where

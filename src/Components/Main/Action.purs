@@ -1,7 +1,6 @@
 module Components.Main.Action where
 
 import Prelude
-
 import Components.AccuracyInput (AccuracyInputMessage(..))
 import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..))
@@ -15,6 +14,7 @@ import Control.Parallel (parSequence)
 import Data.Array (length)
 import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff, Milliseconds(..), delay)
+import Effect.Class.Console (log)
 import Halogen as H
 import Halogen.Query.EventSource as ES
 import Plot.Commands (clear, roughPlot)
@@ -26,7 +26,7 @@ import Types (Direction, XYBounds)
 import Web.Event.Event as E
 import Web.HTML (window) as Web
 import Web.HTML.HTMLDocument as HTMLDocument
-import Web.HTML.Window (document) as Web
+import Web.HTML.Window (document, toEventTarget) as Web
 import Web.UIEvent.WheelEvent (WheelEvent)
 import Web.UIEvent.WheelEvent as WE
 import Web.UIEvent.WheelEvent.EventTypes as WET
@@ -46,6 +46,7 @@ data Action
   | ResetBounds
   | DrawPlot
   | HandleQueue
+  | HandleResize H.SubscriptionId
 
 handleAction :: forall output. Action -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 handleAction action = do
@@ -80,12 +81,18 @@ handleAction action = do
     AddPlot -> H.modify_ (_ { plots = state.plots <> [ newPlot (1 + length state.plots) ] })
     HandleBoundsInput (UpdatedBoundsInput newBounds) -> redrawWithBounds state newBounds
     Init -> do
+      window <- H.liftEffect $ Web.toEventTarget <$> Web.window
       document <- H.liftEffect $ Web.document =<< Web.window
       H.subscribe' \id ->
         ES.eventListenerEventSource
           WET.wheel
           (HTMLDocument.toEventTarget document)
           (map (HandleScroll id) <<< WE.fromEvent)
+      H.subscribe' \id ->
+        ES.eventListenerEventSource
+          (E.EventType "resize")
+          window
+          (const (Just $ HandleResize id))
       handleAction Clear
     HandleScroll _ event -> do
       let
@@ -109,6 +116,9 @@ handleAction action = do
     HandleAccuracyInput (UpdatedAccuracyInput accuracy) -> do
       H.modify_ (_ { accuracy = accuracy })
       redraw state { accuracy = accuracy }
+    HandleResize id -> do
+      H.liftEffect $ log "Resized"
+      pure unit
 
 handleJobResult :: forall output. Maybe JobResult -> State -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
 handleJobResult Nothing _ = pure unit

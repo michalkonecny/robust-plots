@@ -88,7 +88,6 @@ handleAction controller = case _ of
           context <- MaybeT $ H.liftEffect $ controller.init input.size
           H.modify_ _ { context = Just context }
           MaybeT.lift $ handleAction controller (HandleInput input)
-          pure unit
   HandleInput input -> do
     state <- H.get
     H.modify_ _ { input = input }
