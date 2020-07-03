@@ -1,6 +1,7 @@
 module Components.Main where
 
 import Prelude
+
 import Components.AccuracyInput (accuracyInputComponent)
 import Components.BatchInput (batchInputComponent)
 import Components.BoundsInput (initialBounds, boundsInputComponent)
@@ -157,7 +158,7 @@ mainComponent =
                                 ]
                             ]
                         , HH.div
-                            [ HP.class_ (ClassName "card-body") ]
+                            [ HP.class_ (ClassName "card-body"), HP.id_ "canvasContainer" ]
                             [ HH.slot _canvas 1 (canvasComponent canvasController) state.input (Just <<< HandleCanvas)
                             ]
                         ]

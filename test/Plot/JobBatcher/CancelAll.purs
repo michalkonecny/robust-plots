@@ -3,13 +3,14 @@ module Test.Plot.JobBatcher.CancelAll
   ) where
 
 import Prelude
-import Components.Main.Helper (initialBounds)
+
+import Components.BoundsInput (initialBounds)
 import Data.Foldable (class Foldable, foldl)
 import Data.Maybe (Maybe(..), isNothing)
 import Data.Set (fromFoldable)
+import Misc.Queue (Queue, push)
 import Plot.Commands (PlotCommand(..))
 import Plot.JobBatcher (Job, hasJobs, initialJobQueue, cancelAll)
-import Misc.Queue (Queue, push)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (assert, assertFalse, equal)
 import Types (Id)

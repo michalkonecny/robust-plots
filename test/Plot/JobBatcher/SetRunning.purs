@@ -3,12 +3,13 @@ module Test.Plot.JobBatcher.SetRunning
   ) where
 
 import Prelude
-import Components.Main.Helper (initialBounds)
+
+import Components.BoundsInput (initialBounds)
 import Data.Foldable (class Foldable, foldl)
 import Data.Maybe (Maybe(..))
+import Misc.Queue (Queue, push)
 import Plot.Commands (PlotCommand(..))
 import Plot.JobBatcher (Job, JobQueue, hasJobs, initialJobQueue, setRunning)
-import Misc.Queue (Queue, push)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (assert, assertFalse)
 import Types (Id)

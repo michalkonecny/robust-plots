@@ -12,9 +12,10 @@ import Control.Monad.Reader (ReaderT)
 import Control.Monad.Trans.Class (lift)
 import Control.Parallel (parSequence)
 import Data.Array (length)
+import Data.Int (round)
 import Data.Maybe (Maybe(..))
+import Effect (Effect)
 import Effect.Aff (Aff, Milliseconds(..), delay)
-import Effect.Class.Console (log)
 import Halogen as H
 import Halogen.Query.EventSource as ES
 import IntervalArith.Misc (toRational)
@@ -24,10 +25,14 @@ import Plot.Pan (panBounds, panBoundsByVector)
 import Plot.PlotController (computePlotAsync)
 import Plot.Zoom (zoomBounds)
 import Types (Direction, XYBounds, Size)
+import Web.DOM (Element)
+import Web.DOM.NonElementParentNode (getElementById)
 import Web.Event.Event as E
 import Web.HTML (window) as Web
+import Web.HTML.HTMLDocument (toNonElementParentNode)
 import Web.HTML.HTMLDocument as HTMLDocument
-import Web.HTML.Window (document, toEventTarget, innerWidth, innerHeight) as Web
+import Web.HTML.HTMLElement as HTMLElement
+import Web.HTML.Window (document, toEventTarget) as Web
 import Web.UIEvent.WheelEvent (WheelEvent)
 import Web.UIEvent.WheelEvent as WE
 import Web.UIEvent.WheelEvent.EventTypes as WET
@@ -50,6 +55,7 @@ data Action
   | DrawPlot
   | HandleQueue
   | HandleResize
+  | Resize
   | ChangeSelectedPlot Int
 
 handleAction :: forall output. Action -> HalogenMain output Unit
@@ -88,6 +94,7 @@ handleAction action = do
       document <- H.liftEffect $ Web.document =<< Web.window
       H.subscribe' \id -> ES.eventListenerEventSource WET.wheel (HTMLDocument.toEventTarget document) (map HandleScroll <<< WE.fromEvent)
       H.subscribe' \id -> ES.eventListenerEventSource (E.EventType "resize") window (const (Just HandleResize))
+      handleAction Resize
       handleAction Clear
     HandleScroll event -> do
       let
@@ -112,17 +119,37 @@ handleAction action = do
       H.modify_ (_ { accuracy = accuracy })
       redraw state { accuracy = accuracy }
     ChangeSelectedPlot plotId -> H.modify_ (_ { selectedPlot = plotId })
+    Resize -> do
+      maybeNewCanvasSize <- H.liftEffect calculateNewCanvasSize
+      case maybeNewCanvasSize of
+        Nothing -> pure unit
+        Just newCanvasSize -> do
+          H.modify_ (_ { input { size = newCanvasSize } })
     HandleResize -> do
-      windowSize <- getWindowSize
-      H.liftEffect $ log "Resized"
-      pure unit
+      handleAction Resize
+      newState <- H.get
+      redraw newState
 
-getWindowSize :: forall output. HalogenMain output Size
-getWindowSize = do
-  window <- H.liftEffect $ Web.window
-  width <- H.liftEffect $ Web.innerWidth window
-  height <- H.liftEffect $ Web.innerHeight window
-  pure $ { width: toRational width, height: toRational height }
+calculateNewCanvasSize :: Effect (Maybe Size)
+calculateNewCanvasSize = do
+  document <- Web.document =<< Web.window
+  maybeCanvasContainer <- findElementById "canvasContainer" document
+  case maybeCanvasContainer of
+    Nothing -> pure $ Nothing
+    Just container -> do
+      containerWidth <- HTMLElement.offsetWidth container
+      let
+        newWidth = containerWidth - 40.0 -- Account for padding
+
+        newHeight = (newWidth * 5.0) / 8.0
+      pure $ Just { width: toRational (round newWidth), height: toRational (round newHeight) }
+
+findElementById :: String -> HTMLDocument.HTMLDocument -> Effect (Maybe HTMLElement.HTMLElement)
+findElementById id document = do
+  maybeElement <- getElementById id $ toNonElementParentNode document
+  case maybeElement of
+    Nothing -> pure Nothing
+    Just element -> pure $ HTMLElement.fromElement element
 
 handleJobResult :: forall output. Maybe JobResult -> State -> HalogenMain output Unit
 handleJobResult Nothing _ = pure unit
