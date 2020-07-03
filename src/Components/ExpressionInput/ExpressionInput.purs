@@ -3,7 +3,7 @@ module Components.ExpressionInput where
 import Prelude
 import Components.ExpressionInput.Controller (ExpressionInputController)
 import Data.Either (Either(..))
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Effect.Class (class MonadEffect)
 import Expression.Error (Expect)

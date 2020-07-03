@@ -16,6 +16,7 @@ type BatchInputSlot p
 
 type State
   = { batchCount :: String
+    , error :: Maybe String
     }
 
 data BatchInputMessage
@@ -42,35 +43,39 @@ batchInputComponent =
 initialState :: Int -> State
 initialState batchCount =
   { batchCount: show batchCount
+  , error: Nothing
   }
 
 render :: forall slots m. State -> HH.ComponentHTML Action slots m
 render state =
   HH.div_
-    [ HH.p_
-        [ HH.text $ outputMessage state.batchCount ]
-    , HH.div
-        [ HP.class_ (ClassName "input-group mb-3") ]
-        [ HH.div
-            [ HP.class_ (ClassName "input-group-prepend") ]
-            [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Number of Batches:" ] ]
-        , HH.input
-            [ HP.type_ HP.InputText
-            , HE.onValueChange $ Just <<< ChangeBatchCount
-            , HP.value state.batchCount
-            , HP.id_ "batchCount"
-            , HP.class_ (ClassName "form-control")
-            ]
-        , HH.button
-            [ HE.onClick $ toActionEvent Update, HP.class_ (ClassName "btn btn-info") ]
-            [ HH.text "Update" ]
-        ]
-    ]
+    $ [ HH.div
+          [ HP.class_ (ClassName "input-group mb-3") ]
+          [ HH.div
+              [ HP.class_ (ClassName "input-group-prepend") ]
+              [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Number of Batches:" ] ]
+          , HH.input
+              [ HP.type_ HP.InputText
+              , HE.onValueChange $ Just <<< ChangeBatchCount
+              , HP.value state.batchCount
+              , HP.id_ "batchCount"
+              , HP.class_ (ClassName "form-control")
+              ]
+          , HH.button
+              [ HE.onClick $ toActionEvent Update, HP.class_ (ClassName "btn btn-info") ]
+              [ HH.text "Update" ]
+          ]
+      ]
+    <> (errorMessage state.error)
 
-outputMessage :: String -> String
-outputMessage batchCountString = case checkValid batchCountString of
-  Right errorMessage -> errorMessage
-  Left _ -> ""
+errorMessage :: forall slots m. Maybe String -> Array (HH.ComponentHTML Action slots m)
+errorMessage Nothing = []
+
+errorMessage (Just message) =
+  [ HH.div
+      [ HP.class_ (ClassName "alert alert-danger") ]
+      [ HH.text message ]
+  ]
 
 toActionEvent :: forall a. Action -> a -> Maybe Action
 toActionEvent action _ = Just action
@@ -82,8 +87,10 @@ handleAction = case _ of
   Update -> do
     state <- H.get
     case checkValid state.batchCount of
-      Right errorMessage -> pure unit -- Do nothing
-      Left batchCount -> H.raise (UpdatedBatchInput batchCount)
+      Right error -> H.modify_ _ { error = Just error }
+      Left batchCount -> do
+        H.modify_ _ { error = Nothing }
+        H.raise (UpdatedBatchInput batchCount)
 
 checkValid :: String -> Either Int String
 checkValid batchCountString = case fromString batchCountString of

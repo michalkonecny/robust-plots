@@ -107,6 +107,18 @@ mainComponent =
                             ]
                         ]
                     , HH.slot _boundsInput 1 boundsInputComponent state.bounds (Just <<< HandleBoundsInput)
+                    , HH.div
+                        [ HP.class_ (ClassName "card") ]
+                        [ HH.div
+                            [ HP.class_ (ClassName "card-header") ]
+                            [ HH.text "Advanced settings"
+                            ]
+                        , HH.div
+                            [ HP.class_ (ClassName "card-body") ]
+                            [ HH.slot _batchInput 1 batchInputComponent state.batchCount (Just <<< HandleBatchInput)
+                            , HH.slot _accuracyInput 1 accuracyInputComponent state.accuracy (Just <<< HandleAccuracyInput)
+                            ]
+                        ]
                     ]
                 , HH.div
                     [ HP.class_ (ClassName "col-md-8") ]
@@ -138,9 +150,7 @@ mainComponent =
                             ]
                         , HH.div
                             [ HP.class_ (ClassName "card-body") ]
-                            [ HH.slot _batchInput 1 batchInputComponent state.batchCount (Just <<< HandleBatchInput)
-                            , HH.slot _accuracyInput 1 accuracyInputComponent state.accuracy (Just <<< HandleAccuracyInput)
-                            , HH.slot _canvas 1 (canvasComponent canvasController) state.input (Just <<< HandleCanvas)
+                            [ HH.slot _canvas 1 (canvasComponent canvasController) state.input (Just <<< HandleCanvas)
                             ]
                         ]
                     ]
