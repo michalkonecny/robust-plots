@@ -38,4 +38,4 @@ canvasController = { init, render, onResize }
   render = runDrawCommands
 
   onResize :: Size -> DrawContext -> Effect DrawContext
-  onResize size ctx = pure ctx
+  onResize size ctx = pure $ ctx { canvasWidth = rationalToNumber size.width, canvasHeight = rationalToNumber size.height }

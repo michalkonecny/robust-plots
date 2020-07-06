@@ -5,6 +5,7 @@ import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Number (fromString)
 import Effect.Class (class MonadEffect)
+import Halogen (ClassName(..))
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -15,6 +16,7 @@ type AccuracyInputSlot p
 
 type State
   = { accuracy :: String
+    , error :: Maybe String
     }
 
 data AccuracyInputMessage
@@ -41,32 +43,38 @@ accuracyInputComponent =
 initialState :: Number -> State
 initialState accuracy =
   { accuracy: show accuracy
+  , error: Nothing
   }
 
 render :: forall slots m. State -> HH.ComponentHTML Action slots m
 render state =
   HH.div_
-    [ HH.label
-        [ HP.for "accuracy" ]
-        [ HH.text "Accuracy:" ]
-    , HH.input
-        [ HP.type_ HP.InputText
-        , HE.onValueChange $ Just <<< ChangeAccuracy
-        , HP.value state.accuracy
-        , HP.id_ "accuracy"
-        ]
-    , HH.button
-        [ HE.onClick $ toActionEvent Update ]
-        [ HH.text "Update" ]
-    , HH.br_
-    , HH.p_
-        [ HH.text $ outputMessage state.accuracy ]
-    ]
+    $ [ HH.div
+          [ HP.class_ (ClassName "input-group mb-3") ]
+          [ HH.div
+              [ HP.class_ (ClassName "input-group-prepend") ]
+              [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Accuracy:" ] ]
+          , HH.input
+              [ HP.type_ HP.InputText
+              , HE.onValueChange $ Just <<< ChangeAccuracy
+              , HP.value state.accuracy
+              , HP.class_ (ClassName "form-control")
+              ]
+          , HH.button
+              [ HE.onClick $ toActionEvent Update, HP.class_ (ClassName "btn btn-info") ]
+              [ HH.text "Update" ]
+          ]
+      ]
+    <> (errorMessage state.error)
 
-outputMessage :: String -> String
-outputMessage accuracyString = case checkValid accuracyString of
-  Right errorMessage -> errorMessage
-  Left _ -> ""
+errorMessage :: forall slots m. Maybe String -> Array (HH.ComponentHTML Action slots m)
+errorMessage Nothing = []
+
+errorMessage (Just message) =
+  [ HH.div
+      [ HP.class_ (ClassName "alert alert-danger") ]
+      [ HH.text message ]
+  ]
 
 toActionEvent :: forall a. Action -> a -> Maybe Action
 toActionEvent action _ = Just action
@@ -78,10 +86,12 @@ handleAction = case _ of
   Update -> do
     state <- H.get
     case checkValid state.accuracy of
-      Right errorMessage -> pure unit -- Do nothing
-      Left accuracy -> H.raise (UpdatedAccuracyInput accuracy)
+      Right error -> H.modify_ _ { error = Just error }
+      Left accuracy -> do
+        H.modify_ _ { error = Nothing }
+        H.raise (UpdatedAccuracyInput accuracy)
 
 checkValid :: String -> Either Number String
 checkValid accuracyString = case fromString accuracyString of
-  Nothing -> Right "Failed to parse number of accuracyes"
+  Nothing -> Right "Failed to parse Accuracy"
   Just accuracy -> Left accuracy

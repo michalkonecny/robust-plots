@@ -1,35 +1,43 @@
 module Components.Main.Action where
 
 import Prelude
-
 import Components.AccuracyInput (AccuracyInputMessage(..))
 import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..))
 import Components.Canvas (CanvasMessage(..))
 import Components.ExpressionInput (ExpressionInputMessage(..))
-import Components.Main.Helper (alterPlot, anyPlotHasJobs, clearAllCancelled, foldDrawCommands, initialBounds, isCancelledInAnyPlot, newPlot, runFirstJob, clearAddPlotCommands, setFirstRunningJob, updateExpressionPlotCommands)
+import Components.Main.Helper (alterPlot, anyPlotHasJobs, clearAllCancelled, foldDrawCommands, isCancelledInAnyPlot, newPlot, runFirstJob, clearAddPlotCommands, setFirstRunningJob, updateExpressionPlotCommands)
 import Components.Main.Types (ChildSlots, Config, State, ExpressionPlot)
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.Trans.Class (lift)
 import Control.Parallel (parSequence)
 import Data.Array (length)
+import Data.Int (round)
 import Data.Maybe (Maybe(..))
+import Effect (Effect)
 import Effect.Aff (Aff, Milliseconds(..), delay)
 import Halogen as H
 import Halogen.Query.EventSource as ES
+import IntervalArith.Misc (toRational)
 import Plot.Commands (clear, roughPlot)
 import Plot.JobBatcher (JobResult, addPlot, cancelAll)
 import Plot.Pan (panBounds, panBoundsByVector)
 import Plot.PlotController (computePlotAsync)
 import Plot.Zoom (zoomBounds)
-import Types (Direction, XYBounds)
+import Types (Direction, XYBounds, Size)
+import Web.DOM.NonElementParentNode (getElementById)
 import Web.Event.Event as E
 import Web.HTML (window) as Web
+import Web.HTML.HTMLDocument (toNonElementParentNode)
 import Web.HTML.HTMLDocument as HTMLDocument
-import Web.HTML.Window (document) as Web
+import Web.HTML.HTMLElement as HTMLElement
+import Web.HTML.Window (document, toEventTarget) as Web
 import Web.UIEvent.WheelEvent (WheelEvent)
 import Web.UIEvent.WheelEvent as WE
 import Web.UIEvent.WheelEvent.EventTypes as WET
+
+type HalogenMain output a
+  = H.HalogenM State Action ChildSlots output (ReaderT Config Aff) a
 
 data Action
   = Clear
@@ -37,23 +45,25 @@ data Action
   | Pan Direction
   | Zoom Boolean
   | HandleExpressionInput ExpressionInputMessage
-  | HandleScroll H.SubscriptionId WheelEvent
+  | HandleScroll WheelEvent
   | HandleCanvas CanvasMessage
   | HandleBoundsInput BoundsInputMessage
   | HandleBatchInput BatchInputMessage
   | HandleAccuracyInput AccuracyInputMessage
   | AddPlot
-  | ResetBounds
   | DrawPlot
   | HandleQueue
+  | HandleResize
+  | Resize
+  | ChangeSelectedPlot Int
 
-handleAction :: forall output. Action -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
+handleAction :: forall output. Action -> HalogenMain output Unit
 handleAction action = do
   state <- H.get
   case action of
     Clear -> do
       clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
-      H.modify_ (_ { plots = [ newPlot 1 ], clearPlot = clearBounds })
+      H.modify_ (_ { plots = [ newPlot 0 ], clearPlot = clearBounds, selectedPlot = 0 })
       handleAction DrawPlot
     HandleExpressionInput (Parsed id expression text) -> do
       newRoughCommands <- lift $ lift $ computePlotAsync state.input.size (roughPlot state.bounds expression text)
@@ -74,20 +84,18 @@ handleAction action = do
       handleAction DrawPlot
     Pan direction -> redrawWithDelayAndBounds state (panBounds state.bounds direction)
     Zoom isZoomIn -> redrawWithDelayAndBounds state (zoomBounds state.bounds isZoomIn)
-    ResetBounds -> redrawWithBounds state initialBounds
     HandleCanvas (Dragged delta) -> redrawWithoutRobustWithBounds state (panBoundsByVector state.input.size state.bounds delta)
     HandleCanvas StoppedDragging -> redraw state
-    AddPlot -> H.modify_ (_ { plots = state.plots <> [ newPlot (1 + length state.plots) ] })
+    AddPlot -> H.modify_ (_ { plots = state.plots <> [ newPlot (length state.plots) ] })
     HandleBoundsInput (UpdatedBoundsInput newBounds) -> redrawWithBounds state newBounds
     Init -> do
+      window <- H.liftEffect $ Web.toEventTarget <$> Web.window
       document <- H.liftEffect $ Web.document =<< Web.window
-      H.subscribe' \id ->
-        ES.eventListenerEventSource
-          WET.wheel
-          (HTMLDocument.toEventTarget document)
-          (map (HandleScroll id) <<< WE.fromEvent)
+      H.subscribe' \id -> ES.eventListenerEventSource WET.wheel (HTMLDocument.toEventTarget document) (map HandleScroll <<< WE.fromEvent)
+      H.subscribe' \id -> ES.eventListenerEventSource (E.EventType "resize") window (const (Just HandleResize))
+      handleAction Resize
       handleAction Clear
-    HandleScroll _ event -> do
+    HandleScroll event -> do
       let
         changeInY = WE.deltaY event
       when (changeInY /= 0.0) do
@@ -109,8 +117,40 @@ handleAction action = do
     HandleAccuracyInput (UpdatedAccuracyInput accuracy) -> do
       H.modify_ (_ { accuracy = accuracy })
       redraw state { accuracy = accuracy }
+    ChangeSelectedPlot plotId -> H.modify_ (_ { selectedPlot = plotId })
+    Resize -> do
+      maybeNewCanvasSize <- H.liftEffect calculateNewCanvasSize
+      case maybeNewCanvasSize of
+        Nothing -> pure unit
+        Just newCanvasSize -> do
+          H.modify_ (_ { input { size = newCanvasSize } })
+    HandleResize -> do
+      handleAction Resize
+      newState <- H.get
+      redraw newState
 
-handleJobResult :: forall output. Maybe JobResult -> State -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
+calculateNewCanvasSize :: Effect (Maybe Size)
+calculateNewCanvasSize = do
+  document <- Web.document =<< Web.window
+  maybeCanvasContainer <- findElementById "canvasContainer" document
+  case maybeCanvasContainer of
+    Nothing -> pure $ Nothing
+    Just container -> do
+      containerWidth <- HTMLElement.offsetWidth container
+      let
+        newWidth = containerWidth - 40.0 -- Account for padding
+
+        newHeight = (newWidth * 5.0) / 8.0
+      pure $ Just { width: toRational (round newWidth), height: toRational (round newHeight) }
+
+findElementById :: String -> HTMLDocument.HTMLDocument -> Effect (Maybe HTMLElement.HTMLElement)
+findElementById id document = do
+  maybeElement <- getElementById id $ toNonElementParentNode document
+  case maybeElement of
+    Nothing -> pure Nothing
+    Just element -> pure $ HTMLElement.fromElement element
+
+handleJobResult :: forall output. Maybe JobResult -> State -> HalogenMain output Unit
 handleJobResult Nothing _ = pure unit
 
 handleJobResult (Just jobResult) newState =
@@ -121,13 +161,13 @@ handleJobResult (Just jobResult) newState =
     handleAction DrawPlot
     handleAction HandleQueue
 
-forkWithDelay :: forall output. Number -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
+forkWithDelay :: forall output. Number -> HalogenMain output Unit
 forkWithDelay duration = lift $ lift $ delay $ Milliseconds duration
 
-fork :: forall output. H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
+fork :: forall output. HalogenMain output Unit
 fork = forkWithDelay 0.0
 
-redrawWithDelayAndBounds :: forall output. State -> XYBounds -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
+redrawWithDelayAndBounds :: forall output. State -> XYBounds -> HalogenMain output Unit
 redrawWithDelayAndBounds state newBounds = do
   plots <- lift $ lift $ clearAddPlotCommands state.accuracy state.batchCount state.input.size newBounds state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
@@ -136,7 +176,7 @@ redrawWithDelayAndBounds state newBounds = do
   _ <- forkWithDelay 500.0 -- Subsiquent code is placed on the end of the JS event queue
   handleAction HandleQueue
 
-redraw :: forall output. State -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
+redraw :: forall output. State -> HalogenMain output Unit
 redraw state = do
   plots <- lift $ lift $ clearAddPlotCommands state.accuracy state.batchCount state.input.size state.bounds state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
@@ -144,19 +184,19 @@ redraw state = do
   handleAction DrawPlot
   handleAction HandleQueue
 
-redrawWithBounds :: forall output. State -> XYBounds -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
+redrawWithBounds :: forall output. State -> XYBounds -> HalogenMain output Unit
 redrawWithBounds state newBounds = do
   H.modify_ (_ { bounds = newBounds })
   redraw state { bounds = newBounds }
 
-redrawWithoutRobustWithBounds :: forall output. State -> XYBounds -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) Unit
+redrawWithoutRobustWithBounds :: forall output. State -> XYBounds -> HalogenMain output Unit
 redrawWithoutRobustWithBounds state newBounds = do
   plots <- mapPlots clearAddDrawRough state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
   H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds })
   handleAction DrawPlot
   where
-  mapPlots :: (ExpressionPlot -> Aff ExpressionPlot) -> Array ExpressionPlot -> H.HalogenM State Action ChildSlots output (ReaderT Config Aff) (Array ExpressionPlot)
+  mapPlots :: (ExpressionPlot -> Aff ExpressionPlot) -> Array ExpressionPlot -> HalogenMain output (Array ExpressionPlot)
   mapPlots f = lift <<< lift <<< parSequence <<< (map f)
 
   clearAddDrawRough :: ExpressionPlot -> Aff ExpressionPlot

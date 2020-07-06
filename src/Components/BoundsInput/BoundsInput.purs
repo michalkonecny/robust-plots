@@ -3,9 +3,10 @@ module Components.BoundsInput where
 import Prelude
 import Control.Lazy (fix)
 import Data.Either (Either(..))
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..))
 import Effect.Class (class MonadEffect)
 import Expression.Parser (P, literal)
+import Halogen (ClassName(..))
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -44,6 +45,7 @@ data Action
   | Recieve XYBounds
   | HandleInput Bound String
   | Update
+  | ResetBounds
 
 boundsInputComponent :: forall query m. MonadEffect m => H.Component HH.HTML query XYBounds BoundsInputMessage m
 boundsInputComponent =
@@ -74,52 +76,95 @@ initialState input =
 
 render :: forall slots m. State -> HH.ComponentHTML Action slots m
 render state =
-  HH.div_
-    [ HH.label
-        [ HP.for "xLower" ]
-        [ HH.text "Lower X:" ]
-    , HH.input
-        [ HP.type_ HP.InputText
-        , HE.onValueChange $ toValueChangeActionEvent XLower
-        , HP.value state.xBounds.lower
-        , HP.id_ "xLower"
+  HH.div
+    [ HP.class_ (ClassName "card")
+    ]
+    [ HH.div
+        [ HP.class_ (ClassName "card-header") ]
+        [ HH.text "Bound controls" ]
+    , HH.div
+        [ HP.class_ (ClassName "card-body") ]
+        ( [ HH.div
+              [ HP.class_ (ClassName "row") ]
+              [ HH.div
+                  [ HP.class_ (ClassName "col-md") ]
+                  [ HH.div
+                      [ HP.class_ (ClassName "input-group mb-3") ]
+                      [ HH.div
+                          [ HP.class_ (ClassName "input-group-prepend") ]
+                          [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Lower X:" ] ]
+                      , HH.input
+                          [ HP.type_ HP.InputText
+                          , HE.onValueChange $ toValueChangeActionEvent XLower
+                          , HP.value state.xBounds.lower
+                          , HP.class_ (ClassName "form-control")
+                          ]
+                      ]
+                  ]
+              , HH.div
+                  [ HP.class_ (ClassName "col-md") ]
+                  [ HH.div
+                      [ HP.class_ (ClassName "input-group mb-3") ]
+                      [ HH.div
+                          [ HP.class_ (ClassName "input-group-prepend") ]
+                          [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Upper X:" ] ]
+                      , HH.input
+                          [ HP.type_ HP.InputText
+                          , HE.onValueChange $ toValueChangeActionEvent XUpper
+                          , HP.value state.xBounds.upper
+                          , HP.class_ (ClassName "form-control")
+                          ]
+                      ]
+                  ]
+              ]
+          , HH.div
+              [ HP.class_ (ClassName "row") ]
+              [ HH.div
+                  [ HP.class_ (ClassName "col-md") ]
+                  [ HH.div
+                      [ HP.class_ (ClassName "input-group mb-3") ]
+                      [ HH.div
+                          [ HP.class_ (ClassName "input-group-prepend") ]
+                          [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Lower Y:" ] ]
+                      , HH.input
+                          [ HP.type_ HP.InputText
+                          , HE.onValueChange $ toValueChangeActionEvent YLower
+                          , HP.value state.yBounds.lower
+                          , HP.class_ (ClassName "form-control")
+                          ]
+                      ]
+                  ]
+              , HH.div
+                  [ HP.class_ (ClassName "col-md") ]
+                  [ HH.div
+                      [ HP.class_ (ClassName "input-group mb-3") ]
+                      [ HH.div
+                          [ HP.class_ (ClassName "input-group-prepend") ]
+                          [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Upper Y:" ] ]
+                      , HH.input
+                          [ HP.type_ HP.InputText
+                          , HE.onValueChange $ toValueChangeActionEvent YUpper
+                          , HP.value state.yBounds.upper
+                          , HP.class_ (ClassName "form-control")
+                          ]
+                      ]
+                  ]
+              ]
+          ]
+            <> (errorMessage state.error)
+        )
+    , HH.div
+        [ HP.class_ (ClassName "card-footer") ]
+        [ HH.div
+            [ HP.class_ (ClassName "btn-group") ]
+            [ HH.button
+                [ HE.onClick $ toActionEvent Update, HP.class_ (ClassName "btn btn-success") ]
+                [ HH.text "Update" ]
+            , HH.button
+                [ HP.class_ (ClassName "btn btn-danger"), HE.onClick $ toActionEvent $ ResetBounds ]
+                [ HH.text "Reset" ]
+            ]
         ]
-    , HH.br_
-    , HH.label
-        [ HP.for "xUpper" ]
-        [ HH.text "Upper X:" ]
-    , HH.input
-        [ HP.type_ HP.InputText
-        , HE.onValueChange $ toValueChangeActionEvent XUpper
-        , HP.value state.xBounds.upper
-        , HP.id_ "xUpper"
-        ]
-    , HH.br_
-    , HH.label
-        [ HP.for "yLower" ]
-        [ HH.text "Lower Y:" ]
-    , HH.input
-        [ HP.type_ HP.InputText
-        , HE.onValueChange $ toValueChangeActionEvent YLower
-        , HP.value state.yBounds.lower
-        , HP.id_ "yLower"
-        ]
-    , HH.br_
-    , HH.label
-        [ HP.for "yUpper" ]
-        [ HH.text "Upper Y:" ]
-    , HH.input
-        [ HP.type_ HP.InputText
-        , HE.onValueChange $ toValueChangeActionEvent YUpper
-        , HP.value state.yBounds.upper
-        , HP.id_ "yUpper"
-        ]
-    , HH.br_
-    , HH.button
-        [ HE.onClick $ toActionEvent Update ]
-        [ HH.text "Update" ]
-    , HH.p_
-        [ HH.text $ fromMaybe "" state.error ]
     ]
 
 toValueChangeActionEvent :: Bound -> String -> Maybe Action
@@ -127,6 +172,15 @@ toValueChangeActionEvent bound value = Just $ HandleInput bound value
 
 toActionEvent :: forall a. Action -> a -> Maybe Action
 toActionEvent action _ = Just action
+
+errorMessage :: forall slots m. Maybe String -> Array (HH.ComponentHTML Action slots m)
+errorMessage Nothing = []
+
+errorMessage (Just message) =
+  [ HH.div
+      [ HP.class_ (ClassName "alert alert-danger") ]
+      [ HH.text message ]
+  ]
 
 handleAction :: forall m. MonadEffect m => Action -> H.HalogenM State Action () BoundsInputMessage m Unit
 handleAction = case _ of
@@ -140,6 +194,7 @@ handleAction = case _ of
   HandleInput XUpper stringInput -> H.modify_ _ { xBounds { upper = stringInput } }
   HandleInput YLower stringInput -> H.modify_ _ { yBounds { lower = stringInput } }
   HandleInput YUpper stringInput -> H.modify_ _ { yBounds { upper = stringInput } }
+  ResetBounds -> H.raise (UpdatedBoundsInput initialBounds)
   Recieve bounds ->
     H.modify_
       _
@@ -170,7 +225,9 @@ handleAction = case _ of
           Nothing -> H.modify_ _ { error = Just $ "Failed to parse lower Y bound" }
           Just yLower -> case maybeYUpper of
             Nothing -> H.modify_ _ { error = Just $ "Failed to parse upper Y bound" }
-            Just yUpper -> H.raise (UpdatedBoundsInput { xBounds: { lower: xLower, upper: xUpper }, yBounds: { lower: yLower, upper: yUpper } })
+            Just yUpper -> do
+              H.modify_ _ { error = Nothing }
+              H.raise (UpdatedBoundsInput { xBounds: { lower: xLower, upper: xUpper }, yBounds: { lower: yLower, upper: yUpper } })
 
 parse :: String -> Maybe Rational
 parse input = case runParser input expressionParser of
@@ -179,3 +236,9 @@ parse input = case runParser input expressionParser of
 
 expressionParser :: P Rational
 expressionParser = fix (\p -> buildExprParser [] literal)
+
+initialBounds :: XYBounds
+initialBounds = xyBounds (-one) one (-one) one
+
+xyBounds :: Rational -> Rational -> Rational -> Rational -> XYBounds
+xyBounds xLower xUpper yLower yUpper = { xBounds: { upper: xUpper, lower: xLower }, yBounds: { upper: yUpper, lower: yLower } }

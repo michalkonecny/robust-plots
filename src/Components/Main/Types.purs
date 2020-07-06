@@ -20,6 +20,7 @@ type State
     , clearPlot :: DrawCommand Unit
     , batchCount :: Int
     , accuracy :: Number
+    , selectedPlot :: Int
     }
 
 type ExpressionPlot

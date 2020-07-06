@@ -3,10 +3,11 @@ module Test.Plot.JobBatcher.HasJobs
   ) where
 
 import Prelude
-import Components.Main.Helper (initialBounds)
+
+import Components.BoundsInput (initialBounds)
+import Misc.Queue (push)
 import Plot.Commands (PlotCommand(..))
 import Plot.JobBatcher (Job, hasJobs, initialJobQueue)
-import Misc.Queue (push)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (assert, assertFalse)
 
