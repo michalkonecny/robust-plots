@@ -2,9 +2,9 @@ module Test.Plot.GridLines
   ( gridLinesTests
   ) where
 
-import Test.Plot.GridLines.Step (stepTests)
+import Test.Plot.GridLines.CalculateInterval (calculateIntervalTests)
 import Test.Unit (TestSuite)
 
 gridLinesTests :: TestSuite
 gridLinesTests = do
-  stepTests
+  calculateIntervalTests

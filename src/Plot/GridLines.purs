@@ -39,7 +39,7 @@ drawXGridLines bounds = for_ xGuidePoints draw
   where
   range = rationalToNumber $ bounds.xBounds.upper - bounds.xBounds.lower
 
-  interval = step range
+  interval = calculateInterval range
 
   x1 = to3SignificantDigits $ rationalToNumber bounds.xBounds.lower
 
@@ -53,7 +53,7 @@ drawYGridLines bounds = for_ yGuidePoints draw
   where
   range = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
-  interval = step range
+  interval = calculateInterval range
 
   y1 = to3SignificantDigits $ rationalToNumber bounds.yBounds.lower
 
@@ -77,8 +77,8 @@ toSignificantDigits digits = D.toNumber <<< (D.toSignificantDigits digits) <<< D
 to3SignificantDigits :: Number -> Number
 to3SignificantDigits = toSignificantDigits 3
  
-step :: Number -> Number
-step range =  pow 10.0 $ round $ (log10 range) - 1.0
+calculateInterval :: Number -> Number
+calculateInterval range =  pow 10.0 $ round $ (log10 range) - 1.0
 
 indexes :: Number -> Number -> Array Int
 indexes range interval = 0 .. (Int.ceil $ range / interval)
