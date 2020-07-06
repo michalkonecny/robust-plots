@@ -1,12 +1,17 @@
 module Plot.GridLines where
 
 import Prelude
+
 import Data.Array ((..))
 import Data.Decimal as D
+import Data.Int (toNumber)
 import Data.Traversable (for_)
 import Draw.Actions (clearCanvas, drawXGridLine, drawYGridLine, drawXAxisLine, drawYAxisLine)
 import Draw.Commands (DrawCommand)
-import IntervalArith.Misc (Rational, rationalToNumber, toRational)
+import IntervalArith.Misc (rationalToNumber)
+import Math (pow, round)
+import Misc.Math (log10)
+import Data.Int (ceil) as Int
 import Types (XYBounds)
 
 clearAndDrawGridLines :: XYBounds -> DrawCommand Unit
@@ -32,44 +37,48 @@ drawAxes bounds = do
 drawXGridLines :: XYBounds -> DrawCommand Unit
 drawXGridLines bounds = for_ xGuidePoints draw
   where
-  range = bounds.xBounds.upper - bounds.xBounds.lower
+  range = rationalToNumber $ bounds.xBounds.upper - bounds.xBounds.lower
 
-  lineCount = 20
+  interval = step range
 
-  x1 = bounds.xBounds.lower
+  x1 = to3SignificantDigits $ rationalToNumber bounds.xBounds.lower
 
-  xGuidePoints = map (toGuidePoints x1 range lineCount) $ 0 .. lineCount
+  xGuidePoints = map (toGuidePoints x1 range interval) $ indexes range interval
 
   draw :: { component :: Number, value :: Number } -> DrawCommand Unit
-  draw { component, value } = drawXGridLine component value (rationalToNumber range)
+  draw { component, value } = drawXGridLine component value range
 
 drawYGridLines :: XYBounds -> DrawCommand Unit
 drawYGridLines bounds = for_ yGuidePoints draw
   where
-  range = bounds.yBounds.upper - bounds.yBounds.lower
+  range = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
-  lineCount = 20
+  interval = step range
 
-  y1 = bounds.yBounds.lower
+  y1 = to3SignificantDigits $ rationalToNumber bounds.yBounds.lower
 
-  yGuidePoints = map (toGuidePoints y1 range lineCount) $ 0 .. lineCount
+  yGuidePoints = map (toGuidePoints y1 range interval) $ indexes range interval
 
   draw :: { component :: Number, value :: Number } -> DrawCommand Unit
-  draw { component, value } = drawYGridLine component value (rationalToNumber range)
+  draw { component, value } = drawYGridLine component value range
 
-toGuidePoints :: Rational -> Rational -> Int -> Int -> { component :: Number, value :: Number }
-toGuidePoints offset range lineCount index = { component, value }
+toGuidePoints :: Number -> Number -> Number -> Int -> { component :: Number, value :: Number }
+toGuidePoints offset range interval index = { component, value }
   where
-  numberIndex = toRational index
+  numberIndex = toNumber index
 
-  componentR = (numberIndex * range) / toRational lineCount
+  component = numberIndex * interval
 
-  component = rationalToNumber componentR
+  value = to3SignificantDigits $ component + offset
 
-  value = to3SignificantDigits $ componentR + offset
+toSignificantDigits :: Int -> Number -> Number
+toSignificantDigits digits = D.toNumber <<< (D.toSignificantDigits digits) <<< D.fromNumber
 
-toSignificantDigits :: Int -> Rational -> Number
-toSignificantDigits digits = D.toNumber <<< (D.toSignificantDigits digits) <<< D.fromNumber <<< rationalToNumber
-
-to3SignificantDigits :: Rational -> Number
+to3SignificantDigits :: Number -> Number
 to3SignificantDigits = toSignificantDigits 3
+ 
+step :: Number -> Number
+step range =  pow 10.0 $ round $ (log10 range) - 1.0
+
+indexes :: Number -> Number -> Array Int
+indexes range interval = 0 .. (Int.ceil $ range / interval)
