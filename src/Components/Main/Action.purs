@@ -13,6 +13,7 @@ import Control.Monad.Trans.Class (lift)
 import Control.Parallel (parSequence)
 import Data.Array (length)
 import Data.Maybe (Maybe(..))
+import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff, Milliseconds(..), delay)
 import Halogen as H
 import Halogen.Query.EventSource as ES
@@ -46,8 +47,8 @@ data Action
   | HandleAccuracyInput AccuracyInputMessage
   | AddPlot
   | DrawPlot
-  | HandleQueue
-  | HandleResize
+  | ProcessNextJob
+  | ResizeAndRedraw
   | ChangeSelectedPlot Int
 
 handleAction :: forall output. Action -> HalogenMain output Unit
@@ -64,15 +65,7 @@ handleAction action = do
     Init -> initialiseAction
     Scroll event -> scrollAction event
     DrawPlot -> H.modify_ (_ { input { operations = foldDrawCommands state } })
-    HandleQueue -> do
-      if (anyPlotHasJobs state.plots) then do
-        H.modify_ (_ { plots = setFirstRunningJob state.plots })
-        maybeJobResult <- lift $ lift $ runFirstJob state.input.size state.bounds.xBounds state.plots
-        _ <- fork -- Subsiquent code is placed on the end of the JS event queue
-        newState <- H.get
-        handleJobResult maybeJobResult newState
-      else
-        H.modify_ (_ { plots = clearAllCancelled state.plots })
+    ProcessNextJob -> processNextJob state
     HandleBatchInput (UpdatedBatchInput batchCount) -> do
       H.modify_ (_ { batchCount = batchCount })
       redraw state { batchCount = batchCount }
@@ -80,7 +73,7 @@ handleAction action = do
       H.modify_ (_ { accuracy = accuracy })
       redraw state { accuracy = accuracy }
     ChangeSelectedPlot plotId -> H.modify_ (_ { selectedPlot = plotId })
-    HandleResize -> do
+    ResizeAndRedraw -> do
       resizeCanvas
       newState <- H.get
       redraw newState
@@ -94,7 +87,7 @@ handleJobResult (Just jobResult) newState =
   else do
     H.modify_ (_ { plots = alterPlot (updateExpressionPlotCommands jobResult.drawCommands) jobResult.job.batchId newState.plots })
     handleAction DrawPlot
-    handleAction HandleQueue
+    handleAction ProcessNextJob
 
 scrollAction :: forall output. WheelEvent -> HalogenMain output Unit
 scrollAction event = do
@@ -102,7 +95,7 @@ scrollAction event = do
     H.liftEffect $ E.preventDefault (WE.toEvent event)
     handleAction $ Zoom (changeInY < 0.0)
   where
-    changeInY = WE.deltaY event
+  changeInY = WE.deltaY event
 
 resizeCanvas :: forall output. HalogenMain output Unit
 resizeCanvas = do
@@ -117,7 +110,7 @@ initialiseAction = do
   window <- H.liftEffect $ Web.toEventTarget <$> Web.window
   document <- H.liftEffect $ Web.document =<< Web.window
   H.subscribe' \id -> ES.eventListenerEventSource WET.wheel (HTMLDocument.toEventTarget document) (map Scroll <<< WE.fromEvent)
-  H.subscribe' \id -> ES.eventListenerEventSource (E.EventType "resize") window (const (Just HandleResize))
+  H.subscribe' \id -> ES.eventListenerEventSource (E.EventType "resize") window (const (Just ResizeAndRedraw))
   resizeCanvas
   handleAction Clear
 
@@ -127,6 +120,17 @@ clearAction state = do
   H.modify_ (_ { plots = [ newPlot 0 ], clearPlot = clearBounds, selectedPlot = 0 })
   handleAction DrawPlot
 
+processNextJob :: forall output. State -> HalogenMain output Unit
+processNextJob state = do
+  if (anyPlotHasJobs state.plots) then do
+    H.modify_ (_ { plots = setFirstRunningJob state.plots })
+    maybeJobResult <- lift $ lift $ runFirstJob state.input.size state.bounds.xBounds state.plots
+    _ <- fork -- Subsiquent code is placed on the end of the JS event queue
+    newState <- H.get
+    handleJobResult maybeJobResult newState
+  else
+    H.modify_ (_ { plots = clearAllCancelled state.plots })
+
 handleCanvasMessage :: forall output. State -> CanvasMessage -> HalogenMain output Unit
 handleCanvasMessage state (Dragged delta) = redrawWithoutRobustWithBounds state (panBoundsByVector state.input.size state.bounds delta)
 
@@ -135,18 +139,18 @@ handleCanvasMessage state StoppedDragging = redraw state
 handleExpressionPlotMessage :: forall output. State -> ExpressionInputMessage -> HalogenMain output Unit
 handleExpressionPlotMessage state (Parsed id expression text) = do
   newRoughCommands <- lift $ lift $ computePlotAsync state.input.size (roughPlot state.bounds expression text)
-  let
-    updatePlot :: ExpressionPlot -> ExpressionPlot
-    updatePlot plot =
-      plot
-        { expressionText = text
-        , expression = Just expression
-        , roughDrawCommands = newRoughCommands
-        , robustDrawCommands = pure unit
-        , queue = addPlot state.accuracy state.batchCount (cancelAll plot.queue) state.bounds expression text id
-        }
-  H.modify_ (_ { plots = alterPlot updatePlot id state.plots })
-  handleAction HandleQueue
+  H.modify_ (_ { plots = alterPlot (updatePlot newRoughCommands) id state.plots })
+  handleAction ProcessNextJob
+  where
+  updatePlot :: DrawCommand Unit -> ExpressionPlot -> ExpressionPlot
+  updatePlot newRoughCommands plot =
+    plot
+      { expressionText = text
+      , expression = Just expression
+      , roughDrawCommands = newRoughCommands
+      , robustDrawCommands = pure unit
+      , queue = addPlot state.accuracy state.batchCount (cancelAll plot.queue) state.bounds expression text id
+      }
 
 handleExpressionPlotMessage state (ChangedStatus id status) = do
   H.modify_ (_ { plots = alterPlot (_ { status = status }) id state.plots })
@@ -165,7 +169,7 @@ redrawWithDelayAndBounds state newBounds = do
   H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds })
   handleAction DrawPlot
   _ <- forkWithDelay 500.0 -- Subsiquent code is placed on the end of the JS event queue
-  handleAction HandleQueue
+  handleAction ProcessNextJob
 
 redraw :: forall output. State -> HalogenMain output Unit
 redraw state = do
@@ -173,7 +177,7 @@ redraw state = do
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
   H.modify_ (_ { plots = plots, clearPlot = clearBounds })
   handleAction DrawPlot
-  handleAction HandleQueue
+  handleAction ProcessNextJob
 
 redrawWithBounds :: forall output. State -> XYBounds -> HalogenMain output Unit
 redrawWithBounds state newBounds = do
