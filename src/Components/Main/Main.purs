@@ -180,7 +180,7 @@ toTab allowDelete selectedId plot =
         , (HE.onClick (toActionEvent (ChangeSelectedPlot plot.id)))
         ]
         ( [ HH.span
-              [ HP.class_ (ClassName "pr-2") ]
+              [ HP.class_ (ClassName $ if allowDelete then "pr-2" else "") ]
               [ HH.text text ]
           ]
             <> cross
