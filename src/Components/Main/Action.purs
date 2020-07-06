@@ -4,7 +4,7 @@ import Prelude
 import Components.AccuracyInput (AccuracyInputMessage(..))
 import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..))
-import Components.Canvas (CanvasMessage(..))
+import Components.Canvas (CanvasMessage(..), calculateNewCanvasSize)
 import Components.ExpressionInput (ExpressionInputMessage(..))
 import Components.Main.Helper (alterPlot, anyPlotHasJobs, clearAllCancelled, foldDrawCommands, isCancelledInAnyPlot, newPlot, runFirstJob, clearAddPlotCommands, setFirstRunningJob, updateExpressionPlotCommands)
 import Components.Main.Types (ChildSlots, Config, State, ExpressionPlot)
@@ -12,25 +12,19 @@ import Control.Monad.Reader (ReaderT)
 import Control.Monad.Trans.Class (lift)
 import Control.Parallel (parSequence)
 import Data.Array (length)
-import Data.Int (round)
 import Data.Maybe (Maybe(..))
-import Effect (Effect)
 import Effect.Aff (Aff, Milliseconds(..), delay)
 import Halogen as H
 import Halogen.Query.EventSource as ES
-import IntervalArith.Misc (toRational)
 import Plot.Commands (clear, roughPlot)
 import Plot.JobBatcher (JobResult, addPlot, cancelAll)
 import Plot.Pan (panBounds, panBoundsByVector)
 import Plot.PlotController (computePlotAsync)
 import Plot.Zoom (zoomBounds)
-import Types (Direction, XYBounds, Size)
-import Web.DOM.NonElementParentNode (getElementById)
+import Types (Direction, XYBounds)
 import Web.Event.Event as E
 import Web.HTML (window) as Web
-import Web.HTML.HTMLDocument (toNonElementParentNode)
 import Web.HTML.HTMLDocument as HTMLDocument
-import Web.HTML.HTMLElement as HTMLElement
 import Web.HTML.Window (document, toEventTarget) as Web
 import Web.UIEvent.WheelEvent (WheelEvent)
 import Web.UIEvent.WheelEvent as WE
@@ -128,27 +122,6 @@ handleAction action = do
       handleAction Resize
       newState <- H.get
       redraw newState
-
-calculateNewCanvasSize :: Effect (Maybe Size)
-calculateNewCanvasSize = do
-  document <- Web.document =<< Web.window
-  maybeCanvasContainer <- findElementById "canvasContainer" document
-  case maybeCanvasContainer of
-    Nothing -> pure $ Nothing
-    Just container -> do
-      containerWidth <- HTMLElement.offsetWidth container
-      let
-        newWidth = containerWidth - 40.0 -- Account for padding
-
-        newHeight = (newWidth * 5.0) / 8.0
-      pure $ Just { width: toRational (round newWidth), height: toRational (round newHeight) }
-
-findElementById :: String -> HTMLDocument.HTMLDocument -> Effect (Maybe HTMLElement.HTMLElement)
-findElementById id document = do
-  maybeElement <- getElementById id $ toNonElementParentNode document
-  case maybeElement of
-    Nothing -> pure Nothing
-    Just element -> pure $ HTMLElement.fromElement element
 
 handleJobResult :: forall output. Maybe JobResult -> State -> HalogenMain output Unit
 handleJobResult Nothing _ = pure unit

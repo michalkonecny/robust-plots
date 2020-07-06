@@ -1,14 +1,15 @@
 module Components.Canvas where
 
 import Prelude
-
 import Components.Canvas.Context (DrawContext)
 import Components.Canvas.Controller (CanvasController)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Control.Monad.Maybe.Trans as MaybeT
+import Data.Int (round)
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Data.Traversable (for)
+import Effect (Effect)
 import Effect.Class (class MonadEffect)
 import Halogen as H
 import Halogen.HTML as HH
@@ -16,6 +17,11 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import IntervalArith.Misc (rationalToNumber, toRational)
 import Types (Delta, Size)
+import Web.HTML (window) as Web
+import Web.HTML.Window (document) as Web
+import Web.HTML.HTMLDocument (toNonElementParentNode, HTMLDocument)
+import Web.HTML.HTMLElement (offsetWidth, HTMLElement, fromElement)
+import Web.DOM.NonElementParentNode (getElementById)
 import Web.UIEvent.MouseEvent (MouseEvent)
 import Web.UIEvent.MouseEvent as ME
 
@@ -30,7 +36,7 @@ type State operations
     }
 
 data CanvasMessage
-  = Dragged Delta 
+  = Dragged Delta
   | StoppedDragging
 
 type Input operations
@@ -100,11 +106,32 @@ handleAction controller = case _ of
     pure unit
   StartDrag delta -> do
     H.modify_ _ { oldDelta = delta, isDragging = true }
-  EndDrag -> do 
+  EndDrag -> do
     H.modify_ _ { isDragging = false }
-    H.raise StoppedDragging 
+    H.raise StoppedDragging
   Drag delta -> do
     state <- H.get
     when state.isDragging do
       H.put $ state { oldDelta = delta }
       H.raise $ Dragged { x: state.oldDelta.x - delta.x, y: delta.y - state.oldDelta.y }
+
+calculateNewCanvasSize :: Effect (Maybe Size)
+calculateNewCanvasSize = do
+  document <- Web.document =<< Web.window
+  maybeCanvasContainer <- findElementById "canvasContainer" document
+  case maybeCanvasContainer of
+    Nothing -> pure $ Nothing
+    Just container -> do
+      containerWidth <- offsetWidth container
+      let
+        newWidth = containerWidth - 40.0 -- Account for padding
+
+        newHeight = (newWidth * 5.0) / 8.0
+      pure $ Just { width: toRational (round newWidth), height: toRational (round newHeight) }
+
+findElementById :: String -> HTMLDocument -> Effect (Maybe HTMLElement)
+findElementById id document = do
+  maybeElement <- getElementById id $ toNonElementParentNode document
+  case maybeElement of
+    Nothing -> pure Nothing
+    Just element -> pure $ fromElement element
