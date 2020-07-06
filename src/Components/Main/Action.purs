@@ -11,8 +11,8 @@ import Components.Main.Types (ChildSlots, Config, State, ExpressionPlot)
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.Trans.Class (lift)
 import Control.Parallel (parSequence)
-import Data.Array (length)
-import Data.Maybe (Maybe(..))
+import Data.Array (filter, find, head)
+import Data.Maybe (Maybe(..), fromMaybe, isJust)
 import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff, Milliseconds(..), delay)
 import Halogen as H
@@ -50,6 +50,7 @@ data Action
   | ProcessNextJob
   | ResizeAndRedraw
   | ChangeSelectedPlot Int
+  | DeletePlot Int
 
 handleAction :: forall output. Action -> HalogenMain output Unit
 handleAction action = do
@@ -61,22 +62,36 @@ handleAction action = do
     Pan direction -> redrawWithDelayAndBounds state (panBounds state.bounds direction)
     Zoom isZoomIn -> redrawWithDelayAndBounds state (zoomBounds state.bounds isZoomIn)
     HandleCanvas message -> handleCanvasMessage state message
-    AddPlot -> H.modify_ (_ { plots = state.plots <> [ newPlot (length state.plots) ] })
     Init -> initialiseAction
     Scroll event -> scrollAction event
     DrawPlot -> H.modify_ (_ { input { operations = foldDrawCommands state } })
-    ProcessNextJob -> processNextJob state
+    ProcessNextJob -> processNextJobAction state
     HandleBatchInput (UpdatedBatchInput batchCount) -> do
       H.modify_ (_ { batchCount = batchCount })
       redraw state { batchCount = batchCount }
     HandleAccuracyInput (UpdatedAccuracyInput accuracy) -> do
       H.modify_ (_ { accuracy = accuracy })
       redraw state { accuracy = accuracy }
-    ChangeSelectedPlot plotId -> H.modify_ (_ { selectedPlot = plotId })
+    ChangeSelectedPlot plotId ->
+      if isJust (find (\p -> p.id == plotId) state.plots) then
+        H.modify_ (_ { selectedPlotId = plotId })
+      else
+        pure unit -- Do nothing as action must be outdated
     ResizeAndRedraw -> do
       resizeCanvas
       newState <- H.get
       redraw newState
+    DeletePlot plotId -> do
+      let
+        plots = filter (\p -> p.id /= plotId) state.plots
+
+        selectedPlotId =
+          if plotId /= state.selectedPlotId then
+            state.selectedPlotId
+          else
+            fromMaybe 0 $ (_.id) <$> (head plots)
+      H.modify_ (_ { selectedPlotId = selectedPlotId, plots = plots })
+    AddPlot -> H.modify_ (_ { plots = state.plots <> [ newPlot state.nextPlotId ], nextPlotId = state.nextPlotId + 1 })
 
 handleJobResult :: forall output. Maybe JobResult -> State -> HalogenMain output Unit
 handleJobResult Nothing _ = pure unit
@@ -117,11 +132,11 @@ initialiseAction = do
 clearAction :: forall output. State -> HalogenMain output Unit
 clearAction state = do
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
-  H.modify_ (_ { plots = [ newPlot 0 ], clearPlot = clearBounds, selectedPlot = 0 })
+  H.modify_ (_ { plots = [ newPlot 0 ], clearPlot = clearBounds, selectedPlotId = 0, nextPlotId = 1 })
   handleAction DrawPlot
 
-processNextJob :: forall output. State -> HalogenMain output Unit
-processNextJob state = do
+processNextJobAction :: forall output. State -> HalogenMain output Unit
+processNextJobAction state = do
   if (anyPlotHasJobs state.plots) then do
     H.modify_ (_ { plots = setFirstRunningJob state.plots })
     maybeJobResult <- lift $ lift $ runFirstJob state.input.size state.bounds.xBounds state.plots

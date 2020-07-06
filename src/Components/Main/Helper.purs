@@ -1,6 +1,7 @@
 module Components.Main.Helper where
 
 import Prelude
+
 import Components.ExpressionInput (Status(..))
 import Components.Main.Types (ExpressionPlot, State)
 import Control.Parallel (parSequence)
@@ -8,6 +9,7 @@ import Data.Array (cons, fold, foldl, mapMaybe, uncons)
 import Data.Maybe (Maybe(..))
 import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff)
+import Misc.Array (alterWhere)
 import Plot.Commands (roughPlot)
 import Plot.JobBatcher (Job, JobResult, addPlot, cancelAll, clearCancelled, hasJobs, initialJobQueue, isCancelled, runFirst, setRunning)
 import Plot.PlotController (computePlotAsync)
@@ -28,10 +30,7 @@ updateExpressionPlotCommands :: DrawCommand Unit -> ExpressionPlot -> Expression
 updateExpressionPlotCommands commands plot = plot { robustDrawCommands = fold [ plot.robustDrawCommands, commands ] }
 
 alterPlot :: (ExpressionPlot -> ExpressionPlot) -> Id -> Array ExpressionPlot -> Array ExpressionPlot
-alterPlot alterF id = map mapper
-  where
-  mapper :: ExpressionPlot -> ExpressionPlot
-  mapper plot = if plot.id == id then alterF plot else plot
+alterPlot alterF id = alterWhere (\p -> p.id == id) alterF
 
 queueHasJobs :: ExpressionPlot -> Boolean
 queueHasJobs plot = hasJobs plot.queue

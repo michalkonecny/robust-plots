@@ -25,3 +25,6 @@ split splits values =
       slice i (i + perSplit) values
     where
     i = index * perSplit
+
+alterWhere :: forall a. (a -> Boolean) -> (a -> a) -> Array a -> Array a
+alterWhere predicate alterF = map (\element -> if predicate element then alterF element else element)

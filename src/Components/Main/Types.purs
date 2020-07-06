@@ -1,7 +1,6 @@
 module Components.Main.Types where
 
 import Prelude
-
 import Components.AccuracyInput (AccuracyInputSlot)
 import Components.BatchInput (BatchInputSlot)
 import Components.BoundsInput (BoundsInputSlot)
@@ -20,7 +19,8 @@ type State
     , clearPlot :: DrawCommand Unit
     , batchCount :: Int
     , accuracy :: Number
-    , selectedPlot :: Int
+    , selectedPlotId :: Int
+    , nextPlotId :: Int
     }
 
 type ExpressionPlot
