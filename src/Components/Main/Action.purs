@@ -39,7 +39,7 @@ data Action
   | Pan Direction
   | Zoom Boolean
   | HandleExpressionInput ExpressionInputMessage
-  | HandleScroll WheelEvent
+  | Scroll WheelEvent
   | HandleCanvas CanvasMessage
   | HandleBoundsInput BoundsInputMessage
   | HandleBatchInput BatchInputMessage
@@ -48,53 +48,21 @@ data Action
   | DrawPlot
   | HandleQueue
   | HandleResize
-  | Resize
   | ChangeSelectedPlot Int
 
 handleAction :: forall output. Action -> HalogenMain output Unit
 handleAction action = do
   state <- H.get
   case action of
-    Clear -> do
-      clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
-      H.modify_ (_ { plots = [ newPlot 0 ], clearPlot = clearBounds, selectedPlot = 0 })
-      handleAction DrawPlot
-    HandleExpressionInput (Parsed id expression text) -> do
-      newRoughCommands <- lift $ lift $ computePlotAsync state.input.size (roughPlot state.bounds expression text)
-      let
-        updatePlot :: ExpressionPlot -> ExpressionPlot
-        updatePlot plot =
-          plot
-            { expressionText = text
-            , expression = Just expression
-            , roughDrawCommands = newRoughCommands
-            , robustDrawCommands = pure unit
-            , queue = addPlot state.accuracy state.batchCount (cancelAll plot.queue) state.bounds expression text id
-            }
-      H.modify_ (_ { plots = alterPlot updatePlot id state.plots })
-      handleAction HandleQueue
-    HandleExpressionInput (ChangedStatus id status) -> do
-      H.modify_ (_ { plots = alterPlot (_ { status = status }) id state.plots })
-      handleAction DrawPlot
+    Clear -> clearAction state
+    HandleExpressionInput message -> handleExpressionPlotMessage state message
+    HandleBoundsInput (UpdatedBoundsInput newBounds) -> redrawWithBounds state newBounds
     Pan direction -> redrawWithDelayAndBounds state (panBounds state.bounds direction)
     Zoom isZoomIn -> redrawWithDelayAndBounds state (zoomBounds state.bounds isZoomIn)
-    HandleCanvas (Dragged delta) -> redrawWithoutRobustWithBounds state (panBoundsByVector state.input.size state.bounds delta)
-    HandleCanvas StoppedDragging -> redraw state
+    HandleCanvas message -> handleCanvasMessage state message
     AddPlot -> H.modify_ (_ { plots = state.plots <> [ newPlot (length state.plots) ] })
-    HandleBoundsInput (UpdatedBoundsInput newBounds) -> redrawWithBounds state newBounds
-    Init -> do
-      window <- H.liftEffect $ Web.toEventTarget <$> Web.window
-      document <- H.liftEffect $ Web.document =<< Web.window
-      H.subscribe' \id -> ES.eventListenerEventSource WET.wheel (HTMLDocument.toEventTarget document) (map HandleScroll <<< WE.fromEvent)
-      H.subscribe' \id -> ES.eventListenerEventSource (E.EventType "resize") window (const (Just HandleResize))
-      handleAction Resize
-      handleAction Clear
-    HandleScroll event -> do
-      let
-        changeInY = WE.deltaY event
-      when (changeInY /= 0.0) do
-        H.liftEffect $ E.preventDefault (WE.toEvent event)
-        handleAction $ Zoom (changeInY < 0.0)
+    Init -> initialiseAction
+    Scroll event -> scrollAction event
     DrawPlot -> H.modify_ (_ { input { operations = foldDrawCommands state } })
     HandleQueue -> do
       if (anyPlotHasJobs state.plots) then do
@@ -112,14 +80,8 @@ handleAction action = do
       H.modify_ (_ { accuracy = accuracy })
       redraw state { accuracy = accuracy }
     ChangeSelectedPlot plotId -> H.modify_ (_ { selectedPlot = plotId })
-    Resize -> do
-      maybeNewCanvasSize <- H.liftEffect calculateNewCanvasSize
-      case maybeNewCanvasSize of
-        Nothing -> pure unit
-        Just newCanvasSize -> do
-          H.modify_ (_ { input { size = newCanvasSize } })
     HandleResize -> do
-      handleAction Resize
+      resizeCanvas
       newState <- H.get
       redraw newState
 
@@ -133,6 +95,62 @@ handleJobResult (Just jobResult) newState =
     H.modify_ (_ { plots = alterPlot (updateExpressionPlotCommands jobResult.drawCommands) jobResult.job.batchId newState.plots })
     handleAction DrawPlot
     handleAction HandleQueue
+
+scrollAction :: forall output. WheelEvent -> HalogenMain output Unit
+scrollAction event = do
+  when (changeInY /= 0.0) do
+    H.liftEffect $ E.preventDefault (WE.toEvent event)
+    handleAction $ Zoom (changeInY < 0.0)
+  where
+    changeInY = WE.deltaY event
+
+resizeCanvas :: forall output. HalogenMain output Unit
+resizeCanvas = do
+  maybeNewCanvasSize <- H.liftEffect calculateNewCanvasSize
+  case maybeNewCanvasSize of
+    Nothing -> pure unit
+    Just newCanvasSize -> do
+      H.modify_ (_ { input { size = newCanvasSize } })
+
+initialiseAction :: forall output. HalogenMain output Unit
+initialiseAction = do
+  window <- H.liftEffect $ Web.toEventTarget <$> Web.window
+  document <- H.liftEffect $ Web.document =<< Web.window
+  H.subscribe' \id -> ES.eventListenerEventSource WET.wheel (HTMLDocument.toEventTarget document) (map Scroll <<< WE.fromEvent)
+  H.subscribe' \id -> ES.eventListenerEventSource (E.EventType "resize") window (const (Just HandleResize))
+  resizeCanvas
+  handleAction Clear
+
+clearAction :: forall output. State -> HalogenMain output Unit
+clearAction state = do
+  clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
+  H.modify_ (_ { plots = [ newPlot 0 ], clearPlot = clearBounds, selectedPlot = 0 })
+  handleAction DrawPlot
+
+handleCanvasMessage :: forall output. State -> CanvasMessage -> HalogenMain output Unit
+handleCanvasMessage state (Dragged delta) = redrawWithoutRobustWithBounds state (panBoundsByVector state.input.size state.bounds delta)
+
+handleCanvasMessage state StoppedDragging = redraw state
+
+handleExpressionPlotMessage :: forall output. State -> ExpressionInputMessage -> HalogenMain output Unit
+handleExpressionPlotMessage state (Parsed id expression text) = do
+  newRoughCommands <- lift $ lift $ computePlotAsync state.input.size (roughPlot state.bounds expression text)
+  let
+    updatePlot :: ExpressionPlot -> ExpressionPlot
+    updatePlot plot =
+      plot
+        { expressionText = text
+        , expression = Just expression
+        , roughDrawCommands = newRoughCommands
+        , robustDrawCommands = pure unit
+        , queue = addPlot state.accuracy state.batchCount (cancelAll plot.queue) state.bounds expression text id
+        }
+  H.modify_ (_ { plots = alterPlot updatePlot id state.plots })
+  handleAction HandleQueue
+
+handleExpressionPlotMessage state (ChangedStatus id status) = do
+  H.modify_ (_ { plots = alterPlot (_ { status = status }) id state.plots })
+  handleAction DrawPlot
 
 forkWithDelay :: forall output. Number -> HalogenMain output Unit
 forkWithDelay duration = lift $ lift $ delay $ Milliseconds duration
