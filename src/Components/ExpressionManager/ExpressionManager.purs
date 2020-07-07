@@ -83,7 +83,7 @@ render state =
             ]
         , HH.div
             [ HP.class_ (ClassName "card-body") ]
-            [ tabContent state.plots state.selectedPlotId
+            [ selectedExpressionPlot state.plots state.selectedPlotId
             ]
         , HH.div
             [ HP.class_ (ClassName "card-footer") ]
@@ -145,60 +145,60 @@ toTab state plot =
         [ HP.class_ (ClassName ("nav-link" <> maybeActiveClass))
         , (HE.onClick (toActionEvent (ChangeSelected plot.id)))
         ]
-        ( input <> editButton <> cross
-        )
+        tabContent
     ]
   where
-  isSelected = state.selectedPlotId == plot.id
+  maybeActiveClass = if state.selectedPlotId == plot.id then " active" else ""
 
-  allowDelete = 1 < length state.plots
+  tabContent = (textOrEditInput state plot) <> (maybeEditButton state plot.id) <> (maybeDeleteButton state plot.id)
 
-  addPaddingToInput = allowDelete || not state.editingSelected
+textOrEditInput :: forall w. State -> ExpressionPlot -> Array (HH.HTML w Action)
+textOrEditInput state plot =
+  if (state.selectedPlotId == plot.id) && state.editingSelected then
+    [ HH.input
+        [ HP.type_ HP.InputText
+        , HE.onFocusOut $ toActionEvent Rename
+        , HE.onValueChange $ toValueChangeActionEvent
+        , HP.value state.editedName
+        , HP.class_ (ClassName $ if addPaddingToInput then "form-control small-input pr-2" else "form-control small-input")
+        ]
+    ]
+  else
+    [ HH.span
+        [ HP.class_ (ClassName $ if addPaddingToInput then "pr-2" else "") ]
+        [ HH.text plot.name ]
+    ]
+  where
+  addPaddingToInput = (1 < length state.plots) || not state.editingSelected
 
-  maybeActiveClass = if isSelected then " active" else ""
+maybeEditButton :: forall w. State -> Int -> Array (HH.HTML w Action)
+maybeEditButton state plotId =
+  if state.selectedPlotId == plotId && not state.editingSelected then
+    [ HH.button
+        [ HP.class_ (ClassName "close")
+        , HE.onClick $ toActionEvent Edit
+        ]
+        [ HH.text "🖉" ]
+    ]
+  else
+    []
 
-  input =
-    if state.editingSelected && isSelected then
-      [ HH.input
-          [ HP.type_ HP.InputText
-          , HE.onFocusOut $ toActionEvent Rename
-          , HE.onValueChange $ toValueChangeActionEvent
-          , HP.value state.editedName
-          , HP.class_ (ClassName $ if addPaddingToInput then "form-control small-input pr-2" else "form-control small-input")
-          ]
-      ]
-    else
-      [ HH.span
-          [ HP.class_ (ClassName $ if addPaddingToInput then "pr-2" else "") ]
-          [ HH.text plot.name ]
-      ]
+maybeDeleteButton :: forall w. State -> Int -> Array (HH.HTML w Action)
+maybeDeleteButton state plotId =
+  if 1 < length state.plots then
+    [ HH.button
+        [ HP.class_ (ClassName "close")
+        , HE.onClick $ toActionEvent (Delete plotId)
+        ]
+        [ HH.text "✕" ]
+    ]
+  else
+    []
 
-  editButton =
-    if isSelected && not state.editingSelected then
-      [ HH.button
-          [ HP.class_ (ClassName "close")
-          , HE.onClick $ toActionEvent Edit
-          ]
-          [ HH.text "🖉" ]
-      ]
-    else
-      []
+selectedExpressionPlot :: forall m. MonadEffect m => Array ExpressionPlot -> Int -> H.ComponentHTML Action ChildSlots m
+selectedExpressionPlot [] _ = HH.text "Error: No plots"
 
-  cross =
-    if allowDelete then
-      [ HH.button
-          [ HP.class_ (ClassName "close")
-          , HE.onClick $ toActionEvent (Delete plot.id)
-          ]
-          [ HH.text "✕" ]
-      ]
-    else
-      []
-
-tabContent :: forall m. MonadEffect m => Array ExpressionPlot -> Int -> H.ComponentHTML Action ChildSlots m
-tabContent [] _ = HH.text "Error: No plots"
-
-tabContent plots selectedPlotId = case find (\p -> p.id == selectedPlotId) plots of
+selectedExpressionPlot plots selectedPlotId = case find (\p -> p.id == selectedPlotId) plots of
   Nothing -> HH.text $ "Error: Plot " <> (show selectedPlotId) <> " does not exist"
   Just plot -> HH.slot _expressionInput plot.id component input toAction
     where
