@@ -66,13 +66,13 @@ toGuidePoint { range, interval, lower, offset } index = { component, value, rang
 
   component = c - offset
 
-  fromLower = component + lower
+  fromLower = to3SignificantDigits $ component + lower
 
   value =
     if abs fromLower < interval then
       0.0
     else
-      to3SignificantDigits fromLower
+      fromLower
 
 toSignificantDigits :: Int -> Number -> Number
 toSignificantDigits digits = D.toNumber <<< (D.toSignificantDigits digits) <<< D.fromNumber
