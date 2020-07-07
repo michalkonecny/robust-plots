@@ -4,7 +4,7 @@ import Prelude
 import Components.ExpressionInput (ExpressionInputMessage, expressionInputComponent)
 import Components.ExpressionInput.Controller (expressionInputController)
 import Components.ExpressionManager.Types (ExpressionPlot, ChildSlots)
-import Data.Array (find, head, length)
+import Data.Array (catMaybes, find, head, length)
 import Data.Maybe (Maybe(..), fromMaybe, isJust)
 import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..))
@@ -142,58 +142,56 @@ toTab state plot =
   HH.li
     [ HP.class_ (ClassName "nav-item") ]
     [ HH.button
-        [ HP.class_ (ClassName ("nav-link" <> maybeActiveClass))
-        , (HE.onClick (toActionEvent (ChangeSelected plot.id)))
+        [ HP.class_ $ ClassName className
+        , HE.onClick $ toActionEvent (ChangeSelected plot.id)
         ]
         tabContent
     ]
   where
-  maybeActiveClass = if state.selectedPlotId == plot.id then " active" else ""
+  className = if state.selectedPlotId == plot.id then "nav-link active" else "nav-link"
 
-  tabContent = (textOrEditInput state plot) <> (maybeEditButton state plot.id) <> (maybeDeleteButton state plot.id)
+  tabContent = catMaybes [ Just (textOrEditInput state plot), maybeEditButton state plot.id, maybeDeleteButton state plot.id ]
 
-textOrEditInput :: forall w. State -> ExpressionPlot -> Array (HH.HTML w Action)
+textOrEditInput :: forall w. State -> ExpressionPlot -> HH.HTML w Action
 textOrEditInput state plot =
   if (state.selectedPlotId == plot.id) && state.editingSelected then
-    [ HH.input
-        [ HP.type_ HP.InputText
-        , HE.onFocusOut $ toActionEvent Rename
-        , HE.onValueChange $ toValueChangeActionEvent
-        , HP.value state.editedName
-        , HP.class_ (ClassName $ if addPaddingToInput then "form-control small-input pr-2" else "form-control small-input")
-        ]
-    ]
+    HH.input
+      [ HP.type_ HP.InputText
+      , HE.onFocusOut $ toActionEvent Rename
+      , HE.onValueChange $ toValueChangeActionEvent
+      , HP.value state.editedName
+      , HP.class_ (ClassName $ if addPaddingToInput then "form-control small-input pr-2" else "form-control small-input")
+      ]
   else
-    [ HH.span
-        [ HP.class_ (ClassName $ if addPaddingToInput then "pr-2" else "") ]
-        [ HH.text plot.name ]
-    ]
+    HH.span
+      [ HP.class_ (ClassName $ if addPaddingToInput then "pr-2" else "") ]
+      [ HH.text plot.name ]
   where
   addPaddingToInput = (1 < length state.plots) || not state.editingSelected
 
-maybeEditButton :: forall w. State -> Int -> Array (HH.HTML w Action)
+maybeEditButton :: forall w. State -> Int -> Maybe (HH.HTML w Action)
 maybeEditButton state plotId =
   if state.selectedPlotId == plotId && not state.editingSelected then
-    [ HH.button
-        [ HP.class_ (ClassName "close")
-        , HE.onClick $ toActionEvent Edit
-        ]
-        [ HH.text "🖉" ]
-    ]
+    Just
+      $ HH.button
+          [ HP.class_ (ClassName "close")
+          , HE.onClick $ toActionEvent Edit
+          ]
+          [ HH.text "🖉" ]
   else
-    []
+    Nothing
 
-maybeDeleteButton :: forall w. State -> Int -> Array (HH.HTML w Action)
+maybeDeleteButton :: forall w. State -> Int -> Maybe (HH.HTML w Action)
 maybeDeleteButton state plotId =
   if 1 < length state.plots then
-    [ HH.button
-        [ HP.class_ (ClassName "close")
-        , HE.onClick $ toActionEvent (Delete plotId)
-        ]
-        [ HH.text "✕" ]
-    ]
+    Just
+      $ HH.button
+          [ HP.class_ (ClassName "close")
+          , HE.onClick $ toActionEvent (Delete plotId)
+          ]
+          [ HH.text "✕" ]
   else
-    []
+    Nothing
 
 selectedExpressionPlot :: forall m. MonadEffect m => Array ExpressionPlot -> Int -> H.ComponentHTML Action ChildSlots m
 selectedExpressionPlot [] _ = HH.text "Error: No plots"
