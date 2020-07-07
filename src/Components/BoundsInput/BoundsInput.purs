@@ -76,49 +76,51 @@ initialState input =
 
 render :: forall slots m. State -> HH.ComponentHTML Action slots m
 render state =
-  HH.div
-    [ HP.class_ (ClassName "form-inline") ]
+  HH.div_
     $ [ HH.div
-          [ HP.class_ (ClassName "pr-2") ]
-          [ HH.input
-              [ HP.type_ HP.InputText
-              , HE.onValueChange $ toValueChangeActionEvent XLower
-              , HP.value state.xBounds.lower
-              , HE.onFocusOut $ toActionEvent Update
-              , HP.class_ (ClassName "form-control small-input")
+          [ HP.class_ (ClassName "form-inline") ]
+          [ HH.div
+              [ HP.class_ (ClassName "pr-2") ]
+              [ HH.input
+                  [ HP.type_ HP.InputText
+                  , HE.onValueChange $ toValueChangeActionEvent XLower
+                  , HP.value state.xBounds.lower
+                  , HE.onFocusOut $ toActionEvent Update
+                  , HP.class_ (ClassName "form-control small-input")
+                  ]
+              , HH.span [ HP.class_ (ClassName "") ] [ HH.text " ≤ x ≤ " ]
+              , HH.input
+                  [ HP.type_ HP.InputText
+                  , HE.onValueChange $ toValueChangeActionEvent XUpper
+                  , HP.value state.xBounds.upper
+                  , HE.onFocusOut $ toActionEvent Update
+                  , HP.class_ (ClassName "form-control small-input")
+                  ]
               ]
-          , HH.span [ HP.class_ (ClassName "") ] [ HH.text " ≤ x ≤ " ]
-          , HH.input
-              [ HP.type_ HP.InputText
-              , HE.onValueChange $ toValueChangeActionEvent XUpper
-              , HP.value state.xBounds.upper
-              , HE.onFocusOut $ toActionEvent Update
-              , HP.class_ (ClassName "form-control small-input")
+          , HH.div
+              [ HP.class_ (ClassName "pr-2") ]
+              [ HH.input
+                  [ HP.type_ HP.InputText
+                  , HE.onValueChange $ toValueChangeActionEvent YLower
+                  , HP.value state.yBounds.lower
+                  , HE.onFocusOut $ toActionEvent Update
+                  , HP.class_ (ClassName "form-control small-input")
+                  ]
+              , HH.span [ HP.class_ (ClassName "") ] [ HH.text " ≤ y ≤ " ]
+              , HH.input
+                  [ HP.type_ HP.InputText
+                  , HE.onValueChange $ toValueChangeActionEvent YUpper
+                  , HE.onFocusOut $ toActionEvent Update
+                  , HP.value state.yBounds.upper
+                  , HP.class_ (ClassName "form-control small-input")
+                  ]
               ]
-          ]
-      , HH.div
-          [ HP.class_ (ClassName "pr-2") ]
-          [ HH.input
-              [ HP.type_ HP.InputText
-              , HE.onValueChange $ toValueChangeActionEvent YLower
-              , HP.value state.yBounds.lower
-              , HE.onFocusOut $ toActionEvent Update
-              , HP.class_ (ClassName "form-control small-input")
+          , HH.div
+              [ HP.class_ (ClassName "btn-group") ]
+              [ HH.button
+                  [ HP.class_ (ClassName "btn btn-warning"), HE.onClick $ toActionEvent $ ResetBounds ]
+                  [ HH.text "Reset bounds" ]
               ]
-          , HH.span [ HP.class_ (ClassName "") ] [ HH.text " ≤ y ≤ " ]
-          , HH.input
-              [ HP.type_ HP.InputText
-              , HE.onValueChange $ toValueChangeActionEvent YUpper
-              , HE.onFocusOut $ toActionEvent Update
-              , HP.value state.yBounds.upper
-              , HP.class_ (ClassName "form-control small-input")
-              ]
-          ]
-      , HH.div
-          [ HP.class_ (ClassName "btn-group") ]
-          [ HH.button
-              [ HP.class_ (ClassName "btn btn-warning"), HE.onClick $ toActionEvent $ ResetBounds ]
-              [ HH.text "Reset bounds" ]
           ]
       ]
     <> (errorMessage state.error)
@@ -144,7 +146,9 @@ handleAction = case _ of
   HandleInput XUpper stringInput -> H.modify_ _ { xBounds { upper = stringInput } }
   HandleInput YLower stringInput -> H.modify_ _ { yBounds { lower = stringInput } }
   HandleInput YUpper stringInput -> H.modify_ _ { yBounds { upper = stringInput } }
-  ResetBounds -> H.raise (UpdatedBoundsInput initialBounds)
+  ResetBounds -> do
+    H.modify_ _ { error = Nothing }
+    H.raise (UpdatedBoundsInput initialBounds)
   Recieve bounds ->
     H.modify_
       _
@@ -157,6 +161,7 @@ handleAction = case _ of
           , lower = show $ rationalToNumber bounds.yBounds.lower
           }
         , oldBounds = bounds
+        , error = Nothing
         }
   Update -> do
     { xBounds, yBounds, oldBounds } <- H.get
