@@ -91,6 +91,7 @@ handleAction action = do
           else
             fromMaybe 0 $ (_.id) <$> (head plots)
       H.modify_ (_ { selectedPlotId = selectedPlotId, plots = plots })
+      handleAction DrawPlot
     AddPlot -> H.modify_ (_ { plots = state.plots <> [ newPlot state.nextPlotId ], nextPlotId = state.nextPlotId + 1 })
 
 handleJobResult :: forall output. Maybe JobResult -> State -> HalogenMain output Unit
