@@ -1,6 +1,7 @@
 module Plot.GridLines where
 
 import Prelude
+
 import Data.Array ((..))
 import Data.Decimal as D
 import Data.Foldable (traverse_)
@@ -9,7 +10,7 @@ import Data.Int (toNumber)
 import Draw.Actions (clearCanvas, drawXGridLine, drawYGridLine, drawXAxisLine, drawYAxisLine)
 import Draw.Commands (DrawCommand)
 import IntervalArith.Misc (rationalToNumber)
-import Math (pow, round)
+import Math (pow, round, (%))
 import Misc.Math (log10)
 import Types (XYBounds, Bounds)
 
@@ -42,11 +43,11 @@ drawYGridLines = (traverse_ (draw drawYGridLine)) <<< toGuidePoints <<< (toAxis 
 draw :: (Number -> Number -> Number -> DrawCommand Unit) -> { component :: Number, value :: Number, range :: Number } -> DrawCommand Unit
 draw drawGridLine { component, value, range } = drawGridLine component value range
 
-toGuidePoints :: { range :: Number, interval :: Number, offset :: Number } -> Array { component :: Number, value :: Number, range :: Number }
-toGuidePoints { range, interval, offset } = map (toNumber >>> (toGuidePoint offset range interval)) $ indexes range interval
+toGuidePoints :: { range :: Number, interval :: Number, lower :: Number } -> Array { component :: Number, value :: Number, range :: Number }
+toGuidePoints { range, interval, lower } = map (toNumber >>> (toGuidePoint lower range interval)) $ indexes range interval
 
-toAxis :: (XYBounds -> Bounds) -> XYBounds -> { range :: Number, interval :: Number, offset :: Number }
-toAxis toBounds xyBounds = { range, interval, offset }
+toAxis :: (XYBounds -> Bounds) -> XYBounds -> { range :: Number, interval :: Number, lower :: Number }
+toAxis toBounds xyBounds = { range, interval, lower }
   where
   bounds = toBounds xyBounds
 
@@ -54,14 +55,20 @@ toAxis toBounds xyBounds = { range, interval, offset }
 
   interval = calculateInterval range
 
-  offset = rationalToNumber bounds.lower
+  lower = rationalToNumber bounds.lower
 
 toGuidePoint :: Number -> Number -> Number -> Number -> { component :: Number, value :: Number, range :: Number }
-toGuidePoint offset range interval index = { component, value, range }
+toGuidePoint lower range interval index = { component, value, range }
   where
-  component = index * interval
+  c = index * interval
 
-  value = to3SignificantDigits $ component + offset
+  v = c + lower
+
+  clean = v % interval
+
+  component = c - clean
+
+  value = to3SignificantDigits $ v - clean
 
 toSignificantDigits :: Int -> Number -> Number
 toSignificantDigits digits = D.toNumber <<< (D.toSignificantDigits digits) <<< D.fromNumber
