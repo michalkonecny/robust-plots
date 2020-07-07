@@ -25,6 +25,7 @@ newPlot id =
   , roughDrawCommands: pure unit
   , queue: initialJobQueue
   , status: Robust
+  , name: "Plot " <> (show id)
   }
 
 updateExpressionPlotCommands :: DrawCommand Unit -> ExpressionPlot -> ExpressionPlot

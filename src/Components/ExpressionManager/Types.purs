@@ -15,6 +15,7 @@ type ExpressionPlot
     , id :: Int
     , queue :: JobQueue
     , status :: Status
+    , name :: String
     }
 
 type ChildSlots

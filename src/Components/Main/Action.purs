@@ -158,7 +158,7 @@ handleExpressionPlotMessage state (DeletePlot plotId) = do
 
 handleExpressionPlotMessage state (AddPlot nextId) = H.modify_ (_ { plots = state.plots <> [ newPlot nextId ] })
 
-handleExpressionPlotMessage state (RenamePlot plotId name) = pure unit -- TODO: Add name to state
+handleExpressionPlotMessage state (RenamePlot plotId name) = H.modify_ (_ { plots = alterPlot (_ { name = name }) plotId state.plots })
 
 handleExpressionPlotMessage state ClearPlots = clearAction state
 

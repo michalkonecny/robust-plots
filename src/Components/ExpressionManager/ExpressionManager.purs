@@ -4,7 +4,7 @@ import Prelude
 import Components.ExpressionInput (ExpressionInputMessage, expressionInputComponent)
 import Components.ExpressionInput.Controller (expressionInputController)
 import Components.ExpressionManager.Types (ExpressionPlot, ChildSlots)
-import Data.Array (filter, find, head, length)
+import Data.Array (find, head, length)
 import Data.Maybe (Maybe(..), fromMaybe, isJust)
 import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..))
@@ -25,6 +25,7 @@ type State
     , selectedPlotId :: Int
     , nextPlotId :: Int
     , editingSelected :: Boolean
+    , editedName :: String
     }
 
 data ExpressionManagerMessage
@@ -61,10 +62,13 @@ expressionManagerComponent =
 initialState :: Array ExpressionPlot -> State
 initialState plots =
   { plots
-  , selectedPlotId: fromMaybe 0 $ (_.id) <$> (head plots)
+  , selectedPlotId
   , editingSelected: false
   , nextPlotId: 1
+  , editedName: selectedPlotName plots selectedPlotId
   }
+  where
+  selectedPlotId = fromMaybe 0 $ (_.id) <$> (head plots)
 
 render :: forall m. MonadEffect m => State -> HH.ComponentHTML Action ChildSlots m
 render state =
@@ -75,7 +79,7 @@ render state =
             [ HP.class_ (ClassName "card-header") ]
             [ HH.ul
                 [ HP.class_ (ClassName "nav nav-tabs card-header-tabs") ]
-                (map (toTab (1 < length state.plots) state.editingSelected state.selectedPlotId) state.plots)
+                (map (toTab state) state.plots)
             ]
         , HH.div
             [ HP.class_ (ClassName "card-body") ]
@@ -107,8 +111,12 @@ handleAction = case _ of
   HandleMessage plots -> do
     { selectedPlotId } <- H.get
     let
-      newSelectedPlotId = if plotExists plots selectedPlotId then selectedPlotId else fromMaybe 0 $ (_.id) <$> (head plots)
-    H.modify_ _ { plots = plots, selectedPlotId = newSelectedPlotId, editingSelected = false }
+      newSelectedPlotId =
+        if plotExists plots selectedPlotId then
+          selectedPlotId
+        else
+          fromMaybe 0 $ (_.id) <$> (head plots)
+    H.modify_ _ { plots = plots, selectedPlotId = newSelectedPlotId, editingSelected = false, editedName = selectedPlotName plots newSelectedPlotId }
   Clear -> H.raise ClearPlots
   Add -> do
     { nextPlotId } <- H.get
@@ -117,17 +125,20 @@ handleAction = case _ of
   Delete plotId -> do H.raise $ DeletePlot plotId
   Edit -> H.modify_ (_ { editingSelected = true })
   Rename -> do
-    { selectedPlotId } <- H.get
-    H.raise $ RenamePlot selectedPlotId "" -- TODO: retreieve input from text
-  HandleInput value -> pure unit
+    { selectedPlotId, editedName } <- H.get
+    H.raise $ RenamePlot selectedPlotId editedName
+  HandleInput name -> H.modify_ (_ { editedName = name })
   ChangeSelected plotId -> do
     { selectedPlotId, plots } <- H.get
     when ((plotExists plots plotId) && selectedPlotId /= plotId) do
-      H.modify_ (_ { selectedPlotId = plotId, editingSelected = false })
+      H.modify_ (_ { selectedPlotId = plotId, editingSelected = false, editedName = selectedPlotName plots plotId })
   HandleExpressionInput message -> H.raise $ RaisedExpressionInputMessage message
 
-toTab :: forall w. Boolean -> Boolean -> Int -> ExpressionPlot -> HH.HTML w Action
-toTab allowDelete editingSelected selectedId plot =
+selectedPlotName :: Array ExpressionPlot -> Int -> String
+selectedPlotName plots selectedPlotId = fromMaybe "Error" $ (_.name) <$> (find (\p -> p.id == selectedPlotId) plots)
+
+toTab :: forall w. State -> ExpressionPlot -> HH.HTML w Action
+toTab state plot =
   HH.li
     [ HP.class_ (ClassName "nav-item") ]
     [ HH.button
@@ -138,32 +149,32 @@ toTab allowDelete editingSelected selectedId plot =
         )
     ]
   where
-  isSelected = selectedId == plot.id
+  isSelected = state.selectedPlotId == plot.id
 
-  addPaddingToInput = allowDelete || not editingSelected
+  allowDelete = 1 < length state.plots
+
+  addPaddingToInput = allowDelete || not state.editingSelected
 
   maybeActiveClass = if isSelected then " active" else ""
 
-  text = if plot.expressionText == "" then "Plot " <> (show plot.id) else plot.expressionText
-
   input =
-    if editingSelected then
+    if state.editingSelected && isSelected then
       [ HH.input
           [ HP.type_ HP.InputText
           , HE.onFocusOut $ toActionEvent Rename
           , HE.onValueChange $ toValueChangeActionEvent
-          , HP.value text
+          , HP.value state.editedName
           , HP.class_ (ClassName $ if addPaddingToInput then "form-control small-input pr-2" else "form-control small-input")
           ]
       ]
     else
       [ HH.span
           [ HP.class_ (ClassName $ if addPaddingToInput then "pr-2" else "") ]
-          [ HH.text text ]
+          [ HH.text plot.name ]
       ]
 
   editButton =
-    if isSelected && not editingSelected then
+    if isSelected && not state.editingSelected then
       [ HH.button
           [ HP.class_ (ClassName "close")
           , HE.onClick $ toActionEvent Edit
@@ -187,8 +198,8 @@ toTab allowDelete editingSelected selectedId plot =
 tabContent :: forall m. MonadEffect m => Array ExpressionPlot -> Int -> H.ComponentHTML Action ChildSlots m
 tabContent [] _ = HH.text "Error: No plots"
 
-tabContent plots selectedId = case find (\p -> p.id == selectedId) plots of
-  Nothing -> HH.text $ "Error: Plot " <> (show selectedId) <> " does not exist"
+tabContent plots selectedPlotId = case find (\p -> p.id == selectedPlotId) plots of
+  Nothing -> HH.text $ "Error: Plot " <> (show selectedPlotId) <> " does not exist"
   Just plot -> HH.slot _expressionInput plot.id component input toAction
     where
     component = expressionInputComponent expressionInputController plot.id
