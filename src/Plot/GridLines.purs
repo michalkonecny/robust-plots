@@ -2,12 +2,17 @@ module Plot.GridLines where
 
 import Prelude
 import Data.Array ((..))
-import Data.Decimal as D
-import Data.Traversable (for_)
+import Data.Foldable (traverse_)
+import Data.Int (ceil) as Int
+import Data.Int (toNumber)
+import Data.Ord (abs)
 import Draw.Actions (clearCanvas, drawXGridLine, drawYGridLine, drawXAxisLine, drawYAxisLine)
 import Draw.Commands (DrawCommand)
-import IntervalArith.Misc (Rational, rationalToNumber, toRational)
-import Types (XYBounds)
+import IntervalArith.Misc (rationalToNumber)
+import Misc.Number (to3SignificantDigits)
+import Math (pow, round, (%))
+import Misc.Math (log10)
+import Types (XYBounds, Bounds)
 
 clearAndDrawGridLines :: XYBounds -> DrawCommand Unit
 clearAndDrawGridLines bounds = do
@@ -30,46 +35,47 @@ drawAxes bounds = do
   rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
 drawXGridLines :: XYBounds -> DrawCommand Unit
-drawXGridLines bounds = for_ xGuidePoints draw
-  where
-  range = bounds.xBounds.upper - bounds.xBounds.lower
-
-  lineCount = 20
-
-  x1 = bounds.xBounds.lower
-
-  xGuidePoints = map (toGuidePoints x1 range lineCount) $ 0 .. lineCount
-
-  draw :: { component :: Number, value :: Number } -> DrawCommand Unit
-  draw { component, value } = drawXGridLine component value (rationalToNumber range)
+drawXGridLines = (traverse_ (draw drawXGridLine)) <<< toGuidePoints <<< (toAxis (_.xBounds))
 
 drawYGridLines :: XYBounds -> DrawCommand Unit
-drawYGridLines bounds = for_ yGuidePoints draw
+drawYGridLines = (traverse_ (draw drawYGridLine)) <<< toGuidePoints <<< (toAxis (_.yBounds))
+
+draw :: (Number -> Number -> Number -> DrawCommand Unit) -> { component :: Number, value :: Number, range :: Number } -> DrawCommand Unit
+draw drawGridLine { component, value, range } = drawGridLine component value range
+
+toGuidePoints :: { range :: Number, interval :: Number, lower :: Number, offset :: Number } -> Array { component :: Number, value :: Number, range :: Number }
+toGuidePoints axis@{ range, interval } = map (toNumber >>> (toGuidePoint axis)) $ indexes range interval
+
+toAxis :: (XYBounds -> Bounds) -> XYBounds -> { range :: Number, interval :: Number, lower :: Number, offset :: Number }
+toAxis toBounds xyBounds = { range, interval, lower, offset }
   where
-  range = bounds.yBounds.upper - bounds.yBounds.lower
+  bounds = toBounds xyBounds
 
-  lineCount = 20
+  range = rationalToNumber $ bounds.upper - bounds.lower
 
-  y1 = bounds.yBounds.lower
+  interval = calculateInterval range
 
-  yGuidePoints = map (toGuidePoints y1 range lineCount) $ 0 .. lineCount
+  lower = rationalToNumber bounds.lower
 
-  draw :: { component :: Number, value :: Number } -> DrawCommand Unit
-  draw { component, value } = drawYGridLine component value (rationalToNumber range)
+  offset = lower % interval
 
-toGuidePoints :: Rational -> Rational -> Int -> Int -> { component :: Number, value :: Number }
-toGuidePoints offset range lineCount index = { component, value }
+toGuidePoint :: { range :: Number, interval :: Number, lower :: Number, offset :: Number } -> Number -> { component :: Number, value :: Number, range :: Number }
+toGuidePoint { range, interval, lower, offset } index = { component, value, range }
   where
-  numberIndex = toRational index
+  c = index * interval
 
-  componentR = (numberIndex * range) / toRational lineCount
+  component = c - offset
 
-  component = rationalToNumber componentR
+  fromLower = to3SignificantDigits $ component + lower
 
-  value = to3SignificantDigits $ componentR + offset
+  value =
+    if abs fromLower < interval then
+      0.0
+    else
+      fromLower
 
-toSignificantDigits :: Int -> Rational -> Number
-toSignificantDigits digits = D.toNumber <<< (D.toSignificantDigits digits) <<< D.fromNumber <<< rationalToNumber
+calculateInterval :: Number -> Number
+calculateInterval range = pow 10.0 $ round $ (log10 range) - 1.0
 
-to3SignificantDigits :: Rational -> Number
-to3SignificantDigits = toSignificantDigits 3
+indexes :: Number -> Number -> Array Int
+indexes range interval = 0 .. (Int.ceil $ range / interval)

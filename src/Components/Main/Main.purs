@@ -14,7 +14,7 @@ import Components.Main.Helper (newPlot)
 import Components.Main.Types (ChildSlots, Config, State, ExpressionPlot)
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT)
-import Data.Array ((!!))
+import Data.Array (find, length)
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..))
@@ -68,7 +68,8 @@ mainComponent =
     , clearPlot: pure unit
     , batchCount: 5
     , accuracy: 0.1
-    , selectedPlot: 0
+    , selectedPlotId: 0
+    , nextPlotId: 1
     }
 
   render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
@@ -88,11 +89,11 @@ mainComponent =
                             [ HP.class_ (ClassName "card-header") ]
                             [ HH.ul
                                 [ HP.class_ (ClassName "nav nav-tabs card-header-tabs") ]
-                                (map (toTab state.selectedPlot) state.plots)
+                                (map (toTab ( 1 < length state.plots) state.selectedPlotId) state.plots)
                             ]
                         , HH.div
                             [ HP.class_ (ClassName "card-body") ]
-                            [ tabContent state.plots state.selectedPlot
+                            [ tabContent state.plots state.selectedPlotId
                             ]
                         , HH.div
                             [ HP.class_ (ClassName "card-footer") ]
@@ -170,24 +171,42 @@ mainComponent =
 toActionEvent :: forall a. Action -> a -> Maybe Action
 toActionEvent action _ = Just action
 
-toTab :: forall w. Int -> ExpressionPlot -> HH.HTML w Action
-toTab selectedId plot =
+toTab :: forall w. Boolean -> Int -> ExpressionPlot -> HH.HTML w Action
+toTab allowDelete selectedId plot =
   HH.li
     [ HP.class_ (ClassName "nav-item") ]
     [ HH.button
-        [ HP.class_ (ClassName ("nav-link" <> active)), (HE.onClick (toActionEvent (ChangeSelectedPlot plot.id))) ]
-        [ HH.text text ]
+        [ HP.class_ (ClassName ("nav-link" <> maybeActiveClass))
+        , (HE.onClick (toActionEvent (ChangeSelectedPlot plot.id)))
+        ]
+        ( [ HH.span
+              [ HP.class_ (ClassName $ if allowDelete then "pr-2" else "") ]
+              [ HH.text text ]
+          ]
+            <> cross
+        )
     ]
   where
-  active = if selectedId == plot.id then " active" else ""
+  maybeActiveClass = if selectedId == plot.id then " active" else ""
 
   text = if plot.expressionText == "" then "Plot " <> (show plot.id) else plot.expressionText
+
+  cross =
+    if allowDelete then
+      [ HH.button
+          [ HP.class_ (ClassName "close")
+          , (HE.onClick (toActionEvent (DeletePlot plot.id)))
+          ]
+          [ HH.text "✕" ]
+      ]
+    else
+      []
 
 tabContent :: forall m. MonadEffect m => Array ExpressionPlot -> Int -> H.ComponentHTML Action ChildSlots m
 tabContent [] _ = HH.text "Error: No plots"
 
-tabContent plots selected = case plots !! selected of
-  Nothing -> HH.text $ "Error: Plot " <> (show selected) <> " does not exist"
+tabContent plots selectedId = case find (\p -> p.id == selectedId) plots of
+  Nothing -> HH.text $ "Error: Plot " <> (show selectedId) <> " does not exist"
   Just plot -> HH.slot _expressionInput plot.id component input toAction
     where
     component = expressionInputComponent expressionInputController plot.id

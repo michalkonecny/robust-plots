@@ -5,6 +5,7 @@ import Data.String (joinWith)
 import Prim.Row (class Nub, class Union)
 import Record.Builder (build, merge)
 import Test.QuickCheck (Result, (<?>))
+import Test.Unit (success, failure, Test)
 
 type SuiteEqParams1 at t
   = { suitePrefix :: String
@@ -59,3 +60,16 @@ eqWithInput = assertOpWithInput (==) " == "
 
 leqWithInput :: forall t2. Ord t2 => Show t2 => Array String -> t2 -> t2 -> Result
 leqWithInput = assertOpWithInput (<=) " <= "
+
+accuracyTolerance :: Number
+accuracyTolerance = 0.000001
+
+isWithinTolerance :: Number -> Number -> Boolean
+isWithinTolerance expected actual = expected <= actual + accuracyTolerance && expected >= actual - accuracyTolerance 
+
+-- | Assert the actual value is approximately equal to the expected value.
+equalTolerance :: Number -> Number -> Test
+equalTolerance expected actual =
+  if isWithinTolerance expected actual 
+    then success
+    else failure $ "expected " <> show expected <> ", got " <> show actual

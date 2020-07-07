@@ -10,6 +10,7 @@ import Draw.Color (Color, rgba)
 import Effect (Effect)
 import Graphics.Canvas (LineCap(..), beginPath, clearRect, fill, fillText, lineTo, moveTo, setFillStyle, setFont, setLineCap, setLineDash, setLineWidth, setStrokeStyle, stroke)
 import Types (Polygon, Position)
+import Misc.Number (showNumberOrInt)
 
 -- | Draws text
 drawText :: Color -> String -> Number -> Position -> DrawOperation
@@ -61,7 +62,7 @@ drawYAxisLine yZero range drawContext = drawPlotLine a b drawContext
 drawXGridLine :: Number -> Number -> Number -> DrawOperation
 drawXGridLine x value range drawContext = do
   drawLine true color { x: relativeX, y: 0.0 } { x: relativeX, y: drawContext.canvasHeight } drawContext
-  drawText (rgba 0.0 0.0 0.0 1.0) (show value) 10.0 { x: relativeX, y: drawContext.canvasHeight - 12.0 } drawContext
+  drawText (rgba 0.0 0.0 0.0 1.0) (showNumberOrInt value) 10.0 { x: relativeX, y: drawContext.canvasHeight - 12.0 } drawContext
   where
   relativeX = (x * drawContext.canvasWidth) / range
 
@@ -70,7 +71,7 @@ drawXGridLine x value range drawContext = do
 drawYGridLine :: Number -> Number -> Number -> DrawOperation
 drawYGridLine y value range drawContext = do
   drawLine true color { x: 0.0, y: relativeY } { x: drawContext.canvasWidth, y: relativeY } drawContext
-  drawText (rgba 0.0 0.0 0.0 1.0) (show value) 10.0 { x: drawContext.canvasWidth - 40.0, y: relativeY } drawContext
+  drawText (rgba 0.0 0.0 0.0 1.0) (showNumberOrInt value) 10.0 { x: drawContext.canvasWidth - 40.0, y: relativeY } drawContext
   where
   relativeY = drawContext.canvasHeight - ((y * drawContext.canvasHeight) / range)
 
