@@ -6,13 +6,15 @@ import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..))
 import Components.Canvas (CanvasMessage(..), calculateNewCanvasSize)
 import Components.ExpressionInput (ExpressionInputMessage(..))
+import Components.ExpressionManager (ExpressionManagerMessage(..))
+import Components.ExpressionManager.Types (ExpressionPlot)
 import Components.Main.Helper (alterPlot, anyPlotHasJobs, clearAllCancelled, foldDrawCommands, isCancelledInAnyPlot, newPlot, runFirstJob, clearAddPlotCommands, setFirstRunningJob, updateExpressionPlotCommands)
-import Components.Main.Types (ChildSlots, Config, State, ExpressionPlot)
+import Components.Main.Types (ChildSlots, Config, State)
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.Trans.Class (lift)
 import Control.Parallel (parSequence)
-import Data.Array (filter, find, head)
-import Data.Maybe (Maybe(..), fromMaybe, isJust)
+import Data.Array (filter)
+import Data.Maybe (Maybe(..))
 import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff, Milliseconds(..), delay)
 import Halogen as H
@@ -35,36 +37,29 @@ type HalogenMain output a
   = H.HalogenM State Action ChildSlots output (ReaderT Config Aff) a
 
 data Action
-  = Clear
-  | Init
+  = Init
   | Pan Direction
   | Zoom Boolean
-  | HandleExpressionInput ExpressionInputMessage
+  | HandleExpressionManager ExpressionManagerMessage
   | Scroll WheelEvent
   | HandleCanvas CanvasMessage
   | HandleBoundsInput BoundsInputMessage
   | HandleBatchInput BatchInputMessage
   | HandleAccuracyInput AccuracyInputMessage
-  | AddPlot
   | DrawPlot
   | ProcessNextJob
   | ResizeAndRedraw
-  | ChangeSelectedPlot Int
-  | DeletePlot Int
-  | EditPlotName
-  | RenamePlot String
 
 handleAction :: forall output. Action -> HalogenMain output Unit
 handleAction action = do
   state <- H.get
   case action of
-    Clear -> clearAction state
-    HandleExpressionInput message -> handleExpressionPlotMessage state message
+    HandleExpressionManager message -> handleExpressionPlotMessage state message
     HandleBoundsInput (UpdatedBoundsInput newBounds) -> redrawWithBounds state newBounds
     Pan direction -> redrawWithDelayAndBounds state (panBounds state.bounds direction)
     Zoom isZoomIn -> redrawWithDelayAndBounds state (zoomBounds state.bounds isZoomIn)
     HandleCanvas message -> handleCanvasMessage state message
-    Init -> initialiseAction
+    Init -> initialiseAction state
     Scroll event -> scrollAction event
     DrawPlot -> H.modify_ (_ { input { operations = foldDrawCommands state } })
     ProcessNextJob -> processNextJobAction state
@@ -74,29 +69,10 @@ handleAction action = do
     HandleAccuracyInput (UpdatedAccuracyInput accuracy) -> do
       H.modify_ (_ { accuracy = accuracy })
       redraw state { accuracy = accuracy }
-    ChangeSelectedPlot plotId ->
-      if isJust (find (\p -> p.id == plotId) state.plots) && state.selectedPlotId /= plotId then
-        H.modify_ (_ { selectedPlotId = plotId, editingSelected = false })
-      else
-        pure unit -- Do nothing as action must be outdated
     ResizeAndRedraw -> do
       resizeCanvas
       newState <- H.get
       redraw newState
-    DeletePlot plotId -> do
-      let
-        plots = filter (\p -> p.id /= plotId) state.plots
-
-        selectedPlotId =
-          if plotId /= state.selectedPlotId then
-            state.selectedPlotId
-          else
-            fromMaybe 0 $ (_.id) <$> (head plots)
-      H.modify_ (_ { selectedPlotId = selectedPlotId, plots = plots, editingSelected = false })
-      handleAction DrawPlot
-    AddPlot -> H.modify_ (_ { plots = state.plots <> [ newPlot state.nextPlotId ], nextPlotId = state.nextPlotId + 1, editingSelected = false })
-    EditPlotName -> H.modify_ (_ { editingSelected = true })
-    RenamePlot name -> H.modify_ (_ { editingSelected = false }) -- TODO: add name to state
 
 handleJobResult :: forall output. Maybe JobResult -> State -> HalogenMain output Unit
 handleJobResult Nothing _ = pure unit
@@ -125,19 +101,19 @@ resizeCanvas = do
     Just newCanvasSize -> do
       H.modify_ (_ { input { size = newCanvasSize } })
 
-initialiseAction :: forall output. HalogenMain output Unit
-initialiseAction = do
+initialiseAction :: forall output. State -> HalogenMain output Unit
+initialiseAction state = do
   window <- H.liftEffect $ Web.toEventTarget <$> Web.window
   document <- H.liftEffect $ Web.document =<< Web.window
   H.subscribe' \id -> ES.eventListenerEventSource WET.wheel (HTMLDocument.toEventTarget document) (map Scroll <<< WE.fromEvent)
   H.subscribe' \id -> ES.eventListenerEventSource (E.EventType "resize") window (const (Just ResizeAndRedraw))
   resizeCanvas
-  handleAction Clear
+  clearAction state
 
 clearAction :: forall output. State -> HalogenMain output Unit
 clearAction state = do
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
-  H.modify_ (_ { plots = [ newPlot 0 ], clearPlot = clearBounds, selectedPlotId = 0, nextPlotId = 1, editingSelected = false })
+  H.modify_ (_ { plots = [ newPlot 0 ], clearPlot = clearBounds })
   handleAction DrawPlot
 
 processNextJobAction :: forall output. State -> HalogenMain output Unit
@@ -156,8 +132,8 @@ handleCanvasMessage state (Dragged delta) = redrawWithoutRobustWithBounds state 
 
 handleCanvasMessage state StoppedDragging = redraw state
 
-handleExpressionPlotMessage :: forall output. State -> ExpressionInputMessage -> HalogenMain output Unit
-handleExpressionPlotMessage state (Parsed id expression text) = do
+handleExpressionPlotMessage :: forall output. State -> ExpressionManagerMessage -> HalogenMain output Unit
+handleExpressionPlotMessage state (RaisedExpressionInputMessage (Parsed id expression text)) = do
   newRoughCommands <- lift $ lift $ computePlotAsync state.input.size (roughPlot state.bounds expression text)
   H.modify_ (_ { plots = alterPlot (updatePlot newRoughCommands) id state.plots })
   handleAction ProcessNextJob
@@ -172,9 +148,19 @@ handleExpressionPlotMessage state (Parsed id expression text) = do
       , queue = addPlot state.accuracy state.batchCount (cancelAll plot.queue) state.bounds expression text id
       }
 
-handleExpressionPlotMessage state (ChangedStatus id status) = do
+handleExpressionPlotMessage state (RaisedExpressionInputMessage (ChangedStatus id status)) = do
   H.modify_ (_ { plots = alterPlot (_ { status = status }) id state.plots })
   handleAction DrawPlot
+
+handleExpressionPlotMessage state (DeletePlot plotId) = do
+  H.modify_ (_ { plots = filter (\p -> p.id /= plotId) state.plots })
+  handleAction DrawPlot
+
+handleExpressionPlotMessage state (AddPlot nextId) = H.modify_ (_ { plots = state.plots <> [ newPlot nextId ] })
+
+handleExpressionPlotMessage state (RenamePlot plotId name) = pure unit -- TODO: Add name to state
+
+handleExpressionPlotMessage state ClearPlots = clearAction state
 
 forkWithDelay :: forall output. Number -> HalogenMain output Unit
 forkWithDelay duration = lift $ lift $ delay $ Milliseconds duration

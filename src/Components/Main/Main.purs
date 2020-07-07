@@ -1,23 +1,19 @@
 module Components.Main where
 
 import Prelude
-
 import Components.AccuracyInput (accuracyInputComponent)
 import Components.BatchInput (batchInputComponent)
 import Components.BoundsInput (initialBounds, boundsInputComponent)
 import Components.Canvas (canvasComponent)
 import Components.Canvas.Controller (canvasController)
-import Components.ExpressionInput (expressionInputComponent)
-import Components.ExpressionInput.Controller (expressionInputController)
+import Components.ExpressionManager (expressionManagerComponent)
 import Components.Main.Action (Action(..), handleAction)
 import Components.Main.Helper (newPlot)
-import Components.Main.Types (ChildSlots, Config, State, ExpressionPlot)
+import Components.Main.Types (ChildSlots, Config, State)
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT)
-import Data.Array (find, length)
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
-import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Effect.Class (class MonadEffect)
 import Halogen (ClassName(..))
@@ -30,7 +26,7 @@ import Types (Direction(..))
 
 _canvas = SProxy :: SProxy "canvas"
 
-_expressionInput = SProxy :: SProxy "expressionInput"
+_expressionManager = SProxy :: SProxy "expressionManager"
 
 _boundsInput = SProxy :: SProxy "boundsInput"
 
@@ -68,9 +64,6 @@ mainComponent =
     , clearPlot: pure unit
     , batchCount: 5
     , accuracy: 0.1
-    , selectedPlotId: 0
-    , nextPlotId: 1
-    , editingSelected: false
     }
 
   render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
@@ -84,31 +77,7 @@ mainComponent =
                 [ HP.class_ (ClassName "row") ]
                 [ HH.div
                     [ HP.class_ (ClassName "col-md-4") ]
-                    [ HH.div
-                        [ HP.class_ (ClassName "card") ]
-                        [ HH.div
-                            [ HP.class_ (ClassName "card-header") ]
-                            [ HH.ul
-                                [ HP.class_ (ClassName "nav nav-tabs card-header-tabs") ]
-                                (map (toTab (1 < length state.plots) state.editingSelected state.selectedPlotId) state.plots)
-                            ]
-                        , HH.div
-                            [ HP.class_ (ClassName "card-body") ]
-                            [ tabContent state.plots state.selectedPlotId
-                            ]
-                        , HH.div
-                            [ HP.class_ (ClassName "card-footer") ]
-                            [ HH.div
-                                [ HP.class_ (ClassName "btn-group") ]
-                                [ HH.button
-                                    [ HP.class_ (ClassName "btn btn-primary"), HE.onClick $ toActionEvent $ AddPlot ]
-                                    [ HH.text "Add plot" ]
-                                , HH.button
-                                    [ HP.class_ (ClassName "btn btn-danger"), HE.onClick $ toActionEvent Clear ]
-                                    [ HH.text "Clear plots" ]
-                                ]
-                            ]
-                        ]
+                    [ HH.slot _expressionManager 1 expressionManagerComponent state.plots (Just <<< HandleExpressionManager)
                     , HH.br_
                     , HH.div
                         [ HP.class_ (ClassName "card") ]
@@ -179,73 +148,3 @@ mainComponent =
 
 toActionEvent :: forall a. Action -> a -> Maybe Action
 toActionEvent action _ = Just action
-
-toTab :: forall w. Boolean -> Boolean -> Int -> ExpressionPlot -> HH.HTML w Action
-toTab allowDelete editingSelected selectedId plot =
-  HH.li
-    [ HP.class_ (ClassName "nav-item") ]
-    [ HH.button
-        [ HP.class_ (ClassName ("nav-link" <> maybeActiveClass))
-        , (HE.onClick (toActionEvent (ChangeSelectedPlot plot.id)))
-        ]
-        ( input <> editButton <> cross
-        )
-    ]
-  where
-  isSelected = selectedId == plot.id
-
-  addPaddingToInput = allowDelete || not editingSelected
-
-  maybeActiveClass = if isSelected then " active" else ""
-
-  text = if plot.expressionText == "" then "Plot " <> (show plot.id) else plot.expressionText
-
-  input =
-    if editingSelected then
-      [ HH.input
-          [ HP.type_ HP.InputText
-          , HE.onFocusOut $ toActionEvent (RenamePlot "temp") -- TODO: get name from textbox
-          , HP.value text
-          , HP.class_ (ClassName $ if addPaddingToInput then "form-control small-input pr-2" else "form-control small-input")
-          ]
-      ]
-    else
-      [ HH.span
-          [ HP.class_ (ClassName $ if addPaddingToInput then "pr-2" else "") ]
-          [ HH.text text ]
-      ]
-
-  editButton =
-    if isSelected && not editingSelected then
-      [ HH.button
-          [ HP.class_ (ClassName "close")
-          , HE.onClick $ toActionEvent EditPlotName
-          ]
-          [ HH.text "🖉" ]
-      ]
-    else
-      []
-
-  cross =
-    if allowDelete then
-      [ HH.button
-          [ HP.class_ (ClassName "close")
-          , HE.onClick $ toActionEvent (DeletePlot plot.id)
-          ]
-          [ HH.text "✕" ]
-      ]
-    else
-      []
-
-tabContent :: forall m. MonadEffect m => Array ExpressionPlot -> Int -> H.ComponentHTML Action ChildSlots m
-tabContent [] _ = HH.text "Error: No plots"
-
-tabContent plots selectedId = case find (\p -> p.id == selectedId) plots of
-  Nothing -> HH.text $ "Error: Plot " <> (show selectedId) <> " does not exist"
-  Just plot -> HH.slot _expressionInput plot.id component input toAction
-    where
-    component = expressionInputComponent expressionInputController plot.id
-
-    input = Tuple plot.expressionText plot.status
-
-    toAction = Just <<< HandleExpressionInput

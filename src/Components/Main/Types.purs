@@ -5,11 +5,9 @@ import Components.AccuracyInput (AccuracyInputSlot)
 import Components.BatchInput (BatchInputSlot)
 import Components.BoundsInput (BoundsInputSlot)
 import Components.Canvas (CanvasSlot, Input)
-import Components.ExpressionInput (ExpressionInputSlot, Status)
-import Data.Maybe (Maybe)
+import Components.ExpressionManager (ExpressionManagerSlot)
+import Components.ExpressionManager.Types (ExpressionPlot)
 import Draw.Commands (DrawCommand)
-import Expression.Syntax (Expression)
-import Plot.JobBatcher (JobQueue)
 import Types (XYBounds)
 
 type State
@@ -19,24 +17,11 @@ type State
     , clearPlot :: DrawCommand Unit
     , batchCount :: Int
     , accuracy :: Number
-    , selectedPlotId :: Int
-    , nextPlotId :: Int
-    , editingSelected :: Boolean
-    }
-
-type ExpressionPlot
-  = { expression :: Maybe Expression
-    , expressionText :: String
-    , robustDrawCommands :: DrawCommand Unit
-    , roughDrawCommands :: DrawCommand Unit
-    , id :: Int
-    , queue :: JobQueue
-    , status :: Status
     }
 
 type ChildSlots
   = ( canvas :: CanvasSlot Int
-    , expressionInput :: ExpressionInputSlot Int
+    , expressionManager :: ExpressionManagerSlot Int
     , boundsInput :: BoundsInputSlot Int
     , batchInput :: BatchInputSlot Int
     , accuracyInput :: AccuracyInputSlot Int
