@@ -51,6 +51,8 @@ data Action
   | ResizeAndRedraw
   | ChangeSelectedPlot Int
   | DeletePlot Int
+  | EditPlotName
+  | RenamePlot String
 
 handleAction :: forall output. Action -> HalogenMain output Unit
 handleAction action = do
@@ -73,8 +75,8 @@ handleAction action = do
       H.modify_ (_ { accuracy = accuracy })
       redraw state { accuracy = accuracy }
     ChangeSelectedPlot plotId ->
-      if isJust (find (\p -> p.id == plotId) state.plots) then
-        H.modify_ (_ { selectedPlotId = plotId })
+      if isJust (find (\p -> p.id == plotId) state.plots) && state.selectedPlotId /= plotId then
+        H.modify_ (_ { selectedPlotId = plotId, editingSelected = false })
       else
         pure unit -- Do nothing as action must be outdated
     ResizeAndRedraw -> do
@@ -90,9 +92,11 @@ handleAction action = do
             state.selectedPlotId
           else
             fromMaybe 0 $ (_.id) <$> (head plots)
-      H.modify_ (_ { selectedPlotId = selectedPlotId, plots = plots })
+      H.modify_ (_ { selectedPlotId = selectedPlotId, plots = plots, editingSelected = false })
       handleAction DrawPlot
-    AddPlot -> H.modify_ (_ { plots = state.plots <> [ newPlot state.nextPlotId ], nextPlotId = state.nextPlotId + 1 })
+    AddPlot -> H.modify_ (_ { plots = state.plots <> [ newPlot state.nextPlotId ], nextPlotId = state.nextPlotId + 1, editingSelected = false })
+    EditPlotName -> H.modify_ (_ { editingSelected = true })
+    RenamePlot name -> H.modify_ (_ { editingSelected = false }) -- TODO: add name to state
 
 handleJobResult :: forall output. Maybe JobResult -> State -> HalogenMain output Unit
 handleJobResult Nothing _ = pure unit
@@ -133,7 +137,7 @@ initialiseAction = do
 clearAction :: forall output. State -> HalogenMain output Unit
 clearAction state = do
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
-  H.modify_ (_ { plots = [ newPlot 0 ], clearPlot = clearBounds, selectedPlotId = 0, nextPlotId = 1 })
+  H.modify_ (_ { plots = [ newPlot 0 ], clearPlot = clearBounds, selectedPlotId = 0, nextPlotId = 1, editingSelected = false })
   handleAction DrawPlot
 
 processNextJobAction :: forall output. State -> HalogenMain output Unit

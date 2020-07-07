@@ -21,6 +21,7 @@ type State
     , accuracy :: Number
     , selectedPlotId :: Int
     , nextPlotId :: Int
+    , editingSelected :: Boolean
     }
 
 type ExpressionPlot

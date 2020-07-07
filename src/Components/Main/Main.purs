@@ -1,6 +1,7 @@
 module Components.Main where
 
 import Prelude
+
 import Components.AccuracyInput (accuracyInputComponent)
 import Components.BatchInput (batchInputComponent)
 import Components.BoundsInput (initialBounds, boundsInputComponent)
@@ -69,6 +70,7 @@ mainComponent =
     , accuracy: 0.1
     , selectedPlotId: 0
     , nextPlotId: 1
+    , editingSelected: false
     }
 
   render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
@@ -88,7 +90,7 @@ mainComponent =
                             [ HP.class_ (ClassName "card-header") ]
                             [ HH.ul
                                 [ HP.class_ (ClassName "nav nav-tabs card-header-tabs") ]
-                                (map (toTab (1 < length state.plots) state.selectedPlotId) state.plots)
+                                (map (toTab (1 < length state.plots) state.editingSelected state.selectedPlotId) state.plots)
                             ]
                         , HH.div
                             [ HP.class_ (ClassName "card-body") ]
@@ -178,31 +180,57 @@ mainComponent =
 toActionEvent :: forall a. Action -> a -> Maybe Action
 toActionEvent action _ = Just action
 
-toTab :: forall w. Boolean -> Int -> ExpressionPlot -> HH.HTML w Action
-toTab allowDelete selectedId plot =
+toTab :: forall w. Boolean -> Boolean -> Int -> ExpressionPlot -> HH.HTML w Action
+toTab allowDelete editingSelected selectedId plot =
   HH.li
     [ HP.class_ (ClassName "nav-item") ]
     [ HH.button
         [ HP.class_ (ClassName ("nav-link" <> maybeActiveClass))
         , (HE.onClick (toActionEvent (ChangeSelectedPlot plot.id)))
         ]
-        ( [ HH.span
-              [ HP.class_ (ClassName $ if allowDelete then "pr-2" else "") ]
-              [ HH.text text ]
-          ]
-            <> cross
+        ( input <> editButton <> cross
         )
     ]
   where
-  maybeActiveClass = if selectedId == plot.id then " active" else ""
+  isSelected = selectedId == plot.id
+
+  addPaddingToInput = allowDelete || not editingSelected
+
+  maybeActiveClass = if isSelected then " active" else ""
 
   text = if plot.expressionText == "" then "Plot " <> (show plot.id) else plot.expressionText
+
+  input =
+    if editingSelected then
+      [ HH.input
+          [ HP.type_ HP.InputText
+          , HE.onFocusOut $ toActionEvent (RenamePlot "temp") -- TODO: get name from textbox
+          , HP.value text
+          , HP.class_ (ClassName $ if addPaddingToInput then "form-control small-input pr-2" else "form-control small-input")
+          ]
+      ]
+    else
+      [ HH.span
+          [ HP.class_ (ClassName $ if addPaddingToInput then "pr-2" else "") ]
+          [ HH.text text ]
+      ]
+
+  editButton =
+    if isSelected && not editingSelected then
+      [ HH.button
+          [ HP.class_ (ClassName "close")
+          , HE.onClick $ toActionEvent EditPlotName
+          ]
+          [ HH.text "🖉" ]
+      ]
+    else
+      []
 
   cross =
     if allowDelete then
       [ HH.button
           [ HP.class_ (ClassName "close")
-          , (HE.onClick (toActionEvent (DeletePlot plot.id)))
+          , HE.onClick $ toActionEvent (DeletePlot plot.id)
           ]
           [ HH.text "✕" ]
       ]
