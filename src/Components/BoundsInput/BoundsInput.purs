@@ -117,10 +117,7 @@ render state =
       , HH.div
           [ HP.class_ (ClassName "btn-group") ]
           [ HH.button
-              [ HE.onClick $ toActionEvent Update, HP.class_ (ClassName "btn btn-success") ]
-              [ HH.text "Update bounds" ]
-          , HH.button
-              [ HP.class_ (ClassName "btn btn-danger"), HE.onClick $ toActionEvent $ ResetBounds ]
+              [ HP.class_ (ClassName "btn btn-warning"), HE.onClick $ toActionEvent $ ResetBounds ]
               [ HH.text "Reset bounds" ]
           ]
       ]

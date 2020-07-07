@@ -99,7 +99,7 @@ mainComponent =
                             [ HH.div
                                 [ HP.class_ (ClassName "btn-group") ]
                                 [ HH.button
-                                    [ HP.class_ (ClassName "btn btn-success"), HE.onClick $ toActionEvent $ AddPlot ]
+                                    [ HP.class_ (ClassName "btn btn-primary"), HE.onClick $ toActionEvent $ AddPlot ]
                                     [ HH.text "Add plot" ]
                                 , HH.button
                                     [ HP.class_ (ClassName "btn btn-danger"), HE.onClick $ toActionEvent Clear ]
@@ -134,28 +134,28 @@ mainComponent =
                                     [ HH.div
                                         [ HP.class_ (ClassName "btn-group pr-1") ]
                                         [ HH.button
-                                            [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Pan Left ]
+                                            [ HP.class_ (ClassName "btn btn-primary"), HE.onClick $ toActionEvent $ Pan Left ]
                                             [ HH.text "◄" ]
                                         , HH.button
-                                            [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Pan Right ]
+                                            [ HP.class_ (ClassName "btn btn-primary"), HE.onClick $ toActionEvent $ Pan Right ]
                                             [ HH.text "►" ]
                                         ]
                                     , HH.div
                                         [ HP.class_ (ClassName "btn-group pr-1") ]
                                         [ HH.button
-                                            [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Pan Down ]
+                                            [ HP.class_ (ClassName "btn btn-primary"), HE.onClick $ toActionEvent $ Pan Down ]
                                             [ HH.text "▼" ]
                                         , HH.button
-                                            [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Pan Up ]
+                                            [ HP.class_ (ClassName "btn btn-primary"), HE.onClick $ toActionEvent $ Pan Up ]
                                             [ HH.text "▲" ]
                                         ]
                                     , HH.div
                                         [ HP.class_ (ClassName "btn-group") ]
                                         [ HH.button
-                                            [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Zoom true ]
+                                            [ HP.class_ (ClassName "btn btn-primary"), HE.onClick $ toActionEvent $ Zoom true ]
                                             [ HH.text "+" ]
                                         , HH.button
-                                            [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Zoom false ]
+                                            [ HP.class_ (ClassName "btn btn-primary"), HE.onClick $ toActionEvent $ Zoom false ]
                                             [ HH.text "-" ]
                                         ]
                                     ]

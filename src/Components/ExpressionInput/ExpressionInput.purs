@@ -83,7 +83,7 @@ render state =
                   ]
               , HH.button
                   [ HP.type_ ButtonButton
-                  , HP.class_ (ClassName "btn btn-info")
+                  , HP.class_ (ClassName "btn btn-primary")
                   , HE.onClick $ toActionEvent Parse
                   ]
                   [ HH.text "Plot" ]
