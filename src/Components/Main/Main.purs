@@ -1,7 +1,6 @@
 module Components.Main where
 
 import Prelude
-
 import Components.AccuracyInput (accuracyInputComponent)
 import Components.BatchInput (batchInputComponent)
 import Components.BoundsInput (initialBounds, boundsInputComponent)
@@ -89,7 +88,7 @@ mainComponent =
                             [ HP.class_ (ClassName "card-header") ]
                             [ HH.ul
                                 [ HP.class_ (ClassName "nav nav-tabs card-header-tabs") ]
-                                (map (toTab ( 1 < length state.plots) state.selectedPlotId) state.plots)
+                                (map (toTab (1 < length state.plots) state.selectedPlotId) state.plots)
                             ]
                         , HH.div
                             [ HP.class_ (ClassName "card-body") ]
@@ -108,8 +107,6 @@ mainComponent =
                                 ]
                             ]
                         ]
-                    , HH.br_
-                    , HH.slot _boundsInput 1 boundsInputComponent state.bounds (Just <<< HandleBoundsInput)
                     , HH.br_
                     , HH.div
                         [ HP.class_ (ClassName "card") ]
@@ -131,31 +128,41 @@ mainComponent =
                         [ HH.div
                             [ HP.class_ (ClassName "card-header") ]
                             [ HH.div
-                                [ HP.class_ (ClassName "btn-group pr-1") ]
-                                [ HH.button
-                                    [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Pan Left ]
-                                    [ HH.text "◄" ]
-                                , HH.button
-                                    [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Pan Right ]
-                                    [ HH.text "►" ]
-                                ]
-                            , HH.div
-                                [ HP.class_ (ClassName "btn-group pr-1") ]
-                                [ HH.button
-                                    [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Pan Down ]
-                                    [ HH.text "▼" ]
-                                , HH.button
-                                    [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Pan Up ]
-                                    [ HH.text "▲" ]
-                                ]
-                            , HH.div
-                                [ HP.class_ (ClassName "btn-group") ]
-                                [ HH.button
-                                    [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Zoom true ]
-                                    [ HH.text "+" ]
-                                , HH.button
-                                    [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Zoom false ]
-                                    [ HH.text "-" ]
+                                [ HP.class_ (ClassName "row") ]
+                                [ HH.div
+                                    [ HP.class_ (ClassName "pr-2") ]
+                                    [ HH.div
+                                        [ HP.class_ (ClassName "btn-group pr-1") ]
+                                        [ HH.button
+                                            [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Pan Left ]
+                                            [ HH.text "◄" ]
+                                        , HH.button
+                                            [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Pan Right ]
+                                            [ HH.text "►" ]
+                                        ]
+                                    , HH.div
+                                        [ HP.class_ (ClassName "btn-group pr-1") ]
+                                        [ HH.button
+                                            [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Pan Down ]
+                                            [ HH.text "▼" ]
+                                        , HH.button
+                                            [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Pan Up ]
+                                            [ HH.text "▲" ]
+                                        ]
+                                    , HH.div
+                                        [ HP.class_ (ClassName "btn-group") ]
+                                        [ HH.button
+                                            [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Zoom true ]
+                                            [ HH.text "+" ]
+                                        , HH.button
+                                            [ HP.class_ (ClassName "btn btn-info"), HE.onClick $ toActionEvent $ Zoom false ]
+                                            [ HH.text "-" ]
+                                        ]
+                                    ]
+                                , HH.div
+                                    [ HP.class_ (ClassName "") ]
+                                    [ HH.slot _boundsInput 1 boundsInputComponent state.bounds (Just <<< HandleBoundsInput)
+                                    ]
                                 ]
                             ]
                         , HH.div

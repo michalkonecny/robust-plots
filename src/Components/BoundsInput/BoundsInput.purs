@@ -21,6 +21,7 @@ type BoundsInputSlot p
 
 type State
   = { error :: Maybe String
+    , oldBounds :: XYBounds
     , xBounds ::
         { upper :: String
         , lower :: String
@@ -41,8 +42,7 @@ data BoundsInputMessage
   = UpdatedBoundsInput XYBounds
 
 data Action
-  = Init
-  | Recieve XYBounds
+  = Recieve XYBounds
   | HandleInput Bound String
   | Update
   | ResetBounds
@@ -57,13 +57,13 @@ boundsInputComponent =
           $ H.defaultEval
               { handleAction = handleAction
               , receive = Just <<< Recieve
-              , initialize = Just Init
               }
     }
 
 initialState :: XYBounds -> State
 initialState input =
   { error: Nothing
+  , oldBounds: input
   , xBounds:
       { upper: show $ rationalToNumber input.xBounds.upper
       , lower: show $ rationalToNumber input.xBounds.lower
@@ -77,95 +77,54 @@ initialState input =
 render :: forall slots m. State -> HH.ComponentHTML Action slots m
 render state =
   HH.div
-    [ HP.class_ (ClassName "card")
-    ]
-    [ HH.div
-        [ HP.class_ (ClassName "card-header") ]
-        [ HH.text "Bound controls" ]
-    , HH.div
-        [ HP.class_ (ClassName "card-body") ]
-        ( [ HH.div
-              [ HP.class_ (ClassName "row") ]
-              [ HH.div
-                  [ HP.class_ (ClassName "col-md") ]
-                  [ HH.div
-                      [ HP.class_ (ClassName "input-group mb-3") ]
-                      [ HH.div
-                          [ HP.class_ (ClassName "input-group-prepend") ]
-                          [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Lower X:" ] ]
-                      , HH.input
-                          [ HP.type_ HP.InputText
-                          , HE.onValueChange $ toValueChangeActionEvent XLower
-                          , HP.value state.xBounds.lower
-                          , HP.class_ (ClassName "form-control")
-                          ]
-                      ]
-                  ]
-              , HH.div
-                  [ HP.class_ (ClassName "col-md") ]
-                  [ HH.div
-                      [ HP.class_ (ClassName "input-group mb-3") ]
-                      [ HH.div
-                          [ HP.class_ (ClassName "input-group-prepend") ]
-                          [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Upper X:" ] ]
-                      , HH.input
-                          [ HP.type_ HP.InputText
-                          , HE.onValueChange $ toValueChangeActionEvent XUpper
-                          , HP.value state.xBounds.upper
-                          , HP.class_ (ClassName "form-control")
-                          ]
-                      ]
-                  ]
+    [ HP.class_ (ClassName "form-inline") ]
+    $ [ HH.div
+          [ HP.class_ (ClassName "pr-2") ]
+          [ HH.input
+              [ HP.type_ HP.InputText
+              , HE.onValueChange $ toValueChangeActionEvent XLower
+              , HP.value state.xBounds.lower
+              , HE.onFocusOut $ toActionEvent Update
+              , HP.class_ (ClassName "form-control small-input")
               ]
-          , HH.div
-              [ HP.class_ (ClassName "row") ]
-              [ HH.div
-                  [ HP.class_ (ClassName "col-md") ]
-                  [ HH.div
-                      [ HP.class_ (ClassName "input-group mb-3") ]
-                      [ HH.div
-                          [ HP.class_ (ClassName "input-group-prepend") ]
-                          [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Lower Y:" ] ]
-                      , HH.input
-                          [ HP.type_ HP.InputText
-                          , HE.onValueChange $ toValueChangeActionEvent YLower
-                          , HP.value state.yBounds.lower
-                          , HP.class_ (ClassName "form-control")
-                          ]
-                      ]
-                  ]
-              , HH.div
-                  [ HP.class_ (ClassName "col-md") ]
-                  [ HH.div
-                      [ HP.class_ (ClassName "input-group mb-3") ]
-                      [ HH.div
-                          [ HP.class_ (ClassName "input-group-prepend") ]
-                          [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Upper Y:" ] ]
-                      , HH.input
-                          [ HP.type_ HP.InputText
-                          , HE.onValueChange $ toValueChangeActionEvent YUpper
-                          , HP.value state.yBounds.upper
-                          , HP.class_ (ClassName "form-control")
-                          ]
-                      ]
-                  ]
+          , HH.span [ HP.class_ (ClassName "") ] [ HH.text " ≤ x ≤ " ]
+          , HH.input
+              [ HP.type_ HP.InputText
+              , HE.onValueChange $ toValueChangeActionEvent XUpper
+              , HP.value state.xBounds.upper
+              , HE.onFocusOut $ toActionEvent Update
+              , HP.class_ (ClassName "form-control small-input")
               ]
           ]
-            <> (errorMessage state.error)
-        )
-    , HH.div
-        [ HP.class_ (ClassName "card-footer") ]
-        [ HH.div
-            [ HP.class_ (ClassName "btn-group") ]
-            [ HH.button
-                [ HE.onClick $ toActionEvent Update, HP.class_ (ClassName "btn btn-success") ]
-                [ HH.text "Update" ]
-            , HH.button
-                [ HP.class_ (ClassName "btn btn-danger"), HE.onClick $ toActionEvent $ ResetBounds ]
-                [ HH.text "Reset" ]
-            ]
-        ]
-    ]
+      , HH.div
+          [ HP.class_ (ClassName "pr-2") ]
+          [ HH.input
+              [ HP.type_ HP.InputText
+              , HE.onValueChange $ toValueChangeActionEvent YLower
+              , HP.value state.yBounds.lower
+              , HE.onFocusOut $ toActionEvent Update
+              , HP.class_ (ClassName "form-control small-input")
+              ]
+          , HH.span [ HP.class_ (ClassName "") ] [ HH.text " ≤ y ≤ " ]
+          , HH.input
+              [ HP.type_ HP.InputText
+              , HE.onValueChange $ toValueChangeActionEvent YUpper
+              , HE.onFocusOut $ toActionEvent Update
+              , HP.value state.yBounds.upper
+              , HP.class_ (ClassName "form-control small-input")
+              ]
+          ]
+      , HH.div
+          [ HP.class_ (ClassName "btn-group") ]
+          [ HH.button
+              [ HE.onClick $ toActionEvent Update, HP.class_ (ClassName "btn btn-success") ]
+              [ HH.text "Update bounds" ]
+          , HH.button
+              [ HP.class_ (ClassName "btn btn-danger"), HE.onClick $ toActionEvent $ ResetBounds ]
+              [ HH.text "Reset bounds" ]
+          ]
+      ]
+    <> (errorMessage state.error)
 
 toValueChangeActionEvent :: Bound -> String -> Maybe Action
 toValueChangeActionEvent bound value = Just $ HandleInput bound value
@@ -184,12 +143,6 @@ errorMessage (Just message) =
 
 handleAction :: forall m. MonadEffect m => Action -> H.HalogenM State Action () BoundsInputMessage m Unit
 handleAction = case _ of
-  Init -> do
-    { xBounds, yBounds } <- H.get
-    handleAction (HandleInput XLower $ xBounds.lower)
-    handleAction (HandleInput XUpper $ xBounds.upper)
-    handleAction (HandleInput YLower $ yBounds.lower)
-    handleAction (HandleInput YUpper $ yBounds.upper)
   HandleInput XLower stringInput -> H.modify_ _ { xBounds { lower = stringInput } }
   HandleInput XUpper stringInput -> H.modify_ _ { xBounds { upper = stringInput } }
   HandleInput YLower stringInput -> H.modify_ _ { yBounds { lower = stringInput } }
@@ -206,9 +159,10 @@ handleAction = case _ of
           { upper = show $ rationalToNumber bounds.yBounds.upper
           , lower = show $ rationalToNumber bounds.yBounds.lower
           }
+        , oldBounds = bounds
         }
   Update -> do
-    { xBounds, yBounds } <- H.get
+    { xBounds, yBounds, oldBounds } <- H.get
     let
       maybeXLower = parse xBounds.lower
 
@@ -226,8 +180,11 @@ handleAction = case _ of
           Just yLower -> case maybeYUpper of
             Nothing -> H.modify_ _ { error = Just $ "Failed to parse upper Y bound" }
             Just yUpper -> do
+              let
+                newBounds = xyBounds xLower xUpper yLower yUpper
               H.modify_ _ { error = Nothing }
-              H.raise (UpdatedBoundsInput { xBounds: { lower: xLower, upper: xUpper }, yBounds: { lower: yLower, upper: yUpper } })
+              when (oldBounds /= newBounds)
+                $ H.raise (UpdatedBoundsInput newBounds)
 
 parse :: String -> Maybe Rational
 parse input = case runParser input expressionParser of
