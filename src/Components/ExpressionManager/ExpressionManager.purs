@@ -68,7 +68,7 @@ initialState plots =
   , editedName: selectedPlotName plots selectedPlotId
   }
   where
-  selectedPlotId = fromMaybe 0 $ (_.id) <$> (head plots)
+  selectedPlotId = firstPlotId plots
 
 render :: forall m. MonadEffect m => State -> HH.ComponentHTML Action ChildSlots m
 render state =
@@ -100,12 +100,6 @@ render state =
         ]
     ]
 
-toValueChangeActionEvent :: String -> Maybe Action
-toValueChangeActionEvent value = Just $ HandleInput value
-
-toActionEvent :: forall a. Action -> a -> Maybe Action
-toActionEvent action _ = Just action
-
 handleAction :: forall m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots ExpressionManagerMessage m Unit
 handleAction = case _ of
   HandleMessage plots -> do
@@ -115,7 +109,7 @@ handleAction = case _ of
         if plotExists plots selectedPlotId then
           selectedPlotId
         else
-          fromMaybe 0 $ (_.id) <$> (head plots)
+          firstPlotId plots
     H.modify_ _ { plots = plots, selectedPlotId = newSelectedPlotId, editingSelected = false, editedName = selectedPlotName plots newSelectedPlotId }
   Clear -> H.raise ClearPlots
   Add -> do
@@ -134,9 +128,6 @@ handleAction = case _ of
       H.modify_ (_ { selectedPlotId = plotId, editingSelected = false, editedName = selectedPlotName plots plotId })
   HandleExpressionInput message -> H.raise $ RaisedExpressionInputMessage message
 
-selectedPlotName :: Array ExpressionPlot -> Int -> String
-selectedPlotName plots selectedPlotId = fromMaybe "Error" $ (_.name) <$> (find (\p -> p.id == selectedPlotId) plots)
-
 toTab :: forall w. State -> ExpressionPlot -> HH.HTML w Action
 toTab state plot =
   HH.li
@@ -145,7 +136,10 @@ toTab state plot =
         [ HP.class_ $ ClassName className
         , HE.onClick $ toActionEvent (ChangeSelected plot.id)
         ]
-        tabContent
+        [ HH.div
+            [ HP.class_ (ClassName "form-inline") ]
+            tabContent
+        ]
     ]
   where
   className = if state.selectedPlotId == plot.id then "nav-link active" else "nav-link"
@@ -160,7 +154,7 @@ textOrEditInput state plot =
       , HE.onFocusOut $ toActionEvent Rename
       , HE.onValueChange $ toValueChangeActionEvent
       , HP.value state.editedName
-      , HP.class_ (ClassName $ if addPaddingToInput then "form-control small-input pr-2" else "form-control small-input")
+      , HP.class_ (ClassName $ if addPaddingToInput then "form-control-sm small-input pr-2" else "form-control small-input")
       ]
   else
     HH.span
@@ -174,7 +168,7 @@ maybeEditButton state plotId =
   if state.selectedPlotId == plotId && not state.editingSelected then
     Just
       $ HH.button
-          [ HP.class_ (ClassName "close")
+          [ HP.class_ (ClassName "btn-primary btn-sm")
           , HE.onClick $ toActionEvent Edit
           ]
           [ HH.text "🖉" ]
@@ -186,7 +180,7 @@ maybeDeleteButton state plotId =
   if 1 < length state.plots then
     Just
       $ HH.button
-          [ HP.class_ (ClassName "close")
+          [ HP.class_ (ClassName "btn-danger btn-sm")
           , HE.onClick $ toActionEvent (Delete plotId)
           ]
           [ HH.text "✕" ]
@@ -208,3 +202,15 @@ selectedExpressionPlot plots selectedPlotId = case find (\p -> p.id == selectedP
 
 plotExists :: Array ExpressionPlot -> Int -> Boolean
 plotExists plots plotId = isJust (find (\p -> p.id == plotId) plots)
+
+selectedPlotName :: Array ExpressionPlot -> Int -> String
+selectedPlotName plots selectedPlotId = fromMaybe "Error" $ (_.name) <$> (find (\p -> p.id == selectedPlotId) plots)
+
+toValueChangeActionEvent :: String -> Maybe Action
+toValueChangeActionEvent value = Just $ HandleInput value
+
+toActionEvent :: forall a. Action -> a -> Maybe Action
+toActionEvent action _ = Just action
+
+firstPlotId :: Array ExpressionPlot -> Int
+firstPlotId plots = fromMaybe 0 $ (_.id) <$> (head plots)
