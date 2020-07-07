@@ -3,7 +3,6 @@ module Components.Canvas.Draw where
 import Prelude
 import Components.Canvas.Context (DrawOperation, withLocalDrawContext)
 import Data.Array (head, tail)
-import Data.Int (round, toNumber)
 import Data.Maybe (fromMaybe)
 import Data.String (joinWith)
 import Data.Traversable (for_)
@@ -11,6 +10,7 @@ import Draw.Color (Color, rgba)
 import Effect (Effect)
 import Graphics.Canvas (LineCap(..), beginPath, clearRect, fill, fillText, lineTo, moveTo, setFillStyle, setFont, setLineCap, setLineDash, setLineWidth, setStrokeStyle, stroke)
 import Types (Polygon, Position)
+import Misc.Number (showNumberOrInt)
 
 -- | Draws text
 drawText :: Color -> String -> Number -> Position -> DrawOperation
@@ -116,12 +116,3 @@ drawRootEnclosure yZero l r =
 
 origin :: Position
 origin = { x: 0.0, y: 0.0 }
-
-showNumberOrInt :: Number -> String
-showNumberOrInt numberValue =
-  if numberValue == toNumber integerValue then
-    show integerValue
-  else
-    show numberValue
-  where
-  integerValue = round $ numberValue

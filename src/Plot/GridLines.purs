@@ -2,7 +2,6 @@ module Plot.GridLines where
 
 import Prelude
 import Data.Array ((..))
-import Data.Decimal as D
 import Data.Foldable (traverse_)
 import Data.Int (ceil) as Int
 import Data.Int (toNumber)
@@ -10,6 +9,7 @@ import Data.Ord (abs)
 import Draw.Actions (clearCanvas, drawXGridLine, drawYGridLine, drawXAxisLine, drawYAxisLine)
 import Draw.Commands (DrawCommand)
 import IntervalArith.Misc (rationalToNumber)
+import Misc.Number (to3SignificantDigits)
 import Math (pow, round, (%))
 import Misc.Math (log10)
 import Types (XYBounds, Bounds)
@@ -73,12 +73,6 @@ toGuidePoint { range, interval, lower, offset } index = { component, value, rang
       0.0
     else
       fromLower
-
-toSignificantDigits :: Int -> Number -> Number
-toSignificantDigits digits = D.toNumber <<< (D.toSignificantDigits digits) <<< D.fromNumber
-
-to3SignificantDigits :: Number -> Number
-to3SignificantDigits = toSignificantDigits 3
 
 calculateInterval :: Number -> Number
 calculateInterval range = pow 10.0 $ round $ (log10 range) - 1.0
