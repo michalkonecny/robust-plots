@@ -1,10 +1,12 @@
 module Components.Main.Helper where
 
 import Prelude
+
+import Components.ExpressionInput (Status(..))
 import Components.ExpressionManager.Types (ExpressionPlot)
 import Components.Main.Types (State)
 import Control.Parallel (parSequence)
-import Data.Array (cons, fold, foldl, uncons)
+import Data.Array (cons, fold, foldl, mapMaybe, uncons)
 import Data.Maybe (Maybe(..))
 import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff)
@@ -22,10 +24,9 @@ newPlot id =
   , robustDrawCommands: pure unit
   , roughDrawCommands: pure unit
   , queue: initialJobQueue
+  , status: Robust
   , name: "Plot " <> (show id)
   , accuracy: 0.1
-  , showRough: true
-  , showRobust: true
   }
 
 updateExpressionPlotCommands :: DrawCommand Unit -> ExpressionPlot -> ExpressionPlot
@@ -70,17 +71,16 @@ runFirstJob size xBounds plots = case uncons plots of
     else
       runFirstJob size xBounds tail
 
-toDrawCommand :: ExpressionPlot -> DrawCommand Unit
-toDrawCommand plot = case plot.expression of
-  Just expression -> case plot.showRough, plot.showRobust of
-    false, false -> pure unit
-    true, false -> plot.roughDrawCommands
-    false, true -> plot.robustDrawCommands
-    true, true ->  fold [ plot.roughDrawCommands, plot.robustDrawCommands ]
-  Nothing -> pure unit
+toMaybeDrawCommand :: ExpressionPlot -> Maybe (DrawCommand Unit)
+toMaybeDrawCommand plot = case plot.expression of
+  Just expression -> case plot.status of
+    Off -> Nothing
+    Rough -> Just plot.roughDrawCommands
+    Robust -> Just $ fold [ plot.roughDrawCommands, plot.robustDrawCommands ]
+  Nothing -> Nothing
 
 foldDrawCommands :: State -> DrawCommand Unit
-foldDrawCommands state = fold $ [ state.clearPlot ] <> map toDrawCommand state.plots
+foldDrawCommands state = fold $ [ state.clearPlot ] <> mapMaybe toMaybeDrawCommand state.plots
 
 clearAddPlotCommands :: Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
 clearAddPlotCommands batchCount size newBounds = parSequence <<< (map clearAddPlot)

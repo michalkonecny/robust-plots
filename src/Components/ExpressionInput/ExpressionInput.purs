@@ -30,16 +30,14 @@ type State
 
 type Input
   = { expressionText :: String
+    , status :: Status
     , accuracy :: Number
-    , showRough :: Boolean
-    , showRobust :: Boolean
     }
 
 data ExpressionInputMessage
   = ParsedExpression Int Expression String
+  | ChangedStatus Int Status
   | ParsedAccuracy Int Number
-  | ChangedRoughStatus Int Boolean
-  | ChangedRobustStatus Int Boolean
 
 data Action
   = HandleExpressionInput String
@@ -49,6 +47,13 @@ data Action
   | ToggledRobust CheckboxMessage
   | HandleAccuracyInput String
   | ToggledRough CheckboxMessage
+
+data Status
+  = Off
+  | Rough
+  | Robust
+
+derive instance statusEq :: Eq Status
 
 type ChildSlots
   = ( checkbox :: CheckboxSlot Int
@@ -107,8 +112,8 @@ render state =
                   ]
               ]
           , HH.div_
-              [ HH.slot _checkbox 1 (checkboxComponent "Show rough line") state.input.showRough (Just <<< ToggledRough)
-              , HH.slot _checkbox 2 (checkboxComponent "Show robust enclosures") state.input.showRobust (Just <<< ToggledRobust)
+              [ HH.slot _checkbox 1 (checkboxComponent "Show rough line") (state.input.status == Off) (Just <<< ToggledRough) -- TODO
+              , HH.slot _checkbox 2 (checkboxComponent "Show robust enclosures") (state.input.status == Off) (Just <<< ToggledRough) -- TODO
               ]
           ]
       ]
@@ -157,10 +162,10 @@ handleAction controller = case _ of
   HandleMessage input -> H.modify_ _ { input = input, expressionInput = input.expressionText, accuracyInput = show input.accuracy }
   ToggledRough (ToggleChanged status) -> do
     { id } <- H.get
-    H.raise (ChangedRoughStatus id status)
+    H.raise (ChangedStatus id if status then Rough else Off) -- TODO
   ToggledRobust (ToggleChanged status) -> do
     { id } <- H.get
-    H.raise (ChangedRobustStatus id status)
+    H.raise (ChangedStatus id if status then Robust else Rough) -- TODO
 
 checkValid :: String -> Either Number String
 checkValid accuracyString = case fromString accuracyString of

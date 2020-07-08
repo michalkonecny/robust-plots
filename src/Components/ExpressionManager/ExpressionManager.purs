@@ -195,7 +195,7 @@ selectedExpressionPlot plots selectedPlotId = case find (\p -> p.id == selectedP
     where
     component = expressionInputComponent expressionInputController plot.id
 
-    input = { expressionText: plot.expressionText, showRough: plot.showRough, showRobust: plot.showRobust, accuracy: plot.accuracy }
+    input = { expressionText: plot.expressionText, status: plot.status, accuracy: plot.accuracy }
 
     toAction = Just <<< HandleExpressionInput
 
