@@ -250,6 +250,15 @@ diameter (Approx _ _ e s) = Finite $ (Dyadic.fromInt 2) * (e :^ s)
 
 diameter _ = PosInf
 
+-- |Computes the precision of an approximation. This is roughly the number of
+-- correct bits after the binary point.
+precision :: Approx -> Extended Precision
+precision (Approx _ _ e _) | e == zero = PosInf
+
+precision (Approx _ _ e s) = Finite $ -s - (integerLog2 e) - 1
+
+precision Bottom = NegInf
+
 -- |Computes the significance of an approximation. This is roughly the number
 -- of significant bits.
 significance :: Approx -> Extended Int

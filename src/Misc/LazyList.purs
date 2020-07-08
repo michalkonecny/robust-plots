@@ -31,6 +31,11 @@ unsafeIndex list i = case list L.!! i of
 
 infixl 8 unsafeIndex as !!
 
+unsafeHead :: forall a. List a -> a
+unsafeHead list = case L.head list of
+  Just a -> a
+  Nothing -> unsafeThrow "unsafeHead: empty list"
+
 unsafeTail :: forall a. List a -> List a
 unsafeTail list = case L.tail list of
   Just as -> as
