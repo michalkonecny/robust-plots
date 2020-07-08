@@ -24,8 +24,8 @@ data Action
   = Toggled Boolean
   | HandleMessage Boolean
 
-checkboxComponent :: forall query m. MonadEffect m => String -> H.Component HH.HTML query Boolean CheckboxMessage m
-checkboxComponent label =
+expressionInputComponent :: forall query m. MonadEffect m => String -> H.Component HH.HTML query Boolean CheckboxMessage m
+expressionInputComponent label =
   H.mkComponent
     { initialState: initialState label
     , render
@@ -45,7 +45,7 @@ render state =
   HH.div
     [ HP.class_ (ClassName "form-check form-check-inline") ]
     [ HH.input
-        [ HP.type_ HP.InputCheckbox
+        [ HP.type_ HP.InputRadio
         , HE.onChecked (Just <<< Toggled)
         , HP.id_ $ state.label <> "CheckBox"
         , HP.checked state.isChecked
