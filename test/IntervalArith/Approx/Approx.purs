@@ -10,6 +10,7 @@ import Test.IntervalArith.Approx.ApproxOrder (approxTests_Consistent, approxTest
 import Test.IntervalArith.Approx.Arbitrary (approxEqParams)
 import Test.IntervalArith.Approx.FromRational (approxTests_fromRational, approxTests_fromRationalBounds)
 import Test.IntervalArith.Approx.NumOrder (approxTests_NumOrder)
+import Test.IntervalArith.Approx.Pi (approxTests_piA)
 import Test.IntervalArith.Approx.Reductions (approxTests_Reductions)
 import Test.IntervalArith.Approx.ShowA (approxTests_showA)
 import Test.IntervalArith.Approx.Sqrt (approxTests_SqrtA)
@@ -27,6 +28,7 @@ approxTests = do
   approxTests_AbsA
   approxTests_Field
   approxTests_SqrtA
+  approxTests_piA
 
 approxTests_Field :: TestSuite
 approxTests_Field = fieldTests approxEqParams
