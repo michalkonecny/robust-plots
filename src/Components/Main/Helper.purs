@@ -1,7 +1,6 @@
 module Components.Main.Helper where
 
 import Prelude
-
 import Components.ExpressionInput (Status(..))
 import Components.ExpressionManager.Types (ExpressionPlot)
 import Components.Main.Types (State)
@@ -82,16 +81,18 @@ toMaybeDrawCommand plot = case plot.expression of
 foldDrawCommands :: State -> DrawCommand Unit
 foldDrawCommands state = fold $ [ state.clearPlot ] <> mapMaybe toMaybeDrawCommand state.plots
 
-clearAddPlotCommands :: Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
-clearAddPlotCommands batchCount size newBounds = parSequence <<< (map clearAddPlot)
+clearAddPlotCommands :: Boolean -> Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
+clearAddPlotCommands autoRobust batchCount size newBounds = parSequence <<< (map clearAddPlot)
   where
   clearAddPlot :: ExpressionPlot -> Aff ExpressionPlot
   clearAddPlot plot = case plot.expression of
     Nothing -> pure plot
     Just expression -> do
-      let
-        cancelledQueue = cancelAll plot.queue
-
-        queueWithPlot = addPlot plot.accuracy batchCount cancelledQueue newBounds expression plot.expressionText plot.id
       drawCommands <- computePlotAsync size $ roughPlot newBounds expression plot.expressionText
-      pure $ plot { queue = queueWithPlot, roughDrawCommands = drawCommands, robustDrawCommands = pure unit }
+      pure $ plot { queue = queue, roughDrawCommands = drawCommands, robustDrawCommands = pure unit }
+      where
+      queue =
+        if autoRobust then
+          addPlot plot.accuracy batchCount (cancelAll plot.queue) newBounds expression plot.expressionText plot.id
+        else
+          cancelAll plot.queue

@@ -131,6 +131,7 @@ handleExpressionPlotMessage :: forall output. State -> ExpressionManagerMessage 
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpression id expression text)) = do
   newRoughCommands <- lift $ lift $ computePlotAsync state.input.size (roughPlot state.bounds expression text)
   H.modify_ (_ { plots = alterPlot (updatePlot newRoughCommands) id state.plots })
+  handleAction DrawPlot
   handleAction ProcessNextJob
   where
   updatePlot :: DrawCommand Unit -> ExpressionPlot -> ExpressionPlot
@@ -140,16 +141,35 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpressio
       , expression = Just expression
       , roughDrawCommands = newRoughCommands
       , robustDrawCommands = pure unit
-      , queue = addPlot plot.accuracy state.batchCount (cancelAll plot.queue) state.bounds expression text id
+      , queue = queue
       }
+    where
+    queue =
+      if state.autoRobust then
+        addPlot plot.accuracy state.batchCount (cancelAll plot.queue) state.bounds expression text id
+      else
+        cancelAll plot.queue
 
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ChangedStatus id status)) = do
   H.modify_ (_ { plots = alterPlot (_ { status = status }) id state.plots })
   handleAction DrawPlot
 
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedAccuracy id accuracy)) = do
-  H.modify_ (_ { plots = alterPlot (_ { accuracy = accuracy }) id state.plots })
+  H.modify_ (_ { plots = alterPlot updatePlot id state.plots })
   handleAction DrawPlot
+  handleAction ProcessNextJob
+  where
+  updatePlot :: ExpressionPlot -> ExpressionPlot
+  updatePlot plot =
+    plot
+      { robustDrawCommands = pure unit
+      , queue = queue
+      , accuracy = accuracy
+      }
+    where
+    queue = case plot.expression, state.autoRobust of
+      Just expression, true -> addPlot accuracy state.batchCount (cancelAll plot.queue) state.bounds expression plot.expressionText plot.id
+      _, _ -> cancelAll plot.queue
 
 handleExpressionPlotMessage state (DeletePlot plotId) = do
   H.modify_ (_ { plots = filter (\p -> p.id /= plotId) state.plots })
@@ -171,7 +191,7 @@ fork = forkWithDelay 0.0
 
 redrawWithDelayAndBounds :: forall output. State -> XYBounds -> HalogenMain output Unit
 redrawWithDelayAndBounds state newBounds = do
-  plots <- lift $ lift $ clearAddPlotCommands state.batchCount state.input.size newBounds state.plots
+  plots <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size newBounds state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
   H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds })
   handleAction DrawPlot
@@ -180,7 +200,7 @@ redrawWithDelayAndBounds state newBounds = do
 
 redraw :: forall output. State -> HalogenMain output Unit
 redraw state = do
-  plots <- lift $ lift $ clearAddPlotCommands state.batchCount state.input.size state.bounds state.plots
+  plots <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size state.bounds state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
   H.modify_ (_ { plots = plots, clearPlot = clearBounds })
   handleAction DrawPlot
@@ -203,7 +223,7 @@ redrawWithoutRobustWithBounds state newBounds = do
 
   clearAddDrawRough :: ExpressionPlot -> Aff ExpressionPlot
   clearAddDrawRough plot = case plot.expression of
-    Nothing -> pure plot
     Just expression -> do
       drawCommands <- computePlotAsync state.input.size $ roughPlot newBounds expression plot.expressionText
       pure $ plot { queue = cancelAll plot.queue, roughDrawCommands = drawCommands, robustDrawCommands = pure unit }
+    _ -> pure plot
