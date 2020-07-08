@@ -7,7 +7,6 @@ import Components.ExpressionManager.Types (ExpressionPlot, ChildSlots)
 import Data.Array (catMaybes, find, head, length)
 import Data.Maybe (Maybe(..), fromMaybe, isJust)
 import Data.Symbol (SProxy(..))
-import Data.Tuple (Tuple(..))
 import Effect.Class (class MonadEffect)
 import Halogen (ClassName(..))
 import Halogen as H
@@ -196,7 +195,7 @@ selectedExpressionPlot plots selectedPlotId = case find (\p -> p.id == selectedP
     where
     component = expressionInputComponent expressionInputController plot.id
 
-    input = Tuple plot.expressionText plot.status
+    input = { expressionText: plot.expressionText, status: plot.status, accuracy: plot.accuracy }
 
     toAction = Just <<< HandleExpressionInput
 

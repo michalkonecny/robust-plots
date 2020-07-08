@@ -4,7 +4,6 @@ import Prelude
 import Components.ExpressionInput.Controller (ExpressionInputController)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..))
 import Effect.Class (class MonadEffect)
 import Expression.Syntax (Expression)
 import Halogen (ClassName(..))
@@ -18,10 +17,17 @@ type ExpressionInputSlot p
   = forall q. H.Slot q ExpressionInputMessage p
 
 type State
-  = { input :: String
+  = { expressionInput :: String
+    , accuracyInput :: String
     , error :: Maybe String
     , id :: Int
+    , input :: Input
+    }
+
+type Input
+  = { expressionText :: String
     , status :: Status
+    , accuracy :: Number
     }
 
 data ExpressionInputMessage
@@ -29,9 +35,8 @@ data ExpressionInputMessage
   | ChangedStatus Int Status
 
 data Action
-  = Init
-  | HandleInput String
-  | HandleMessage (Tuple String Status)
+  = HandleExpressionInput String
+  | HandleMessage Input
   | Parse
   | Status Status
 
@@ -42,7 +47,7 @@ data Status
 
 derive instance statusEq :: Eq Status
 
-expressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> Int -> H.Component HH.HTML query (Tuple String Status) ExpressionInputMessage m
+expressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> Int -> H.Component HH.HTML query Input ExpressionInputMessage m
 expressionInputComponent controller id =
   H.mkComponent
     { initialState: initialState id
@@ -52,16 +57,16 @@ expressionInputComponent controller id =
           $ H.defaultEval
               { handleAction = handleAction controller
               , receive = Just <<< HandleMessage
-              , initialize = Just Init
               }
     }
 
-initialState :: Int -> Tuple String Status -> State
-initialState id (Tuple input status) =
+initialState :: Int -> Input -> State
+initialState id input =
   { input
   , error: Nothing
   , id
-  , status
+  , expressionInput: input.expressionText
+  , accuracyInput: show input.accuracy
   }
 
 render :: forall slots m. State -> HH.ComponentHTML Action slots m
@@ -76,7 +81,7 @@ render state =
               , HH.input
                   [ HP.type_ HP.InputText
                   , HE.onValueChange $ toValueChangeActionEvent
-                  , HP.value state.input
+                  , HP.value state.expressionInput
                   , HP.class_ (ClassName "form-control")
                   ]
               , HH.button
@@ -92,7 +97,7 @@ render state =
                   [ HP.type_ HP.InputRadio
                   , HE.onChecked $ toCheckedEvent (Status Off)
                   , HP.id_ "offCheckBox"
-                  , HP.checked (state.status == Off)
+                  , HP.checked (state.input.status == Off)
                   , HP.class_ (ClassName "form-check-input")
                   ]
               , HH.label
@@ -102,7 +107,7 @@ render state =
                   [ HP.type_ HP.InputRadio
                   , HE.onChecked $ toCheckedEvent (Status Rough)
                   , HP.id_ "roughCheckBox"
-                  , HP.checked (state.status == Rough)
+                  , HP.checked (state.input.status == Rough)
                   , HP.class_ (ClassName "form-check-input")
                   ]
               , HH.label
@@ -112,7 +117,7 @@ render state =
                   [ HP.type_ HP.InputRadio
                   , HE.onChecked $ toCheckedEvent (Status Robust)
                   , HP.id_ "robustCheckBox"
-                  , HP.checked (state.status == Robust)
+                  , HP.checked (state.input.status == Robust)
                   , HP.class_ (ClassName "form-check-input")
                   ]
               , HH.label
@@ -124,7 +129,7 @@ render state =
     <> (errorMessage state.error)
 
 toValueChangeActionEvent :: String -> Maybe Action
-toValueChangeActionEvent value = Just $ HandleInput value
+toValueChangeActionEvent value = Just $ HandleExpressionInput value
 
 toActionEvent :: forall a. Action -> a -> Maybe Action
 toActionEvent action _ = Just action
@@ -145,24 +150,17 @@ errorMessage (Just message) =
 
 handleAction :: forall m. MonadEffect m => ExpressionInputController -> Action -> H.HalogenM State Action () ExpressionInputMessage m Unit
 handleAction controller = case _ of
-  Init -> do
-    { input } <- H.get
-    handleAction controller (HandleInput input)
-    pure unit
   Parse -> do
-    { input, id } <- H.get
-    let
-      result = controller.parse input
-    case result of
+    { expressionInput, id } <- H.get
+    case controller.parse expressionInput of
       Left parseError -> H.modify_ _ { error = Just $ show parseError }
       Right expression -> case controller.check expression of
         Left evaluationError -> H.modify_ _ { error = Just $ show evaluationError }
         Right _ -> do
           H.modify_ _ { error = Nothing }
-          H.raise (Parsed id (controller.clean expression) input)
-  HandleInput input -> H.modify_ _ { input = input }
-  HandleMessage (Tuple input status) -> H.modify_ _ { input = input, status = status }
+          H.raise (Parsed id (controller.clean expression) expressionInput)
+  HandleExpressionInput input -> H.modify_ _ { expressionInput = input }
+  HandleMessage input -> H.modify_ _ { input = input, expressionInput = input.expressionText, accuracyInput = show input.accuracy }
   Status status -> do
     { id } <- H.get
-    H.modify_ _ { status = status }
     H.raise (ChangedStatus id status)
