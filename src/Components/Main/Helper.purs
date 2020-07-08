@@ -3,7 +3,8 @@ module Components.Main.Helper where
 import Prelude
 
 import Components.ExpressionInput (Status(..))
-import Components.Main.Types (ExpressionPlot, State)
+import Components.ExpressionManager.Types (ExpressionPlot)
+import Components.Main.Types (State)
 import Control.Parallel (parSequence)
 import Data.Array (cons, fold, foldl, mapMaybe, uncons)
 import Data.Maybe (Maybe(..))
@@ -24,6 +25,7 @@ newPlot id =
   , roughDrawCommands: pure unit
   , queue: initialJobQueue
   , status: Robust
+  , name: "Plot " <> (show id)
   }
 
 updateExpressionPlotCommands :: DrawCommand Unit -> ExpressionPlot -> ExpressionPlot

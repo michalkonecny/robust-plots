@@ -61,7 +61,7 @@ render state =
               , HP.class_ (ClassName "form-control")
               ]
           , HH.button
-              [ HE.onClick $ toActionEvent Update, HP.class_ (ClassName "btn btn-info") ]
+              [ HE.onClick $ toActionEvent Update, HP.class_ (ClassName "btn btn-primary") ]
               [ HH.text "Update" ]
           ]
       ]
