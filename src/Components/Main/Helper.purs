@@ -26,6 +26,7 @@ newPlot id =
   , queue: initialJobQueue
   , status: Robust
   , name: "Plot " <> (show id)
+  , accuracy: 0.1
   }
 
 updateExpressionPlotCommands :: DrawCommand Unit -> ExpressionPlot -> ExpressionPlot
@@ -81,8 +82,8 @@ toMaybeDrawCommand plot = case plot.expression of
 foldDrawCommands :: State -> DrawCommand Unit
 foldDrawCommands state = fold $ [ state.clearPlot ] <> mapMaybe toMaybeDrawCommand state.plots
 
-clearAddPlotCommands :: Number -> Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
-clearAddPlotCommands accuracy batchCount size newBounds = parSequence <<< (map clearAddPlot)
+clearAddPlotCommands :: Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
+clearAddPlotCommands batchCount size newBounds = parSequence <<< (map clearAddPlot)
   where
   clearAddPlot :: ExpressionPlot -> Aff ExpressionPlot
   clearAddPlot plot = case plot.expression of
@@ -91,6 +92,6 @@ clearAddPlotCommands accuracy batchCount size newBounds = parSequence <<< (map c
       let
         cancelledQueue = cancelAll plot.queue
 
-        queueWithPlot = addPlot accuracy batchCount cancelledQueue newBounds expression plot.expressionText plot.id
+        queueWithPlot = addPlot plot.accuracy batchCount cancelledQueue newBounds expression plot.expressionText plot.id
       drawCommands <- computePlotAsync size $ roughPlot newBounds expression plot.expressionText
       pure $ plot { queue = queueWithPlot, roughDrawCommands = drawCommands, robustDrawCommands = pure unit }

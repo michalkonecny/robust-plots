@@ -1,7 +1,6 @@
 module Components.Main.Action where
 
 import Prelude
-import Components.AccuracyInput (AccuracyInputMessage(..))
 import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..))
 import Components.Canvas (CanvasMessage(..), calculateNewCanvasSize)
@@ -45,7 +44,6 @@ data Action
   | HandleCanvas CanvasMessage
   | HandleBoundsInput BoundsInputMessage
   | HandleBatchInput BatchInputMessage
-  | HandleAccuracyInput AccuracyInputMessage
   | DrawPlot
   | ProcessNextJob
   | ResizeAndRedraw
@@ -66,9 +64,6 @@ handleAction action = do
     HandleBatchInput (UpdatedBatchInput batchCount) -> do
       H.modify_ (_ { batchCount = batchCount })
       redraw state { batchCount = batchCount }
-    HandleAccuracyInput (UpdatedAccuracyInput accuracy) -> do
-      H.modify_ (_ { accuracy = accuracy })
-      redraw state { accuracy = accuracy }
     ResizeAndRedraw -> do
       resizeCanvas
       newState <- H.get
@@ -145,7 +140,7 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (Parsed id expre
       , expression = Just expression
       , roughDrawCommands = newRoughCommands
       , robustDrawCommands = pure unit
-      , queue = addPlot state.accuracy state.batchCount (cancelAll plot.queue) state.bounds expression text id
+      , queue = addPlot plot.accuracy state.batchCount (cancelAll plot.queue) state.bounds expression text id
       }
 
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ChangedStatus id status)) = do
@@ -170,7 +165,7 @@ fork = forkWithDelay 0.0
 
 redrawWithDelayAndBounds :: forall output. State -> XYBounds -> HalogenMain output Unit
 redrawWithDelayAndBounds state newBounds = do
-  plots <- lift $ lift $ clearAddPlotCommands state.accuracy state.batchCount state.input.size newBounds state.plots
+  plots <- lift $ lift $ clearAddPlotCommands state.batchCount state.input.size newBounds state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
   H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds })
   handleAction DrawPlot
@@ -179,7 +174,7 @@ redrawWithDelayAndBounds state newBounds = do
 
 redraw :: forall output. State -> HalogenMain output Unit
 redraw state = do
-  plots <- lift $ lift $ clearAddPlotCommands state.accuracy state.batchCount state.input.size state.bounds state.plots
+  plots <- lift $ lift $ clearAddPlotCommands state.batchCount state.input.size state.bounds state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
   H.modify_ (_ { plots = plots, clearPlot = clearBounds })
   handleAction DrawPlot
