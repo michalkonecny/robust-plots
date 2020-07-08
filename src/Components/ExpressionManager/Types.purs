@@ -1,7 +1,7 @@
 module Components.ExpressionManager.Types where
 
 import Prelude
-import Components.ExpressionInput (ExpressionInputSlot, Status)
+import Components.ExpressionInput (ExpressionInputSlot)
 import Data.Maybe (Maybe)
 import Draw.Commands (DrawCommand)
 import Expression.Syntax (Expression)
@@ -14,9 +14,10 @@ type ExpressionPlot
     , roughDrawCommands :: DrawCommand Unit
     , id :: Int
     , queue :: JobQueue
-    , status :: Status
     , name :: String
     , accuracy :: Number
+    , showRough :: Boolean
+    , showRobust :: Boolean
     }
 
 type ChildSlots

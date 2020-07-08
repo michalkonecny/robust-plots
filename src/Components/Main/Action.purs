@@ -143,8 +143,12 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpressio
       , queue = addPlot plot.accuracy state.batchCount (cancelAll plot.queue) state.bounds expression text id
       }
 
-handleExpressionPlotMessage state (RaisedExpressionInputMessage (ChangedStatus id status)) = do
-  H.modify_ (_ { plots = alterPlot (_ { status = status }) id state.plots })
+handleExpressionPlotMessage state (RaisedExpressionInputMessage (ChangedRoughStatus id showRough)) = do
+  H.modify_ (_ { plots = alterPlot (_ { showRough = showRough }) id state.plots })
+  handleAction DrawPlot
+
+handleExpressionPlotMessage state (RaisedExpressionInputMessage (ChangedRobustStatus id showRobust)) = do
+  H.modify_ (_ { plots = alterPlot (_ { showRobust = showRobust }) id state.plots })
   handleAction DrawPlot
 
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedAccuracy id accuracy)) = do
