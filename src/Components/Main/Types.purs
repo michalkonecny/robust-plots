@@ -16,6 +16,7 @@ type State
     , clearPlot :: DrawCommand Unit
     , batchCount :: Int
     , autoRobust :: Boolean
+    , allRobustDraw :: Boolean
     }
 
 type ChildSlots

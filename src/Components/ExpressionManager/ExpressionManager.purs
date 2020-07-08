@@ -29,11 +29,13 @@ type State
     , editingSelected :: Boolean
     , editedName :: String
     , autoRobust :: Boolean
+    , allRobustDraw :: Boolean
     }
 
 type Input
   = { plots :: Array ExpressionPlot
     , autoRobust :: Boolean
+    , allRobustDraw :: Boolean
     }
 
 data ExpressionManagerMessage
@@ -72,13 +74,14 @@ expressionManagerComponent =
     }
 
 initialState :: Input -> State
-initialState { autoRobust, plots } =
+initialState { autoRobust, plots, allRobustDraw } =
   { plots
   , selectedPlotId
   , editingSelected: false
   , nextPlotId: 1
   , editedName: selectedPlotName plots selectedPlotId
   , autoRobust
+  , allRobustDraw
   }
   where
   selectedPlotId = firstPlotId plots
@@ -105,10 +108,13 @@ render state =
                 [ HH.div
                     [ HP.class_ (ClassName "btn-group") ]
                     [ HH.button
-                        [ HP.class_ (ClassName "btn btn-danger"), HE.onClick $ toActionEvent Clear ]
+                        [ HP.class_ (ClassName "btn btn-danger")
+                        , HE.onClick $ toActionEvent Clear ]
                         [ HH.text "Clear plots" ]
                     , HH.button
-                        [ HP.class_ (ClassName "btn btn-primary"), HE.onClick $ toActionEvent CalulateRobust ]
+                        [ HP.class_ $ ClassName $ "btn btn-primary" <> if state.allRobustDraw then " disabled" else ""
+                        , HE.onClick $ toActionEvent CalulateRobust
+                        ]
                         [ HH.text "Render Robust Plots" ]
                     ]
                 , HH.div
@@ -121,7 +127,7 @@ render state =
 
 handleAction :: forall m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots ExpressionManagerMessage m Unit
 handleAction = case _ of
-  HandleMessage { autoRobust, plots } -> do
+  HandleMessage { autoRobust, plots, allRobustDraw } -> do
     { selectedPlotId } <- H.get
     let
       newSelectedPlotId =
@@ -129,7 +135,7 @@ handleAction = case _ of
           selectedPlotId
         else
           firstPlotId plots
-    H.modify_ _ { plots = plots, selectedPlotId = newSelectedPlotId, editingSelected = false, editedName = selectedPlotName plots newSelectedPlotId, autoRobust = autoRobust }
+    H.modify_ _ { plots = plots, selectedPlotId = newSelectedPlotId, editingSelected = false, editedName = selectedPlotName plots newSelectedPlotId, autoRobust = autoRobust, allRobustDraw = allRobustDraw }
   Clear -> H.raise ClearPlots
   Add -> do
     { nextPlotId } <- H.get

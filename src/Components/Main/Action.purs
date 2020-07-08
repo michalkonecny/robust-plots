@@ -109,7 +109,7 @@ initialiseAction state = do
 clearAction :: forall output. State -> HalogenMain output Unit
 clearAction state = do
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
-  H.modify_ (_ { plots = [ newPlot 0 ], clearPlot = clearBounds })
+  H.modify_ (_ { plots = [ newPlot 0 ], clearPlot = clearBounds, allRobustDraw = false })
   handleAction DrawPlot
 
 processNextJobAction :: forall output. State -> HalogenMain output Unit
@@ -131,7 +131,7 @@ handleCanvasMessage state StoppedDragging = redraw state
 handleExpressionPlotMessage :: forall output. State -> ExpressionManagerMessage -> HalogenMain output Unit
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpression id expression text)) = do
   newRoughCommands <- lift $ lift $ computePlotAsync state.input.size (roughPlot state.bounds expression text)
-  H.modify_ (_ { plots = alterPlot (updatePlot newRoughCommands) id state.plots })
+  H.modify_ (_ { plots = alterPlot (updatePlot newRoughCommands) id state.plots, allRobustDraw = state.autoRobust })
   handleAction DrawPlot
   handleAction ProcessNextJob
   where
@@ -159,7 +159,7 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ChangedStatus i
   handleAction DrawPlot
 
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedAccuracy id accuracy)) = do
-  H.modify_ (_ { plots = alterPlot updatePlot id state.plots })
+  H.modify_ (_ { plots = alterPlot updatePlot id state.plots, allRobustDraw = state.autoRobust })
   handleAction DrawPlot
   handleAction ProcessNextJob
   where
@@ -184,13 +184,15 @@ handleExpressionPlotMessage state (DeletePlot plotId) = do
 
 handleExpressionPlotMessage state (ToggleAuto autoRobust) = H.modify_ (_ { autoRobust = autoRobust })
 
-handleExpressionPlotMessage state (AddPlot nextId) = H.modify_ (_ { plots = state.plots <> [ newPlot nextId ] })
+handleExpressionPlotMessage state (AddPlot nextId) = H.modify_ (_ { plots = state.plots <> [ newPlot nextId ], allRobustDraw = false })
 
 handleExpressionPlotMessage state (RenamePlot plotId name) = H.modify_ (_ { plots = alterPlot (_ { name = name }) plotId state.plots })
 
 handleExpressionPlotMessage state ClearPlots = clearAction state
 
-handleExpressionPlotMessage state CalulateRobustPlots = redraw state { autoRobust = true }
+handleExpressionPlotMessage state CalulateRobustPlots = do 
+  H.modify_ (_ { allRobustDraw = true })
+  redraw state { autoRobust = true }
 
 forkWithDelay :: forall output. Number -> HalogenMain output Unit
 forkWithDelay duration = lift $ lift $ delay $ Milliseconds duration
@@ -202,7 +204,7 @@ redrawWithDelayAndBounds :: forall output. State -> XYBounds -> HalogenMain outp
 redrawWithDelayAndBounds state newBounds = do
   plots <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size newBounds state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
-  H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds })
+  H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds, allRobustDraw = state.autoRobust })
   handleAction DrawPlot
   _ <- forkWithDelay 500.0 -- Subsiquent code is placed on the end of the JS event queue
   handleAction ProcessNextJob
@@ -211,7 +213,7 @@ redraw :: forall output. State -> HalogenMain output Unit
 redraw state = do
   plots <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size state.bounds state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
-  H.modify_ (_ { plots = plots, clearPlot = clearBounds })
+  H.modify_ (_ { plots = plots, clearPlot = clearBounds, allRobustDraw = state.autoRobust })
   handleAction DrawPlot
   handleAction ProcessNextJob
 
@@ -224,7 +226,7 @@ redrawWithoutRobustWithBounds :: forall output. State -> XYBounds -> HalogenMain
 redrawWithoutRobustWithBounds state newBounds = do
   plots <- mapPlots clearAddDrawRough state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
-  H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds })
+  H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds, allRobustDraw = false })
   handleAction DrawPlot
   where
   mapPlots :: (ExpressionPlot -> Aff ExpressionPlot) -> Array ExpressionPlot -> HalogenMain output (Array ExpressionPlot)
