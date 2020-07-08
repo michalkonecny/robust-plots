@@ -4,7 +4,6 @@ import Prelude
 import Components.ExpressionInput.Controller (ExpressionInputController)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
-import Data.Number (fromString)
 import Effect.Class (class MonadEffect)
 import Expression.Syntax (Expression)
 import Halogen (ClassName(..))
@@ -160,14 +159,14 @@ handleAction controller = case _ of
     { expressionInput, id } <- H.get
     case controller.parse expressionInput of
       Left parseError -> H.modify_ _ { error = Just $ show parseError }
-      Right expression -> case controller.check expression of
+      Right expression -> case controller.checkExpression expression of
         Left evaluationError -> H.modify_ _ { error = Just $ show evaluationError }
         Right _ -> do
           H.modify_ _ { error = Nothing }
           H.raise (ParsedExpression id (controller.clean expression) expressionInput)
   UpdateAccuracy -> do
     { accuracyInput, id } <- H.get
-    case checkValid accuracyInput of
+    case controller.checkAccuracy accuracyInput of
       Right error -> H.modify_ _ { error = Just error }
       Left accuracy -> do
         H.modify_ _ { error = Nothing }
@@ -178,8 +177,3 @@ handleAction controller = case _ of
   Status status -> do
     { id } <- H.get
     H.raise (ChangedStatus id status)
-
-checkValid :: String -> Either Number String
-checkValid accuracyString = case fromString accuracyString of
-  Nothing -> Right "Failed to parse Accuracy"
-  Just accuracy -> Left accuracy
