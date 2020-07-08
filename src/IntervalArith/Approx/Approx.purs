@@ -201,8 +201,8 @@ boundsA a = Tuple (lowerA a) (upperA a)
 
 toNumber :: Approx -> Number
 toNumber a = (l + u) / two
-  where 
-    (Tuple l u) = boundsNumber a
+  where
+  (Tuple l u) = boundsNumber a
 
 boundsNumber :: Approx -> Tuple Number Number
 boundsNumber a = biapply (Tuple f f) (bounds a)
@@ -634,3 +634,22 @@ increasingPartialFunctionViaBounds f a = do
   resultL <- f $ lowerA a
   resultU <- f $ upperA a
   pure $ resultL `unionA` resultU
+
+{-|
+Second argument is noise to be added to first argument. Used to allow for the
+error term when truncating a series.
+-}
+fudge :: Approx -> Approx -> Approx
+fudge a (Approx _ m e _)
+  | m == zero && e == zero = a
+
+fudge (Approx mb m e s) (Approx mb' m' e' s')
+  | e == zero = approxMB2 mb mb' (m `shift` (s - s')) (abs m' + e' + one) s'
+
+fudge (Approx mb m e s) (Approx mb' m' e' s') =
+  let
+    m'' = one + (abs m' + e') `shift` (s' - s + 1)
+  in
+    approxMB2 mb mb' m (e + m'') s
+
+fudge _ _ = Bottom
