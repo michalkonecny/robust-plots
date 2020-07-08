@@ -6,8 +6,6 @@ import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Effect.Class (class MonadEffect)
-import Expression.Error (Expect)
-import Expression.Evaluator (roughEvaluate, presetConstants)
 import Expression.Syntax (Expression)
 import Halogen (ClassName(..))
 import Halogen as H
@@ -157,7 +155,7 @@ handleAction controller = case _ of
       result = controller.parse input
     case result of
       Left parseError -> H.modify_ _ { error = Just $ show parseError }
-      Right expression -> case checkExpression expression of
+      Right expression -> case controller.check expression of
         Left evaluationError -> H.modify_ _ { error = Just $ show evaluationError }
         Right _ -> do
           H.modify_ _ { error = Nothing }
@@ -168,6 +166,3 @@ handleAction controller = case _ of
     { id } <- H.get
     H.modify_ _ { status = status }
     H.raise (ChangedStatus id status)
-
-checkExpression :: Expression -> Expect Number
-checkExpression expression = roughEvaluate (presetConstants <> [ Tuple "x" 0.0 ]) expression
