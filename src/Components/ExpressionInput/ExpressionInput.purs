@@ -1,10 +1,12 @@
 module Components.ExpressionInput where
 
 import Prelude
+import Components.Checkbox (CheckboxMessage(..), CheckboxSlot, checkboxComponent)
 import Components.ExpressionInput.Controller (ExpressionInputController)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Number (fromString)
+import Data.Symbol (SProxy(..))
 import Effect.Class (class MonadEffect)
 import Expression.Syntax (Expression)
 import Halogen (ClassName(..))
@@ -12,6 +14,8 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+
+_checkbox = SProxy :: SProxy "checkbox"
 
 type ExpressionInputSlot p
   = forall q. H.Slot q ExpressionInputMessage p
@@ -40,8 +44,9 @@ data Action
   | HandleMessage Input
   | UpdateExpression
   | UpdateAccuracy
-  | Status Status
+  | ToggledRobust CheckboxMessage
   | HandleAccuracyInput String
+  | ToggledRough CheckboxMessage
 
 data Status
   = Off
@@ -49,6 +54,10 @@ data Status
   | Robust
 
 derive instance statusEq :: Eq Status
+
+type ChildSlots
+  = ( checkbox :: CheckboxSlot Int
+    )
 
 expressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> Int -> H.Component HH.HTML query Input ExpressionInputMessage m
 expressionInputComponent controller id =
@@ -72,7 +81,7 @@ initialState id input =
   , accuracyInput: show input.accuracy
   }
 
-render :: forall slots m. State -> HH.ComponentHTML Action slots m
+render :: forall m. MonadEffect m => State -> HH.ComponentHTML Action ChildSlots m
 render state =
   HH.div_
     $ [ HH.form_
@@ -90,45 +99,21 @@ render state =
                   ]
               ]
           , HH.div
-              [ HP.class_ (ClassName "form-check form-check-inline") ]
-              [ HH.input
-                  [ HP.type_ HP.InputRadio
-                  , HE.onChecked $ toCheckedEvent (Status Off)
-                  , HP.id_ "offCheckBox"
-                  , HP.checked (state.input.status == Off)
-                  , HP.class_ (ClassName "form-check-input")
-                  ]
-              , HH.label
-                  [ HP.for "offCheckBox", HP.class_ (ClassName "form-check-label pr-3") ]
-                  [ HH.text "Off" ]
-              , HH.input
-                  [ HP.type_ HP.InputRadio
-                  , HE.onChecked $ toCheckedEvent (Status Rough)
-                  , HP.id_ "roughCheckBox"
-                  , HP.checked (state.input.status == Rough)
-                  , HP.class_ (ClassName "form-check-input")
-                  ]
-              , HH.label
-                  [ HP.for "roughCheckBox", HP.class_ (ClassName "form-check-label pr-3") ]
-                  [ HH.text "Rough" ]
-              , HH.input
-                  [ HP.type_ HP.InputRadio
-                  , HE.onChecked $ toCheckedEvent (Status Robust)
-                  , HP.id_ "robustCheckBox"
-                  , HP.checked (state.input.status == Robust)
-                  , HP.class_ (ClassName "form-check-input")
-                  ]
-              , HH.label
-                  [ HP.for "robustCheckBox", HP.class_ (ClassName "form-check-label pr-2") ]
-                  [ HH.text "Robust with accuracy" ]
+              [ HP.class_ (ClassName "input-group mb-3") ]
+              [ HH.div
+                  [ HP.class_ (ClassName "input-group-prepend") ]
+                  [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Accuracy (px)" ] ]
               , HH.input
                   [ HP.type_ HP.InputText
                   , HE.onValueChange $ toValueChangeActionEvent HandleAccuracyInput
                   , HP.value state.accuracyInput
                   , HE.onFocusOut $ toActionEvent UpdateAccuracy
-                  , HP.class_ (ClassName "form-control small-input")
+                  , HP.class_ (ClassName "form-control")
                   ]
-              , HH.span [ HP.class_ (ClassName "form-check-label pl-2") ] [ HH.text "px" ]
+              ]
+          , HH.div_
+              [ HH.slot _checkbox 1 (checkboxComponent "Show rough line") (state.input.status == Off) (Just <<< ToggledRough) -- TODO
+              , HH.slot _checkbox 2 (checkboxComponent "Show robust enclosures") (state.input.status == Off) (Just <<< ToggledRough) -- TODO
               ]
           ]
       ]
@@ -145,7 +130,7 @@ toCheckedEvent action true = Just action
 
 toCheckedEvent _ false = Nothing
 
-errorMessage :: forall slots m. Maybe String -> Array (HH.ComponentHTML Action slots m)
+errorMessage :: forall m. Maybe String -> Array (HH.ComponentHTML Action ChildSlots m)
 errorMessage Nothing = []
 
 errorMessage (Just message) =
@@ -154,7 +139,7 @@ errorMessage (Just message) =
       [ HH.text message ]
   ]
 
-handleAction :: forall m. MonadEffect m => ExpressionInputController -> Action -> H.HalogenM State Action () ExpressionInputMessage m Unit
+handleAction :: forall m. MonadEffect m => ExpressionInputController -> Action -> H.HalogenM State Action ChildSlots ExpressionInputMessage m Unit
 handleAction controller = case _ of
   UpdateExpression -> do
     { expressionInput, id } <- H.get
@@ -175,9 +160,12 @@ handleAction controller = case _ of
   HandleExpressionInput input -> H.modify_ _ { expressionInput = input }
   HandleAccuracyInput input -> H.modify_ _ { accuracyInput = input }
   HandleMessage input -> H.modify_ _ { input = input, expressionInput = input.expressionText, accuracyInput = show input.accuracy }
-  Status status -> do
+  ToggledRough (ToggleChanged status) -> do
     { id } <- H.get
-    H.raise (ChangedStatus id status)
+    H.raise (ChangedStatus id if status then Rough else Off) -- TODO
+  ToggledRobust (ToggleChanged status) -> do
+    { id } <- H.get
+    H.raise (ChangedStatus id if status then Robust else Rough) -- TODO
 
 checkValid :: String -> Either Number String
 checkValid accuracyString = case fromString accuracyString of
