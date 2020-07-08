@@ -183,6 +183,8 @@ handleExpressionPlotMessage state (RenamePlot plotId name) = H.modify_ (_ { plot
 
 handleExpressionPlotMessage state ClearPlots = clearAction state
 
+handleExpressionPlotMessage state CalulateRobustPlots = redraw state { autoRobust = true }
+
 forkWithDelay :: forall output. Number -> HalogenMain output Unit
 forkWithDelay duration = lift $ lift $ delay $ Milliseconds duration
 

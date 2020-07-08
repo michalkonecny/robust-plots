@@ -43,6 +43,7 @@ data ExpressionManagerMessage
   | RenamePlot Int String
   | RaisedExpressionInputMessage ExpressionInputMessage
   | ToggleAuto Boolean
+  | CalulateRobustPlots
 
 data Action
   = HandleMessage Input
@@ -55,6 +56,7 @@ data Action
   | ChangeSelected Int
   | HandleExpressionInput ExpressionInputMessage
   | HandleAutoToggle CheckboxMessage
+  | CalulateRobust
 
 expressionManagerComponent :: forall query m. MonadEffect m => H.Component HH.HTML query Input ExpressionManagerMessage m
 expressionManagerComponent =
@@ -106,7 +108,7 @@ render state =
                         [ HP.class_ (ClassName "btn btn-danger"), HE.onClick $ toActionEvent Clear ]
                         [ HH.text "Clear plots" ]
                     , HH.button
-                        [ HP.class_ (ClassName "btn btn-primary"), HE.onClick $ toActionEvent $ Add ] -- TODO: Compute plots on press
+                        [ HP.class_ (ClassName "btn btn-primary"), HE.onClick $ toActionEvent CalulateRobust ]
                         [ HH.text "Render Robust Plots" ]
                     ]
                 , HH.div
@@ -145,6 +147,7 @@ handleAction = case _ of
       H.modify_ (_ { selectedPlotId = plotId, editingSelected = false, editedName = selectedPlotName plots plotId })
   HandleExpressionInput message -> H.raise $ RaisedExpressionInputMessage message
   HandleAutoToggle (ToggleChanged isChecked) -> H.raise $ ToggleAuto isChecked
+  CalulateRobust -> H.raise CalulateRobustPlots
 
 toTab :: forall w. State -> ExpressionPlot -> HH.HTML w Action
 toTab state plot =
@@ -174,7 +177,7 @@ addPlotTab =
         [ HH.div
             [ HP.class_ (ClassName "form-inline") ]
             [ HH.button
-                [ HP.class_ (ClassName "btn-success btn-sm"), HE.onClick $ toActionEvent $ Add ]
+                [ HP.class_ (ClassName "btn-success btn-sm"), HE.onClick $ toActionEvent Add ]
                 [ HH.text "+" ]
             ]
         ]
