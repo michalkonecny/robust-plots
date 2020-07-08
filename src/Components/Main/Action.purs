@@ -1,13 +1,14 @@
 module Components.Main.Action where
 
 import Prelude
+
 import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..))
 import Components.Canvas (CanvasMessage(..), calculateNewCanvasSize)
 import Components.ExpressionInput (ExpressionInputMessage(..))
 import Components.ExpressionManager (ExpressionManagerMessage(..))
 import Components.ExpressionManager.Types (ExpressionPlot)
-import Components.Main.Helper (alterPlot, anyPlotHasJobs, clearAllCancelled, foldDrawCommands, isCancelledInAnyPlot, newPlot, runFirstJob, clearAddPlotCommands, setFirstRunningJob, updateExpressionPlotCommands)
+import Components.Main.Helper (alterPlot, anyPlotHasJobs, clearAddPlotCommands, clearAllCancelled, foldDrawCommands, fromPixelAccuracy, isCancelledInAnyPlot, newPlot, runFirstJob, setFirstRunningJob, updateExpressionPlotCommands)
 import Components.Main.Types (ChildSlots, Config, State)
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.Trans.Class (lift)
@@ -134,6 +135,9 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpressio
   handleAction DrawPlot
   handleAction ProcessNextJob
   where
+  toDomainAccuracy :: Number -> Number
+  toDomainAccuracy = fromPixelAccuracy state.input.size state.bounds
+
   updatePlot :: DrawCommand Unit -> ExpressionPlot -> ExpressionPlot
   updatePlot newRoughCommands plot =
     plot
@@ -146,7 +150,7 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpressio
     where
     queue =
       if state.autoRobust then
-        addPlot plot.accuracy state.batchCount (cancelAll plot.queue) state.bounds expression text id
+        addPlot (toDomainAccuracy plot.accuracy) state.batchCount (cancelAll plot.queue) state.bounds expression text id
       else
         cancelAll plot.queue
 
@@ -159,6 +163,9 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedAccuracy 
   handleAction DrawPlot
   handleAction ProcessNextJob
   where
+  toDomainAccuracy :: Number -> Number
+  toDomainAccuracy = fromPixelAccuracy state.input.size state.bounds
+
   updatePlot :: ExpressionPlot -> ExpressionPlot
   updatePlot plot =
     plot
@@ -168,7 +175,7 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedAccuracy 
       }
     where
     queue = case plot.expression, state.autoRobust of
-      Just expression, true -> addPlot accuracy state.batchCount (cancelAll plot.queue) state.bounds expression plot.expressionText plot.id
+      Just expression, true -> addPlot (toDomainAccuracy accuracy) state.batchCount (cancelAll plot.queue) state.bounds expression plot.expressionText plot.id
       _, _ -> cancelAll plot.queue
 
 handleExpressionPlotMessage state (DeletePlot plotId) = do

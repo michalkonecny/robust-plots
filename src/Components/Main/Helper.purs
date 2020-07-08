@@ -1,6 +1,7 @@
 module Components.Main.Helper where
 
 import Prelude
+
 import Components.ExpressionInput (Status(..))
 import Components.ExpressionManager.Types (ExpressionPlot)
 import Components.Main.Types (State)
@@ -9,6 +10,7 @@ import Data.Array (cons, fold, foldl, mapMaybe, uncons)
 import Data.Maybe (Maybe(..))
 import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff)
+import IntervalArith.Misc (rationalToNumber)
 import Misc.Array (alterWhere)
 import Plot.Commands (roughPlot)
 import Plot.JobBatcher (Job, JobResult, addPlot, cancelAll, clearCancelled, hasJobs, initialJobQueue, isCancelled, runFirst, setRunning)
@@ -84,6 +86,9 @@ foldDrawCommands state = fold $ [ state.clearPlot ] <> mapMaybe toMaybeDrawComma
 clearAddPlotCommands :: Boolean -> Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
 clearAddPlotCommands autoRobust batchCount size newBounds = parSequence <<< (map clearAddPlot)
   where
+  toDomainAccuracy :: Number -> Number
+  toDomainAccuracy = fromPixelAccuracy size newBounds
+
   clearAddPlot :: ExpressionPlot -> Aff ExpressionPlot
   clearAddPlot plot = case plot.expression of
     Nothing -> pure plot
@@ -93,6 +98,12 @@ clearAddPlotCommands autoRobust batchCount size newBounds = parSequence <<< (map
       where
       queue =
         if autoRobust then
-          addPlot plot.accuracy batchCount (cancelAll plot.queue) newBounds expression plot.expressionText plot.id
+          addPlot (toDomainAccuracy plot.accuracy) batchCount (cancelAll plot.queue) newBounds expression plot.expressionText plot.id
         else
           cancelAll plot.queue
+
+fromPixelAccuracy :: Size -> XYBounds -> Number -> Number 
+fromPixelAccuracy canvasSize bounds pixelAccuracy = pixelAccuracy * pixelToDomainRatio
+  where 
+    rangeY = bounds.yBounds.upper - bounds.yBounds.lower
+    pixelToDomainRatio = rationalToNumber $ rangeY / canvasSize.height 
