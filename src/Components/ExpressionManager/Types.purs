@@ -1,6 +1,7 @@
 module Components.ExpressionManager.Types where
 
 import Prelude
+import Components.Checkbox (CheckboxSlot)
 import Components.ExpressionInput (ExpressionInputSlot, Status)
 import Data.Maybe (Maybe)
 import Draw.Commands (DrawCommand)
@@ -21,4 +22,5 @@ type ExpressionPlot
 
 type ChildSlots
   = ( expressionInput :: ExpressionInputSlot Int
+    , checkbox :: CheckboxSlot Int
     )

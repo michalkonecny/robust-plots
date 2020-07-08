@@ -155,6 +155,8 @@ handleExpressionPlotMessage state (DeletePlot plotId) = do
   H.modify_ (_ { plots = filter (\p -> p.id /= plotId) state.plots })
   handleAction DrawPlot
 
+handleExpressionPlotMessage state (ToggleAuto autoRobust) = H.modify_ (_ { autoRobust = autoRobust })
+
 handleExpressionPlotMessage state (AddPlot nextId) = H.modify_ (_ { plots = state.plots <> [ newPlot nextId ] })
 
 handleExpressionPlotMessage state (RenamePlot plotId name) = H.modify_ (_ { plots = alterPlot (_ { name = name }) plotId state.plots })

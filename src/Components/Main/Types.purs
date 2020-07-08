@@ -15,6 +15,7 @@ type State
     , plots :: Array ExpressionPlot
     , clearPlot :: DrawCommand Unit
     , batchCount :: Int
+    , autoRobust :: Boolean
     }
 
 type ChildSlots

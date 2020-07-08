@@ -60,6 +60,7 @@ mainComponent =
         ]
     , clearPlot: pure unit
     , batchCount: 5
+    , autoRobust: false
     }
 
   render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
@@ -73,7 +74,7 @@ mainComponent =
                 [ HP.class_ (ClassName "row") ]
                 [ HH.div
                     [ HP.class_ (ClassName "col-md-4") ]
-                    [ HH.slot _expressionManager 1 expressionManagerComponent state.plots (Just <<< HandleExpressionManager)
+                    [ HH.slot _expressionManager 1 expressionManagerComponent { plots: state.plots, autoRobust: state.autoRobust } (Just <<< HandleExpressionManager)
                     , HH.br_
                     , HH.div
                         [ HP.class_ (ClassName "card") ]

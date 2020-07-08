@@ -1,6 +1,7 @@
 module Components.ExpressionManager where
 
 import Prelude
+import Components.Checkbox (CheckboxMessage(..), checkboxComponent)
 import Components.ExpressionInput (ExpressionInputMessage, expressionInputComponent)
 import Components.ExpressionInput.Controller (expressionInputController)
 import Components.ExpressionManager.Types (ExpressionPlot, ChildSlots)
@@ -16,6 +17,8 @@ import Halogen.HTML.Properties as HP
 
 _expressionInput = SProxy :: SProxy "expressionInput"
 
+_checkbox = SProxy :: SProxy "checkbox"
+
 type ExpressionManagerSlot p
   = forall q. H.Slot q ExpressionManagerMessage p
 
@@ -25,6 +28,12 @@ type State
     , nextPlotId :: Int
     , editingSelected :: Boolean
     , editedName :: String
+    , autoRobust :: Boolean
+    }
+
+type Input
+  = { plots :: Array ExpressionPlot
+    , autoRobust :: Boolean
     }
 
 data ExpressionManagerMessage
@@ -33,9 +42,10 @@ data ExpressionManagerMessage
   | DeletePlot Int
   | RenamePlot Int String
   | RaisedExpressionInputMessage ExpressionInputMessage
+  | ToggleAuto Boolean
 
 data Action
-  = HandleMessage (Array ExpressionPlot)
+  = HandleMessage Input
   | Clear
   | Add
   | Delete Int
@@ -44,8 +54,9 @@ data Action
   | HandleInput String
   | ChangeSelected Int
   | HandleExpressionInput ExpressionInputMessage
+  | HandleAutoToggle CheckboxMessage
 
-expressionManagerComponent :: forall query m. MonadEffect m => H.Component HH.HTML query (Array ExpressionPlot) ExpressionManagerMessage m
+expressionManagerComponent :: forall query m. MonadEffect m => H.Component HH.HTML query Input ExpressionManagerMessage m
 expressionManagerComponent =
   H.mkComponent
     { initialState
@@ -58,13 +69,14 @@ expressionManagerComponent =
               }
     }
 
-initialState :: Array ExpressionPlot -> State
-initialState plots =
+initialState :: Input -> State
+initialState { autoRobust, plots } =
   { plots
   , selectedPlotId
   , editingSelected: false
   , nextPlotId: 1
   , editedName: selectedPlotName plots selectedPlotId
+  , autoRobust
   }
   where
   selectedPlotId = firstPlotId plots
@@ -78,7 +90,7 @@ render state =
             [ HP.class_ (ClassName "card-header") ]
             [ HH.ul
                 [ HP.class_ (ClassName "nav nav-tabs card-header-tabs") ]
-                (map (toTab state) state.plots)
+                ((map (toTab state) state.plots) <> [ addPlotTab ])
             ]
         , HH.div
             [ HP.class_ (ClassName "card-body") ]
@@ -87,13 +99,19 @@ render state =
         , HH.div
             [ HP.class_ (ClassName "card-footer") ]
             [ HH.div
-                [ HP.class_ (ClassName "btn-group") ]
-                [ HH.button
-                    [ HP.class_ (ClassName "btn btn-primary"), HE.onClick $ toActionEvent $ Add ]
-                    [ HH.text "Add plot" ]
-                , HH.button
-                    [ HP.class_ (ClassName "btn btn-danger"), HE.onClick $ toActionEvent Clear ]
-                    [ HH.text "Clear plots" ]
+                [ HP.class_ (ClassName "form-inline") ]
+                [ HH.div
+                    [ HP.class_ (ClassName "btn-group") ]
+                    [ HH.button
+                        [ HP.class_ (ClassName "btn btn-danger"), HE.onClick $ toActionEvent Clear ]
+                        [ HH.text "Clear plots" ]
+                    , HH.button
+                        [ HP.class_ (ClassName "btn btn-primary"), HE.onClick $ toActionEvent $ Add ] -- TODO: Compute plots on press
+                        [ HH.text "Render Robust Plots" ]
+                    ]
+                , HH.div
+                    [ HP.class_ (ClassName "pl-2") ]
+                    [ HH.slot _checkbox 1 (checkboxComponent "Auto") state.autoRobust (Just <<< HandleAutoToggle) ]
                 ]
             ]
         ]
@@ -101,7 +119,7 @@ render state =
 
 handleAction :: forall m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots ExpressionManagerMessage m Unit
 handleAction = case _ of
-  HandleMessage plots -> do
+  HandleMessage { autoRobust, plots } -> do
     { selectedPlotId } <- H.get
     let
       newSelectedPlotId =
@@ -109,7 +127,7 @@ handleAction = case _ of
           selectedPlotId
         else
           firstPlotId plots
-    H.modify_ _ { plots = plots, selectedPlotId = newSelectedPlotId, editingSelected = false, editedName = selectedPlotName plots newSelectedPlotId }
+    H.modify_ _ { plots = plots, selectedPlotId = newSelectedPlotId, editingSelected = false, editedName = selectedPlotName plots newSelectedPlotId, autoRobust = autoRobust }
   Clear -> H.raise ClearPlots
   Add -> do
     { nextPlotId } <- H.get
@@ -126,6 +144,7 @@ handleAction = case _ of
     when ((plotExists plots plotId) && selectedPlotId /= plotId) do
       H.modify_ (_ { selectedPlotId = plotId, editingSelected = false, editedName = selectedPlotName plots plotId })
   HandleExpressionInput message -> H.raise $ RaisedExpressionInputMessage message
+  HandleAutoToggle (ToggleChanged isChecked) -> H.raise $ ToggleAuto isChecked
 
 toTab :: forall w. State -> ExpressionPlot -> HH.HTML w Action
 toTab state plot =
@@ -144,6 +163,22 @@ toTab state plot =
   className = if state.selectedPlotId == plot.id then "nav-link active" else "nav-link"
 
   tabContent = catMaybes [ Just (textOrEditInput state plot), maybeEditButton state plot.id, maybeDeleteButton state plot.id ]
+
+addPlotTab :: forall w. HH.HTML w Action
+addPlotTab =
+  HH.li
+    [ HP.class_ $ ClassName "nav-item" ]
+    [ HH.button
+        [ HP.class_ $ ClassName "nav-link"
+        ]
+        [ HH.div
+            [ HP.class_ (ClassName "form-inline") ]
+            [ HH.button
+                [ HP.class_ (ClassName "btn-success btn-sm"), HE.onClick $ toActionEvent $ Add ]
+                [ HH.text "+" ]
+            ]
+        ]
+    ]
 
 textOrEditInput :: forall w. State -> ExpressionPlot -> HH.HTML w Action
 textOrEditInput state plot =
