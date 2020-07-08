@@ -4,13 +4,13 @@ import Prelude
 import Components.ExpressionInput.Controller (ExpressionInputController)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
+import Data.Number (fromString)
 import Effect.Class (class MonadEffect)
 import Expression.Syntax (Expression)
 import Halogen (ClassName(..))
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
-import Halogen.HTML.Properties (ButtonType(..))
 import Halogen.HTML.Properties as HP
 
 type ExpressionInputSlot p
@@ -31,14 +31,17 @@ type Input
     }
 
 data ExpressionInputMessage
-  = Parsed Int Expression String
+  = ParsedExpression Int Expression String
   | ChangedStatus Int Status
+  | ParsedAccuracy Int Number
 
 data Action
   = HandleExpressionInput String
   | HandleMessage Input
-  | Parse
+  | UpdateExpression
+  | UpdateAccuracy
   | Status Status
+  | HandleAccuracyInput String
 
 data Status
   = Off
@@ -80,16 +83,11 @@ render state =
                   [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "f(x)=" ] ]
               , HH.input
                   [ HP.type_ HP.InputText
-                  , HE.onValueChange $ toValueChangeActionEvent
+                  , HE.onValueChange $ toValueChangeActionEvent HandleExpressionInput
                   , HP.value state.expressionInput
+                  , HE.onFocusOut $ toActionEvent UpdateExpression
                   , HP.class_ (ClassName "form-control")
                   ]
-              , HH.button
-                  [ HP.type_ ButtonButton
-                  , HP.class_ (ClassName "btn btn-primary")
-                  , HE.onClick $ toActionEvent Parse
-                  ]
-                  [ HH.text "Plot" ]
               ]
           , HH.div
               [ HP.class_ (ClassName "form-check form-check-inline") ]
@@ -121,15 +119,23 @@ render state =
                   , HP.class_ (ClassName "form-check-input")
                   ]
               , HH.label
-                  [ HP.for "robustCheckBox", HP.class_ (ClassName "form-check-label") ]
-                  [ HH.text "Rough and Robust" ]
+                  [ HP.for "robustCheckBox", HP.class_ (ClassName "form-check-label pr-2") ]
+                  [ HH.text "Robust with accuracy" ]
+              , HH.input
+                  [ HP.type_ HP.InputText
+                  , HE.onValueChange $ toValueChangeActionEvent HandleAccuracyInput
+                  , HP.value state.accuracyInput
+                  , HE.onFocusOut $ toActionEvent UpdateAccuracy
+                  , HP.class_ (ClassName "form-control small-input")
+                  ]
+              , HH.span [ HP.class_ (ClassName "form-check-label pl-2") ] [ HH.text "px" ]
               ]
           ]
       ]
     <> (errorMessage state.error)
 
-toValueChangeActionEvent :: String -> Maybe Action
-toValueChangeActionEvent value = Just $ HandleExpressionInput value
+toValueChangeActionEvent :: (String -> Action) -> String -> Maybe Action
+toValueChangeActionEvent action value = Just $ action value
 
 toActionEvent :: forall a. Action -> a -> Maybe Action
 toActionEvent action _ = Just action
@@ -150,7 +156,7 @@ errorMessage (Just message) =
 
 handleAction :: forall m. MonadEffect m => ExpressionInputController -> Action -> H.HalogenM State Action () ExpressionInputMessage m Unit
 handleAction controller = case _ of
-  Parse -> do
+  UpdateExpression -> do
     { expressionInput, id } <- H.get
     case controller.parse expressionInput of
       Left parseError -> H.modify_ _ { error = Just $ show parseError }
@@ -158,9 +164,22 @@ handleAction controller = case _ of
         Left evaluationError -> H.modify_ _ { error = Just $ show evaluationError }
         Right _ -> do
           H.modify_ _ { error = Nothing }
-          H.raise (Parsed id (controller.clean expression) expressionInput)
+          H.raise (ParsedExpression id (controller.clean expression) expressionInput)
+  UpdateAccuracy -> do
+    { accuracyInput, id } <- H.get
+    case checkValid accuracyInput of
+      Right error -> H.modify_ _ { error = Just error }
+      Left accuracy -> do
+        H.modify_ _ { error = Nothing }
+        H.raise (ParsedAccuracy id accuracy)
   HandleExpressionInput input -> H.modify_ _ { expressionInput = input }
+  HandleAccuracyInput input -> H.modify_ _ { accuracyInput = input }
   HandleMessage input -> H.modify_ _ { input = input, expressionInput = input.expressionText, accuracyInput = show input.accuracy }
   Status status -> do
     { id } <- H.get
     H.raise (ChangedStatus id status)
+
+checkValid :: String -> Either Number String
+checkValid accuracyString = case fromString accuracyString of
+  Nothing -> Right "Failed to parse Accuracy"
+  Just accuracy -> Left accuracy

@@ -88,7 +88,7 @@ render state =
                   , HE.onFocusOut $ toActionEvent Update
                   , HP.class_ (ClassName "form-control small-input")
                   ]
-              , HH.span [ HP.class_ (ClassName "") ] [ HH.text " ≤ x ≤ " ]
+              , HH.span [] [ HH.text " ≤ x ≤ " ]
               , HH.input
                   [ HP.type_ HP.InputText
                   , HE.onValueChange $ toValueChangeActionEvent XUpper
@@ -106,7 +106,7 @@ render state =
                   , HE.onFocusOut $ toActionEvent Update
                   , HP.class_ (ClassName "form-control small-input")
                   ]
-              , HH.span [ HP.class_ (ClassName "") ] [ HH.text " ≤ y ≤ " ]
+              , HH.span [] [ HH.text " ≤ y ≤ " ]
               , HH.input
                   [ HP.type_ HP.InputText
                   , HE.onValueChange $ toValueChangeActionEvent YUpper

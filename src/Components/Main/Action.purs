@@ -128,7 +128,7 @@ handleCanvasMessage state (Dragged delta) = redrawWithoutRobustWithBounds state 
 handleCanvasMessage state StoppedDragging = redraw state
 
 handleExpressionPlotMessage :: forall output. State -> ExpressionManagerMessage -> HalogenMain output Unit
-handleExpressionPlotMessage state (RaisedExpressionInputMessage (Parsed id expression text)) = do
+handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpression id expression text)) = do
   newRoughCommands <- lift $ lift $ computePlotAsync state.input.size (roughPlot state.bounds expression text)
   H.modify_ (_ { plots = alterPlot (updatePlot newRoughCommands) id state.plots })
   handleAction ProcessNextJob
@@ -145,6 +145,10 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (Parsed id expre
 
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ChangedStatus id status)) = do
   H.modify_ (_ { plots = alterPlot (_ { status = status }) id state.plots })
+  handleAction DrawPlot
+
+handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedAccuracy id accuracy)) = do
+  H.modify_ (_ { plots = alterPlot (_ { accuracy = accuracy }) id state.plots })
   handleAction DrawPlot
 
 handleExpressionPlotMessage state (DeletePlot plotId) = do
