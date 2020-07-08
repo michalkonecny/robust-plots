@@ -191,7 +191,7 @@ textOrEditInput state plot =
       , HE.onFocusOut $ toActionEvent Rename
       , HE.onValueChange $ toValueChangeActionEvent
       , HP.value state.editedName
-      , HP.class_ (ClassName $ if addPaddingToInput then "form-control-sm small-input pr-2" else "form-control small-input")
+      , HP.class_ (ClassName $ if addPaddingToInput then "form-control-sm small-input pr-2" else "form-control-sm small-input")
       ]
   else
     HH.span
