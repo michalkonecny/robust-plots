@@ -113,7 +113,8 @@ render state =
                         ]
                         [ HH.text "Clear plots" ]
                     , HH.button
-                        [ HP.class_ $ ClassName $ "btn btn-primary" <> if state.allRobustDraw then " disabled" else ""
+                        [ HP.class_ $ ClassName "btn btn-primary"
+                        , HP.disabled state.allRobustDraw
                         , HE.onClick $ toActionEvent CalulateRobust
                         ]
                         [ HH.text "Render Robust Plots" ]
