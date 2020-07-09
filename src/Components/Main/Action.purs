@@ -237,7 +237,7 @@ redrawRough state = do
   toDomainAccuracy = fromPixelAccuracy state.input.size state.bounds
 
   clearAddPlot :: ExpressionPlot -> Aff ExpressionPlot
-  clearAddPlot plot = case plot.expression, plot.commands.status /= DrawnRobust of
+  clearAddPlot plot = case plot.expression, plot.commands.status /= DrawnRobust && plot.status == Robust of
     Just expression, true -> do
       drawCommands <- computePlotAsync state.input.size $ roughPlot state.bounds expression plot.expressionText
       pure $ plot { queue = queue, commands { rough = drawCommands, robust = pure unit, status = RobustInProgress } }
