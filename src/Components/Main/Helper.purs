@@ -106,13 +106,13 @@ clearAddPlotCommands autoRobust batchCount size newBounds = parSequence <<< (map
       pure $ plot { queue = queue, commands { rough = drawCommands, robust = pure unit, status = status } }
       where
       queue =
-        if autoRobust then
+        if autoRobust && plot.status == Robust then
           addPlot (toDomainAccuracy plot.accuracy) batchCount (cancelAll plot.queue) newBounds expression plot.expressionText plot.id
         else
           cancelAll plot.queue
 
       status =
-        if autoRobust then
+        if autoRobust && plot.status == Robust then
           RobustInProgress
         else
           DrawnRough
