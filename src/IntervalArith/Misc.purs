@@ -9,6 +9,7 @@ import Data.Monoid (power)
 import Data.Monoid.Multiplicative (Multiplicative(..))
 import Data.Ratio (Ratio, (%), numerator, denominator)
 import Data.String.CodeUnits as StrCU
+import Data.Tuple (Tuple(..))
 import FFI.BigInt (bitLength)
 
 {-- Strings --}
@@ -33,7 +34,7 @@ multiplicativePowerRecip base exponent
   | exponent >= 0 = multiplicativePower base exponent
   | otherwise = multiplicativePower (recip base) (-exponent)
 
-{-- Integers --}
+{-- Integer --}
 type Integer
   = BigInt
 
@@ -52,6 +53,9 @@ testBit b n = (BigInt.and b (bit n)) /= zero
 
 integerLog2 :: Integer -> Int
 integerLog2 n = bitLength n - 1
+
+divMod :: forall a. EuclideanRing a => a -> a -> Tuple a a
+divMod a b = Tuple (div a b) (mod a b)
 
 {-- Rational --}
 type Rational
@@ -81,6 +85,15 @@ roundRational r =
     q2 = shift q 1
   in
     (p2 + q) `div` q2
+
+ceilingRational :: Rational -> Integer
+ceilingRational r =
+  let
+    p = numerator r
+
+    q = denominator r
+  in
+    (p + q - one) `div` q
 
 {-- Scalable --}
 -- | 'Scalable' allows scaling numerical data types by powers of 2.
