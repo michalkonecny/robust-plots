@@ -16,6 +16,7 @@ import Control.Monad.Reader (ReaderT)
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
+import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import Halogen as H
 import Halogen.HTML as HH
@@ -63,7 +64,7 @@ mainComponent =
     , autoRobust: false
     }
 
-  render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
+  render :: forall m. MonadAff m => MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
   render state =
     HH.div_
       $ [ HH.h1_

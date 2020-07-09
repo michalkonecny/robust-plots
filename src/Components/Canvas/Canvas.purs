@@ -10,20 +10,22 @@ import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Data.Traversable (for)
 import Effect (Effect)
+import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Halogen.Query.EventSource as ES
 import IntervalArith.Misc (rationalToNumber, toRational)
 import Types (Delta, Size)
-import Web.HTML (window) as Web
-import Web.HTML.Window (document) as Web
-import Web.HTML.HTMLDocument (toNonElementParentNode, HTMLDocument)
-import Web.HTML.HTMLElement (offsetWidth, HTMLElement, fromElement)
-import Web.DOM.NonElementParentNode (getElementById)
+import Web.HTML.HTMLElement (offsetWidth, toEventTarget)
 import Web.UIEvent.MouseEvent (MouseEvent)
 import Web.UIEvent.MouseEvent as ME
+import Web.UIEvent.WheelEvent (WheelEvent)
+import Web.UIEvent.WheelEvent as WE
+import Web.UIEvent.WheelEvent.EventTypes as WET
+import Components.Common.HTML (findElementById)
 
 type CanvasSlot p
   = forall q. H.Slot q CanvasMessage p
@@ -38,6 +40,7 @@ type State operations
 data CanvasMessage
   = Dragged Delta
   | StoppedDragging
+  | Scrolled Boolean
 
 type Input operations
   = { operations :: operations
@@ -51,8 +54,9 @@ data Action operations
   | StartDrag Delta
   | EndDrag
   | Drag Delta
+  | Scroll WheelEvent
 
-canvasComponent :: forall operations query m. MonadEffect m => CanvasController operations -> H.Component HH.HTML query (Input operations) CanvasMessage m
+canvasComponent :: forall operations query m. MonadAff m => MonadEffect m => CanvasController operations -> H.Component HH.HTML query (Input operations) CanvasMessage m
 canvasComponent controller =
   H.mkComponent
     { initialState
@@ -85,9 +89,12 @@ render { input: { size, canvasId } } =
     , HE.onMouseUp $ (\(event :: MouseEvent) -> Just $ EndDrag)
     ]
 
-handleAction :: forall operations m. MonadEffect m => CanvasController operations -> Action operations -> H.HalogenM (State operations) (Action operations) () CanvasMessage m Unit
+handleAction :: forall operations m. MonadAff m => MonadEffect m => CanvasController operations -> Action operations -> H.HalogenM (State operations) (Action operations) () CanvasMessage m Unit
 handleAction controller = case _ of
-  Init ->
+  Init -> do
+    { input: { canvasId } } <- H.get
+    canvas <- H.liftEffect $ findElementById canvasId
+    H.subscribe' $ \id -> ES.eventListenerEventSource WET.wheel (toEventTarget canvas) (map Scroll <<< WE.fromEvent)
     map (const unit)
       $ runMaybeT do
           { input } <- H.get
@@ -114,24 +121,18 @@ handleAction controller = case _ of
     when state.isDragging do
       H.put $ state { oldDelta = delta }
       H.raise $ Dragged { x: state.oldDelta.x - delta.x, y: delta.y - state.oldDelta.y }
+  Scroll event ->
+    when (changeInY /= 0.0) do
+      H.raise $ Scrolled (changeInY < 0.0)
+    where
+    changeInY = WE.deltaY event
 
 calculateNewCanvasSize :: Effect (Maybe Size)
 calculateNewCanvasSize = do
-  document <- Web.document =<< Web.window
-  maybeCanvasContainer <- findElementById "canvasContainer" document
-  case maybeCanvasContainer of
-    Nothing -> pure $ Nothing
-    Just container -> do
-      containerWidth <- offsetWidth container
-      let
-        newWidth = containerWidth - 40.0 -- Account for padding
+  container <- findElementById "canvasContainer"
+  containerWidth <- offsetWidth container
+  let
+    newWidth = containerWidth - 40.0 -- Account for padding
 
-        newHeight = (newWidth * 5.0) / 8.0
-      pure $ Just { width: toRational (round newWidth), height: toRational (round newHeight) }
-
-findElementById :: String -> HTMLDocument -> Effect (Maybe HTMLElement)
-findElementById id document = do
-  maybeElement <- getElementById id $ toNonElementParentNode document
-  case maybeElement of
-    Nothing -> pure Nothing
-    Just element -> pure $ fromElement element
+    newHeight = (newWidth * 5.0) / 8.0
+  pure $ Just { width: toRational (round newWidth), height: toRational (round newHeight) }

@@ -26,11 +26,7 @@ import Plot.Zoom (zoomBounds)
 import Types (Direction, XYBounds)
 import Web.Event.Event as E
 import Web.HTML (window) as Web
-import Web.HTML.HTMLDocument as HTMLDocument
 import Web.HTML.Window (document, toEventTarget) as Web
-import Web.UIEvent.WheelEvent (WheelEvent)
-import Web.UIEvent.WheelEvent as WE
-import Web.UIEvent.WheelEvent.EventTypes as WET
 
 type HalogenMain output a
   = H.HalogenM State Action ChildSlots output (ReaderT Config Aff) a
@@ -40,7 +36,6 @@ data Action
   | Pan Direction
   | Zoom Boolean
   | HandleExpressionManager ExpressionManagerMessage
-  | Scroll WheelEvent
   | HandleCanvas CanvasMessage
   | HandleBoundsInput BoundsInputMessage
   | HandleBatchInput BatchInputMessage
@@ -58,7 +53,6 @@ handleAction action = do
     Zoom isZoomIn -> redrawWithDelayAndBounds state (zoomBounds state.bounds isZoomIn)
     HandleCanvas message -> handleCanvasMessage state message
     Init -> initialiseAction state
-    Scroll event -> scrollAction event
     DrawPlot -> H.modify_ (_ { input { operations = foldDrawCommands state } })
     ProcessNextJob -> processNextJobAction state
     HandleBatchInput (UpdatedBatchInput batchCount) -> do
@@ -83,14 +77,6 @@ handleJobResult (Just jobResult) newState =
     where
     status = if queueHasJobs plot then plot.commands.status else DrawnRobust
 
-scrollAction :: forall output. WheelEvent -> HalogenMain output Unit
-scrollAction event = do
-  when (changeInY /= 0.0) do
-    H.liftEffect $ E.preventDefault (WE.toEvent event)
-    handleAction $ Zoom (changeInY < 0.0)
-  where
-  changeInY = WE.deltaY event
-
 resizeCanvas :: forall output. HalogenMain output Unit
 resizeCanvas = do
   maybeNewCanvasSize <- H.liftEffect calculateNewCanvasSize
@@ -103,7 +89,6 @@ initialiseAction :: forall output. State -> HalogenMain output Unit
 initialiseAction state = do
   window <- H.liftEffect $ Web.toEventTarget <$> Web.window
   document <- H.liftEffect $ Web.document =<< Web.window
-  H.subscribe' \id -> ES.eventListenerEventSource WET.wheel (HTMLDocument.toEventTarget document) (map Scroll <<< WE.fromEvent)
   H.subscribe' \id -> ES.eventListenerEventSource (E.EventType "resize") window (const (Just ResizeAndRedraw))
   resizeCanvas
   clearAction state
@@ -129,6 +114,8 @@ handleCanvasMessage :: forall output. State -> CanvasMessage -> HalogenMain outp
 handleCanvasMessage state (Dragged delta) = redrawWithoutRobustWithBounds state (panBoundsByVector state.input.size state.bounds delta)
 
 handleCanvasMessage state StoppedDragging = redraw state
+
+handleCanvasMessage state (Scrolled isZoomedIn) = handleAction $ Zoom isZoomedIn
 
 handleExpressionPlotMessage :: forall output. State -> ExpressionManagerMessage -> HalogenMain output Unit
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpression id expression text)) = do
