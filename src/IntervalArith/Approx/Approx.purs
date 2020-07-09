@@ -461,6 +461,18 @@ instance ringApprox :: Ring Approx where
 
 instance commutativeRingApprox :: CommutativeRing Approx
 
+-- |Square an approximation. Gives the exact image interval, as opposed to
+-- multiplicating a number with itself which will give a slightly larger
+-- interval due to the dependency problem.
+sqrA :: Approx -> Approx
+sqrA Bottom = Bottom
+sqrA (Approx mb m e s) = result
+  where
+  am = abs m
+  result
+    | am > e = approxMB mb (m^2 + e^2) (two*am*e) (2*s)
+    | otherwise = let m' = (am + e)^2 in approxMB mb m' m' (2*s-1)
+
 instance divisionRingApprox :: DivisionRing Approx where
   recip = recipA
 
