@@ -1,7 +1,8 @@
 module Components.BoundsInput where
 
 import Prelude
-import Components.Common.Action (onClickActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
+
+import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (className)
 import Control.Lazy (fix)
 import Data.Either (Either(..))
@@ -86,6 +87,7 @@ render state =
                   , onValueChangeActionEvent $ HandleInput XLower
                   , HP.value state.xBounds.lower
                   , onFocusOutActionEvent Update
+                  , onEnterPressActionEvent Update
                   , className "form-control small-input"
                   ]
               , HH.span [] [ HH.text " ≤ x ≤ " ]
@@ -94,6 +96,7 @@ render state =
                   , onValueChangeActionEvent $ HandleInput XUpper
                   , HP.value state.xBounds.upper
                   , onFocusOutActionEvent Update
+                  , onEnterPressActionEvent Update
                   , className "form-control small-input"
                   ]
               ]
@@ -104,6 +107,7 @@ render state =
                   , onValueChangeActionEvent $ HandleInput YLower
                   , HP.value state.yBounds.lower
                   , onFocusOutActionEvent Update
+                  , onEnterPressActionEvent Update
                   , className "form-control small-input"
                   ]
               , HH.span [] [ HH.text " ≤ y ≤ " ]
@@ -111,6 +115,7 @@ render state =
                   [ HP.type_ HP.InputText
                   , onValueChangeActionEvent $ HandleInput YUpper
                   , onFocusOutActionEvent Update
+                  , onEnterPressActionEvent Update
                   , HP.value state.yBounds.upper
                   , className "form-control small-input"
                   ]

@@ -1,7 +1,8 @@
 module Components.ExpressionInput where
 
 import Prelude
-import Components.Common.Action (onCheckedActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
+
+import Components.Common.Action (onCheckedActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (className)
 import Components.ExpressionInput.Controller (ExpressionInputController)
 import Data.Either (Either(..))
@@ -88,6 +89,7 @@ render state =
                   , onValueChangeActionEvent HandleExpressionInput
                   , HP.value state.expressionInput
                   , onFocusOutActionEvent UpdateExpression
+                  , onEnterPressActionEvent UpdateExpression
                   , className "form-control"
                   ]
               ]
@@ -134,6 +136,7 @@ render state =
                   , onValueChangeActionEvent HandleAccuracyInput
                   , HP.value state.accuracyInput
                   , onFocusOutActionEvent UpdateAccuracy
+                  , onEnterPressActionEvent UpdateAccuracy
                   , className "form-control small-input"
                   ]
               , HH.span
@@ -156,21 +159,23 @@ errorMessage (Just message) =
 handleAction :: forall m. MonadEffect m => ExpressionInputController -> Action -> H.HalogenM State Action () ExpressionInputMessage m Unit
 handleAction controller = case _ of
   UpdateExpression -> do
-    { expressionInput, id } <- H.get
+    { expressionInput, id, input } <- H.get
     case controller.parse expressionInput of
       Left parseError -> H.modify_ _ { error = Just $ show parseError }
       Right expression -> case controller.checkExpression expression of
         Left evaluationError -> H.modify_ _ { error = Just $ show evaluationError }
         Right _ -> do
           H.modify_ _ { error = Nothing }
-          H.raise (ParsedExpression id (controller.clean expression) expressionInput)
+          when (expressionInput /= input.expressionText) do
+            H.raise (ParsedExpression id (controller.clean expression) expressionInput)
   UpdateAccuracy -> do
-    { accuracyInput, id } <- H.get
+    { accuracyInput, id, input } <- H.get
     case controller.checkAccuracy accuracyInput of
       Right error -> H.modify_ _ { error = Just error }
       Left accuracy -> do
         H.modify_ _ { error = Nothing }
-        H.raise (ParsedAccuracy id accuracy)
+        when (accuracyInput /= show input.accuracy) do
+          H.raise (ParsedAccuracy id accuracy)
   HandleExpressionInput input -> H.modify_ _ { expressionInput = input }
   HandleAccuracyInput input -> H.modify_ _ { accuracyInput = input }
   HandleMessage input -> H.modify_ _ { input = input, expressionInput = input.expressionText, accuracyInput = show input.accuracy }

@@ -7,6 +7,7 @@ import Halogen.HTML (IProp)
 import Halogen.HTML.Events as HE
 import Web.Event.Internal.Types (Event)
 import Web.UIEvent.FocusEvent (FocusEvent)
+import Web.UIEvent.KeyboardEvent (KeyboardEvent, code)
 import Web.UIEvent.MouseEvent (MouseEvent)
 
 -- | A helper function to map the specified `const` action to an event handler function for a Halogen element.
@@ -41,3 +42,7 @@ onValueChangeActionEvent action = HE.onValueChange $ toValueChangeActionEvent ac
 -- | event handler will ignore the event when the element is unchecked.
 onCheckedActionEvent :: forall action r. action -> IProp ( onChange :: Event, checked :: Boolean | r ) action
 onCheckedActionEvent action = HE.onChecked $ toCheckedEvent action
+
+-- | Wrapper for the `onKeyUp` event handler that will map the event to the specified `const` action if the key pressed is `Enter`.
+onEnterPressActionEvent :: forall action r. action -> IProp ( onKeyUp :: KeyboardEvent | r ) action
+onEnterPressActionEvent action = HE.onKeyUp $ \event -> if code event == "Enter" then Just action else Nothing

@@ -2,7 +2,7 @@ module Components.BatchInput where
 
 import Prelude
 
-import Components.Common.Action (onClickActionEvent, onValueChangeActionEvent)
+import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (className)
 import Data.Either (Either(..))
 import Data.Int (fromString)
@@ -61,6 +61,7 @@ render state =
           , HH.input
               [ HP.type_ HP.InputText
               , onValueChangeActionEvent ChangeBatchCount
+              , onEnterPressActionEvent Update
               , HP.value state.batchCount
               , HP.id_ "batchCount"
               , className "form-control"

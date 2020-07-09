@@ -1,8 +1,9 @@
 module Components.ExpressionManager where
 
 import Prelude
+
 import Components.Checkbox (CheckboxMessage(..), checkboxComponent)
-import Components.Common.Action (onClickActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
+import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (appendClassNameIf, className, classNameIf)
 import Components.ExpressionInput (ExpressionInputMessage, expressionInputComponent)
 import Components.ExpressionInput.Controller (expressionInputController)
@@ -205,6 +206,7 @@ textOrEditInput state plot =
     HH.input
       [ HP.type_ HP.InputText
       , onFocusOutActionEvent Rename
+      , onEnterPressActionEvent Rename
       , onValueChangeActionEvent HandleInput
       , HP.value state.editedName
       , appendClassNameIf "form-control-sm small-input" "pr-2" addPaddingToInput
