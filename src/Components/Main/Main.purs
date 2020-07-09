@@ -1,11 +1,12 @@
 module Components.Main where
 
 import Prelude
-
 import Components.BatchInput (batchInputComponent)
 import Components.BoundsInput (initialBounds, boundsInputComponent)
 import Components.Canvas (canvasComponent)
 import Components.Canvas.Controller (canvasController)
+import Components.Common.Action (onClickActionEvent)
+import Components.Common.ClassName (className)
 import Components.ExpressionManager (Input, expressionManagerComponent)
 import Components.Main.Action (Action(..), handleAction)
 import Components.Main.Helper (isAllRobustPlotsComplete, newPlot)
@@ -16,10 +17,8 @@ import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Effect.Class (class MonadEffect)
-import Halogen (ClassName(..))
 import Halogen as H
 import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import IntervalArith.Misc (toRational)
 import Types (Direction(..))
@@ -70,71 +69,85 @@ mainComponent =
       $ [ HH.h1_
             [ HH.text "Robust plot" ]
         , HH.div
-            [ HP.class_ (ClassName "container-fluid") ]
+            [ className "container-fluid" ]
             [ HH.div
-                [ HP.class_ (ClassName "row") ]
+                [ className "row" ]
                 [ HH.div
-                    [ HP.class_ (ClassName "col-md-4") ]
+                    [ className "col-md-4" ]
                     [ HH.slot _expressionManager 1 expressionManagerComponent (toExpressionManagerInput state) (Just <<< HandleExpressionManager)
                     , HH.br_
                     , HH.div
-                        [ HP.class_ (ClassName "card") ]
+                        [ className "card" ]
                         [ HH.div
-                            [ HP.class_ (ClassName "card-header") ]
+                            [ className "card-header" ]
                             [ HH.text "Advanced settings"
                             ]
                         , HH.div
-                            [ HP.class_ (ClassName "card-body") ]
+                            [ className "card-body" ]
                             [ HH.slot _batchInput 1 batchInputComponent state.batchCount (Just <<< HandleBatchInput)
                             ]
                         ]
                     ]
                 , HH.div
-                    [ HP.class_ (ClassName "col-md-8") ]
+                    [ className "col-md-8" ]
                     [ HH.div
-                        [ HP.class_ (ClassName "card") ]
+                        [ className "card" ]
                         [ HH.div
-                            [ HP.class_ (ClassName "card-header") ]
+                            [ className "card-header" ]
                             [ HH.div
-                                [ HP.class_ (ClassName "row") ]
+                                [ className "row" ]
                                 [ HH.div
-                                    [ HP.class_ (ClassName "pr-2") ]
+                                    [ className "pr-2" ]
                                     [ HH.div
-                                        [ HP.class_ (ClassName "btn-group pr-1") ]
+                                        [ className "btn-group pr-1" ]
                                         [ HH.button
-                                            [ HP.class_ (ClassName "btn btn-primary"), HE.onClick $ toActionEvent $ Pan Left ]
+                                            [ className "btn btn-primary"
+                                            , onClickActionEvent $ Pan Left
+                                            ]
                                             [ HH.text "◄" ]
                                         , HH.button
-                                            [ HP.class_ (ClassName "btn btn-primary"), HE.onClick $ toActionEvent $ Pan Right ]
+                                            [ className "btn btn-primary"
+                                            , onClickActionEvent $ Pan Right
+                                            ]
                                             [ HH.text "►" ]
                                         ]
                                     , HH.div
-                                        [ HP.class_ (ClassName "btn-group pr-1") ]
+                                        [ className "btn-group pr-1" ]
                                         [ HH.button
-                                            [ HP.class_ (ClassName "btn btn-primary"), HE.onClick $ toActionEvent $ Pan Down ]
+                                            [ className "btn btn-primary"
+                                            , onClickActionEvent $ Pan Down
+                                            ]
                                             [ HH.text "▼" ]
                                         , HH.button
-                                            [ HP.class_ (ClassName "btn btn-primary"), HE.onClick $ toActionEvent $ Pan Up ]
+                                            [ className "btn btn-primary"
+                                            , onClickActionEvent $ Pan Up
+                                            ]
                                             [ HH.text "▲" ]
                                         ]
                                     , HH.div
-                                        [ HP.class_ (ClassName "btn-group") ]
+                                        [ className "btn-group" ]
                                         [ HH.button
-                                            [ HP.class_ (ClassName "btn btn-primary"), HE.onClick $ toActionEvent $ Zoom true ]
+                                            [ className "btn btn-primary"
+                                            , onClickActionEvent $ Zoom true
+                                            ]
                                             [ HH.text "+" ]
                                         , HH.button
-                                            [ HP.class_ (ClassName "btn btn-primary"), HE.onClick $ toActionEvent $ Zoom false ]
+                                            [ className "btn btn-primary"
+                                            , onClickActionEvent $ Zoom false
+                                            ]
                                             [ HH.text "-" ]
                                         ]
                                     ]
                                 , HH.div
-                                    [ HP.class_ (ClassName "") ]
+                                    []
                                     [ HH.slot _boundsInput 1 boundsInputComponent state.bounds (Just <<< HandleBoundsInput)
                                     ]
                                 ]
                             ]
                         , HH.div
-                            [ HP.class_ (ClassName "card-body"), HP.id_ "canvasContainer" ]
+                            [ className "card-body"
+                            , HP.id_ "canvasContainer"
+                            ]
                             [ HH.slot _canvas 1 (canvasComponent canvasController) state.input (Just <<< HandleCanvas)
                             ]
                         ]
@@ -142,9 +155,6 @@ mainComponent =
                 ]
             ]
         ]
-
-toActionEvent :: forall a. Action -> a -> Maybe Action
-toActionEvent action _ = Just action
 
 toExpressionManagerInput :: State -> Input
 toExpressionManagerInput state = { plots: state.plots, autoRobust: state.autoRobust, allRobustDraw: isAllRobustPlotsComplete state.plots }

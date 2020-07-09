@@ -1,15 +1,15 @@
 module Components.ExpressionInput where
 
 import Prelude
+import Components.Common.Action (onCheckedActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
+import Components.Common.ClassName (className)
 import Components.ExpressionInput.Controller (ExpressionInputController)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Effect.Class (class MonadEffect)
 import Expression.Syntax (Expression)
-import Halogen (ClassName(..))
 import Halogen as H
 import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 
 type ExpressionInputSlot p
@@ -76,80 +76,80 @@ render state =
   HH.div_
     $ [ HH.form_
           [ HH.div
-              [ HP.class_ (ClassName "input-group mb-3") ]
+              [ className "input-group mb-3" ]
               [ HH.div
-                  [ HP.class_ (ClassName "input-group-prepend") ]
-                  [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "f(x)=" ] ]
+                  [ className "input-group-prepend" ]
+                  [ HH.span
+                      [ className "input-group-text" ]
+                      [ HH.text "f(x)=" ]
+                  ]
               , HH.input
                   [ HP.type_ HP.InputText
-                  , HE.onValueChange $ toValueChangeActionEvent HandleExpressionInput
+                  , onValueChangeActionEvent HandleExpressionInput
                   , HP.value state.expressionInput
-                  , HE.onFocusOut $ toActionEvent UpdateExpression
-                  , HP.class_ (ClassName "form-control")
+                  , onFocusOutActionEvent UpdateExpression
+                  , className "form-control"
                   ]
               ]
           , HH.div
-              [ HP.class_ (ClassName "form-check form-check-inline") ]
+              [ className "form-check form-check-inline" ]
               [ HH.input
                   [ HP.type_ HP.InputRadio
-                  , HE.onChecked $ toCheckedEvent (Status Off)
+                  , onCheckedActionEvent $ Status Off
                   , HP.id_ "offCheckBox"
                   , HP.checked (state.input.status == Off)
-                  , HP.class_ (ClassName "form-check-input")
+                  , className "form-check-input"
                   ]
               , HH.label
-                  [ HP.for "offCheckBox", HP.class_ (ClassName "form-check-label pr-3") ]
+                  [ HP.for "offCheckBox"
+                  , className "form-check-label pr-3"
+                  ]
                   [ HH.text "Off" ]
               , HH.input
                   [ HP.type_ HP.InputRadio
-                  , HE.onChecked $ toCheckedEvent (Status Rough)
+                  , onCheckedActionEvent $ Status Rough
                   , HP.id_ "roughCheckBox"
                   , HP.checked (state.input.status == Rough)
-                  , HP.class_ (ClassName "form-check-input")
+                  , className "form-check-input"
                   ]
               , HH.label
-                  [ HP.for "roughCheckBox", HP.class_ (ClassName "form-check-label pr-3") ]
+                  [ HP.for "roughCheckBox"
+                  , className "form-check-label pr-3"
+                  ]
                   [ HH.text "Rough" ]
               , HH.input
                   [ HP.type_ HP.InputRadio
-                  , HE.onChecked $ toCheckedEvent (Status Robust)
+                  , onCheckedActionEvent $ Status Robust
                   , HP.id_ "robustCheckBox"
                   , HP.checked (state.input.status == Robust)
-                  , HP.class_ (ClassName "form-check-input")
+                  , className "form-check-input"
                   ]
               , HH.label
-                  [ HP.for "robustCheckBox", HP.class_ (ClassName "form-check-label pr-2") ]
+                  [ HP.for "robustCheckBox"
+                  , className "form-check-label pr-2"
+                  ]
                   [ HH.text "Robust with accuracy" ]
               , HH.input
                   [ HP.type_ HP.InputText
-                  , HE.onValueChange $ toValueChangeActionEvent HandleAccuracyInput
+                  , onValueChangeActionEvent HandleAccuracyInput
                   , HP.value state.accuracyInput
-                  , HE.onFocusOut $ toActionEvent UpdateAccuracy
-                  , HP.class_ (ClassName "form-control small-input")
+                  , onFocusOutActionEvent UpdateAccuracy
+                  , className "form-control small-input"
                   ]
-              , HH.span [ HP.class_ (ClassName "form-check-label pl-2") ] [ HH.text "px" ]
+              , HH.span
+                  [ className "form-check-label pl-2" ]
+                  [ HH.text "px" ]
               ]
           ]
       ]
     <> (errorMessage state.error)
-
-toValueChangeActionEvent :: (String -> Action) -> String -> Maybe Action
-toValueChangeActionEvent action value = Just $ action value
-
-toActionEvent :: forall a. Action -> a -> Maybe Action
-toActionEvent action _ = Just action
-
-toCheckedEvent :: Action -> Boolean -> Maybe Action
-toCheckedEvent action true = Just action
-
-toCheckedEvent _ false = Nothing
 
 errorMessage :: forall slots m. Maybe String -> Array (HH.ComponentHTML Action slots m)
 errorMessage Nothing = []
 
 errorMessage (Just message) =
   [ HH.div
-      [ HP.class_ (ClassName "alert alert-danger") ]
+      [ className "alert alert-danger" ]
       [ HH.text message ]
   ]
 

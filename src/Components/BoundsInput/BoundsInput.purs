@@ -1,15 +1,15 @@
 module Components.BoundsInput where
 
 import Prelude
+import Components.Common.Action (onClickActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
+import Components.Common.ClassName (className)
 import Control.Lazy (fix)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Effect.Class (class MonadEffect)
 import Expression.Parser (P, literal)
-import Halogen (ClassName(..))
 import Halogen as H
 import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import IntervalArith.Misc (Rational, rationalToNumber)
 import Text.Parsing.Parser (runParser)
@@ -78,65 +78,61 @@ render :: forall slots m. State -> HH.ComponentHTML Action slots m
 render state =
   HH.div_
     $ [ HH.div
-          [ HP.class_ (ClassName "form-inline") ]
+          [ className "form-inline" ]
           [ HH.div
-              [ HP.class_ (ClassName "pr-2") ]
+              [ className "pr-2" ]
               [ HH.input
                   [ HP.type_ HP.InputText
-                  , HE.onValueChange $ toValueChangeActionEvent XLower
+                  , onValueChangeActionEvent $ HandleInput XLower
                   , HP.value state.xBounds.lower
-                  , HE.onFocusOut $ toActionEvent Update
-                  , HP.class_ (ClassName "form-control small-input")
+                  , onFocusOutActionEvent Update
+                  , className "form-control small-input"
                   ]
               , HH.span [] [ HH.text " ≤ x ≤ " ]
               , HH.input
                   [ HP.type_ HP.InputText
-                  , HE.onValueChange $ toValueChangeActionEvent XUpper
+                  , onValueChangeActionEvent $ HandleInput XUpper
                   , HP.value state.xBounds.upper
-                  , HE.onFocusOut $ toActionEvent Update
-                  , HP.class_ (ClassName "form-control small-input")
+                  , onFocusOutActionEvent Update
+                  , className "form-control small-input"
                   ]
               ]
           , HH.div
-              [ HP.class_ (ClassName "pr-2") ]
+              [ className "pr-2" ]
               [ HH.input
                   [ HP.type_ HP.InputText
-                  , HE.onValueChange $ toValueChangeActionEvent YLower
+                  , onValueChangeActionEvent $ HandleInput YLower
                   , HP.value state.yBounds.lower
-                  , HE.onFocusOut $ toActionEvent Update
-                  , HP.class_ (ClassName "form-control small-input")
+                  , onFocusOutActionEvent Update
+                  , className "form-control small-input"
                   ]
               , HH.span [] [ HH.text " ≤ y ≤ " ]
               , HH.input
                   [ HP.type_ HP.InputText
-                  , HE.onValueChange $ toValueChangeActionEvent YUpper
-                  , HE.onFocusOut $ toActionEvent Update
+                  , onValueChangeActionEvent $ HandleInput YUpper
+                  , onFocusOutActionEvent Update
                   , HP.value state.yBounds.upper
-                  , HP.class_ (ClassName "form-control small-input")
+                  , className "form-control small-input"
                   ]
               ]
           , HH.div
-              [ HP.class_ (ClassName "btn-group") ]
+              [ className "btn-group" ]
               [ HH.button
-                  [ HP.class_ (ClassName "btn btn-warning"), HE.onClick $ toActionEvent $ ResetBounds ]
+                  [ className "btn btn-warning"
+                  , onClickActionEvent $ ResetBounds
+                  ]
                   [ HH.text "Reset bounds" ]
               ]
           ]
       ]
     <> (errorMessage state.error)
 
-toValueChangeActionEvent :: Bound -> String -> Maybe Action
-toValueChangeActionEvent bound value = Just $ HandleInput bound value
-
-toActionEvent :: forall a. Action -> a -> Maybe Action
-toActionEvent action _ = Just action
-
 errorMessage :: forall slots m. Maybe String -> Array (HH.ComponentHTML Action slots m)
 errorMessage Nothing = []
 
 errorMessage (Just message) =
   [ HH.div
-      [ HP.class_ (ClassName "alert alert-danger") ]
+      [ className "alert alert-danger" ]
       [ HH.text message ]
   ]
 

@@ -2,6 +2,8 @@ module Components.ExpressionManager where
 
 import Prelude
 import Components.Checkbox (CheckboxMessage(..), checkboxComponent)
+import Components.Common.Action (onClickActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
+import Components.Common.ClassName (appendClassNameIf, className, classNameIf)
 import Components.ExpressionInput (ExpressionInputMessage, expressionInputComponent)
 import Components.ExpressionInput.Controller (expressionInputController)
 import Components.ExpressionManager.Types (ExpressionPlot, ChildSlots)
@@ -9,10 +11,8 @@ import Data.Array (catMaybes, find, head, length)
 import Data.Maybe (Maybe(..), fromMaybe, isJust)
 import Data.Symbol (SProxy(..))
 import Effect.Class (class MonadEffect)
-import Halogen (ClassName(..))
 import Halogen as H
 import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 
 _expressionInput = SProxy :: SProxy "expressionInput"
@@ -90,37 +90,37 @@ render :: forall m. MonadEffect m => State -> HH.ComponentHTML Action ChildSlots
 render state =
   HH.div_
     [ HH.div
-        [ HP.class_ (ClassName "card") ]
+        [ className "card" ]
         [ HH.div
-            [ HP.class_ (ClassName "card-header") ]
+            [ className "card-header" ]
             [ HH.ul
-                [ HP.class_ (ClassName "nav nav-tabs card-header-tabs") ]
+                [ className "nav nav-tabs card-header-tabs" ]
                 ((map (toTab state) state.plots) <> [ addPlotTab ])
             ]
         , HH.div
-            [ HP.class_ (ClassName "card-body") ]
+            [ className "card-body" ]
             [ selectedExpressionPlot state.plots state.selectedPlotId
             ]
         , HH.div
-            [ HP.class_ (ClassName "card-footer") ]
+            [ className "card-footer" ]
             [ HH.div
-                [ HP.class_ (ClassName "form-inline") ]
+                [ className "form-inline" ]
                 [ HH.div
-                    [ HP.class_ (ClassName "btn-group") ]
+                    [ className "btn-group" ]
                     [ HH.button
-                        [ HP.class_ (ClassName "btn btn-danger")
-                        , HE.onClick $ toActionEvent Clear
+                        [ className "btn btn-danger"
+                        , onClickActionEvent Clear
                         ]
                         [ HH.text "Clear plots" ]
                     , HH.button
-                        [ HP.class_ $ ClassName "btn btn-primary"
+                        [ className "btn btn-primary"
                         , HP.disabled state.allRobustDraw
-                        , HE.onClick $ toActionEvent CalulateRobust
+                        , onClickActionEvent CalulateRobust
                         ]
                         [ HH.text "Render Robust Plots" ]
                     ]
                 , HH.div
-                    [ HP.class_ (ClassName "pl-2") ]
+                    [ className "pl-2" ]
                     [ HH.slot _checkbox 1 (checkboxComponent "Auto") state.autoRobust (Just <<< HandleAutoToggle) ]
                 ]
             ]
@@ -168,32 +168,32 @@ handleAction = case _ of
 toTab :: forall w. State -> ExpressionPlot -> HH.HTML w Action
 toTab state plot =
   HH.li
-    [ HP.class_ (ClassName "nav-item") ]
+    [ className "nav-item" ]
     [ HH.button
-        [ HP.class_ $ ClassName className
-        , HE.onClick $ toActionEvent (ChangeSelected plot.id)
+        [ appendClassNameIf "nav-link" "active" $ state.selectedPlotId == plot.id
+        , onClickActionEvent $ ChangeSelected plot.id
         ]
         [ HH.div
-            [ HP.class_ (ClassName "form-inline") ]
+            [ className "form-inline" ]
             tabContent
         ]
     ]
   where
-  className = if state.selectedPlotId == plot.id then "nav-link active" else "nav-link"
-
   tabContent = catMaybes [ Just (textOrEditInput state plot), maybeEditButton state plot.id, maybeDeleteButton state plot.id ]
 
 addPlotTab :: forall w. HH.HTML w Action
 addPlotTab =
   HH.li
-    [ HP.class_ $ ClassName "nav-item" ]
+    [ className "nav-item" ]
     [ HH.button
-        [ HP.class_ $ ClassName "nav-link"
+        [ className "nav-link"
         ]
         [ HH.div
-            [ HP.class_ (ClassName "form-inline") ]
+            [ className "form-inline" ]
             [ HH.button
-                [ HP.class_ (ClassName "btn-success btn-sm"), HE.onClick $ toActionEvent Add ]
+                [ className "btn-success btn-sm"
+                , onClickActionEvent Add
+                ]
                 [ HH.text "+" ]
             ]
         ]
@@ -204,14 +204,14 @@ textOrEditInput state plot =
   if (state.selectedPlotId == plot.id) && state.editingSelected then
     HH.input
       [ HP.type_ HP.InputText
-      , HE.onFocusOut $ toActionEvent Rename
-      , HE.onValueChange $ toValueChangeActionEvent
+      , onFocusOutActionEvent Rename
+      , onValueChangeActionEvent HandleInput
       , HP.value state.editedName
-      , HP.class_ (ClassName $ if addPaddingToInput then "form-control-sm small-input pr-2" else "form-control-sm small-input")
+      , appendClassNameIf "form-control-sm small-input" "pr-2" addPaddingToInput
       ]
   else
     HH.span
-      [ HP.class_ (ClassName $ if addPaddingToInput then "pr-2" else "") ]
+      [ classNameIf "pr-2" addPaddingToInput ]
       [ HH.text plot.name ]
   where
   addPaddingToInput = (1 < length state.plots) || not state.editingSelected
@@ -221,8 +221,8 @@ maybeEditButton state plotId =
   if state.selectedPlotId == plotId && not state.editingSelected then
     Just
       $ HH.button
-          [ HP.class_ (ClassName "btn-primary btn-sm")
-          , HE.onClick $ toActionEvent Edit
+          [ className "btn-primary btn-sm"
+          , onClickActionEvent Edit
           ]
           [ HH.text "🖉" ]
   else
@@ -233,8 +233,8 @@ maybeDeleteButton state plotId =
   if 1 < length state.plots then
     Just
       $ HH.button
-          [ HP.class_ (ClassName "btn-danger btn-sm")
-          , HE.onClick $ toActionEvent (Delete plotId)
+          [ className "btn-danger btn-sm"
+          , onClickActionEvent $ Delete plotId
           ]
           [ HH.text "✕" ]
   else
@@ -258,12 +258,6 @@ plotExists plots plotId = isJust (find (\p -> p.id == plotId) plots)
 
 selectedPlotName :: Array ExpressionPlot -> Int -> String
 selectedPlotName plots selectedPlotId = fromMaybe "Error" $ (_.name) <$> (find (\p -> p.id == selectedPlotId) plots)
-
-toValueChangeActionEvent :: String -> Maybe Action
-toValueChangeActionEvent value = Just $ HandleInput value
-
-toActionEvent :: forall a. Action -> a -> Maybe Action
-toActionEvent action _ = Just action
 
 firstPlotId :: Array ExpressionPlot -> Int
 firstPlotId plots = fromMaybe 0 $ (_.id) <$> (head plots)

@@ -1,9 +1,10 @@
 module Components.Checkbox where
 
 import Prelude
+
+import Components.Common.ClassName (className)
 import Data.Maybe (Maybe(..))
 import Effect.Class (class MonadEffect)
-import Halogen (ClassName(..))
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -43,17 +44,17 @@ initialState label isChecked = { label, isChecked }
 render :: forall slots m. State -> HH.ComponentHTML Action slots m
 render state =
   HH.div
-    [ HP.class_ (ClassName "form-check form-check-inline") ]
+    [ className "form-check form-check-inline" ]
     [ HH.input
         [ HP.type_ HP.InputCheckbox
         , HE.onChecked (Just <<< Toggled)
         , HP.id_ $ state.label <> "CheckBox"
         , HP.checked state.isChecked
-        , HP.class_ (ClassName "form-check-input")
+        , className "form-check-input"
         ]
     , HH.label
         [ HP.for $ state.label <> "CheckBox"
-        , HP.class_ (ClassName "form-check-label")
+        , className "form-check-label"
         ]
         [ HH.text state.label ]
     ]
