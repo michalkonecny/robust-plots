@@ -11,7 +11,7 @@ import Expression.Parser (P, literal)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
-import IntervalArith.Misc (Rational, rationalToNumber, toRational)
+import IntervalArith.Misc (Rational, rationalToNumber)
 import Text.Parsing.Parser (runParser)
 import Text.Parsing.Parser.Expr (buildExprParser)
 import Types (XYBounds, Size)

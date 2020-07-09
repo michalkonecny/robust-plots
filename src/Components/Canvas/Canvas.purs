@@ -1,8 +1,10 @@
 module Components.Canvas where
 
 import Prelude
+
 import Components.Canvas.Context (DrawContext)
 import Components.Canvas.Controller (CanvasController)
+import Components.Common.HTML (findElementById)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Control.Monad.Maybe.Trans as MaybeT
 import Data.Int (round)
@@ -19,13 +21,13 @@ import Halogen.HTML.Properties as HP
 import Halogen.Query.EventSource as ES
 import IntervalArith.Misc (rationalToNumber, toRational)
 import Types (Delta, Size)
+import Web.Event.Event as E
 import Web.HTML.HTMLElement (offsetWidth, toEventTarget)
 import Web.UIEvent.MouseEvent (MouseEvent)
 import Web.UIEvent.MouseEvent as ME
 import Web.UIEvent.WheelEvent (WheelEvent)
 import Web.UIEvent.WheelEvent as WE
 import Web.UIEvent.WheelEvent.EventTypes as WET
-import Components.Common.HTML (findElementById)
 
 type CanvasSlot p
   = forall q. H.Slot q CanvasMessage p
@@ -123,6 +125,7 @@ handleAction controller = case _ of
       H.raise $ Dragged { x: state.oldDelta.x - delta.x, y: delta.y - state.oldDelta.y }
   Scroll event ->
     when (changeInY /= 0.0) do
+      H.liftEffect $ E.preventDefault (WE.toEvent event)
       H.raise $ Scrolled (changeInY < 0.0)
     where
     changeInY = WE.deltaY event
