@@ -19,7 +19,7 @@ import FFI.BigInt (bitLength)
 import IntervalArith.Dyadic (Dyadic, dyadicToNumber, (:^))
 import IntervalArith.Dyadic as Dyadic
 import IntervalArith.Extended (Extended(..))
-import IntervalArith.Misc (class ToRational, Integer, Rational, big, bit, integerLog2, roundRational, scale, shift, testBit, toRational, two, (^))
+import IntervalArith.Misc (class ToRational, Integer, Rational, big, bit, ceilingRational, divMod, integerLog2, roundRational, scale, shift, testBit, toRational, two, (^))
 
 -- | A type synonym. Used to denote number of bits after binary point.
 type Precision
@@ -253,7 +253,8 @@ diameter _ = PosInf
 -- |Computes the precision of an approximation. This is roughly the number of
 -- correct bits after the binary point.
 precision :: Approx -> Extended Precision
-precision (Approx _ _ e _) | e == zero = PosInf
+precision (Approx _ _ e _)
+  | e == zero = PosInf
 
 precision (Approx _ _ e s) = Finite $ -s - (integerLog2 e) - 1
 
@@ -280,6 +281,15 @@ exact :: Approx -> Boolean
 exact (Approx _ _ e _) = e == (big 0)
 
 exact Bottom = false
+
+-- | Checks if the centre of an approximation is not 0.
+nonZeroCentredA :: Approx -> Boolean
+nonZeroCentredA Bottom = false
+
+nonZeroCentredA (Approx _ m _ _)
+  | m == zero = false
+
+nonZeroCentredA _ = true
 
 -- |Checks if a number is approximated by an approximation, i.e., if it
 -- belongs to the interval encoded by the approximation.
@@ -515,6 +525,49 @@ recipA (Approx mb m e s)
   --                        (ceiling (1%2 + unsafeShiftL e s'%(d)))
   --                        (-s-s')
   | otherwise = Bottom
+
+-- |Divide an approximation by an integer.
+divAInteger :: Approx -> Integer -> Approx
+divAInteger Bottom _ = Bottom
+
+divAInteger (Approx mb m e s) n =
+  let
+    t = integerLog2 n
+  in
+    approxMB mb
+      (roundRational (shift m t % n))
+      (ceilingRational (shift e t % n))
+      s
+
+-- |Compute the modulus of two approximations.
+modA :: Approx -> Approx -> Approx
+modA (Approx mb1 m e s) (Approx mb2 n f t) =
+  let
+    r = min s t
+
+    (Tuple d m') = divMod (shift m (s - r)) (shift n (t - r))
+
+    e' = scale e (s - r) + abs d * scale f (t - r)
+  in
+    approxMB2 mb1 mb2 m' e' r
+
+modA _ _ = Bottom
+
+-- |Compute the integer quotient (although returned as an 'Approx' since it
+-- may be necessary to return 'Bottom' if the integer quotient can't be
+-- determined) and the modulus as an approximation of two approximations.
+divModA :: Approx -> Approx -> (Tuple Approx Approx)
+divModA (Approx mb1 m e s) (Approx mb2 n f t) =
+  let
+    r = min s t
+
+    (Tuple d m') = divMod (shift m (s - r)) (shift n (t - r))
+
+    e' = e + abs d * f
+  in
+    Tuple (fromInteger d) (approxMB2 mb1 mb2 m' e' r)
+
+divModA _ _ = Tuple Bottom Bottom
 
 {-|
 This function bounds the error term of an 'Approx'.
