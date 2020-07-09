@@ -5,12 +5,11 @@
 module IntervalArith.Approx.Taylor where
 
 import Prelude
-import Data.List.Lazy (List, (:))
+import Data.List.Lazy (List)
 import Data.List.Lazy as L
 import Data.Tuple (Tuple(..), fst)
-import Effect.Exception.Unsafe (unsafeThrow)
 import IntervalArith.Approx (Approx, Precision, fudge, limitAndBound, nonZeroCentredA)
-import Misc.LazyList (EmptySingletonMore(..), emptySingletonMore)
+import Misc.LazyList (unsafeTail)
 import Misc.LazyList.NumberSequences (powers)
 
 {-|
@@ -23,15 +22,15 @@ the the terms to converge geometrically to 0 by a factor of at least 2.
 taylorA :: Precision -> List Approx -> Approx -> Approx
 taylorA res as x = fudge sm d
   where
-  sumAndNext = aux zero
+  addNext xs = L.zip xs (unsafeTail xs)
+
+  sumAndNext = L.foldl aux (Tuple zero zero)
     where
-    aux a list = case emptySingletonMore list of
-      Empty -> unsafeThrow "tayloA: empty list"
-      Singleton (Tuple b dd) -> Tuple (a + b) dd
-      More (Tuple b _) x2 rest -> aux (a + b) (x2 : rest)
+    aux (Tuple a _) (Tuple b dd) = Tuple (a+b) dd
 
-  addNext list1 = case emptySingletonMore list1 of
-    More x1 x2 xs -> (Tuple x1 x2) : (addNext (x2 : xs))
-    _ -> unsafeThrow "taylorA: end of initite sequence"
-
-  (Tuple sm d) = sumAndNext <<< L.takeWhile (nonZeroCentredA <<< fst) <<< addNext <<< map (limitAndBound res) $ L.zipWith (*) as (powers x)
+  (Tuple sm d) =
+    sumAndNext
+      $ L.takeWhile (nonZeroCentredA <<< fst)
+      $ addNext
+      $ map (limitAndBound res)
+      $ L.zipWith (*) as (powers x)
