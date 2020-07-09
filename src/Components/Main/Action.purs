@@ -79,11 +79,8 @@ handleJobResult (Just jobResult) newState =
 
 resizeCanvas :: forall output. HalogenMain output Unit
 resizeCanvas = do
-  maybeNewCanvasSize <- H.liftEffect calculateNewCanvasSize
-  case maybeNewCanvasSize of
-    Nothing -> pure unit
-    Just newCanvasSize -> do
-      H.modify_ (_ { input { size = newCanvasSize } })
+  newCanvasSize <- H.liftEffect calculateNewCanvasSize
+  H.modify_ (_ { input { size = newCanvasSize } })
 
 initialiseAction :: forall output. State -> HalogenMain output Unit
 initialiseAction state = do

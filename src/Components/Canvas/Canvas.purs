@@ -107,7 +107,7 @@ handleAction controller = case _ of
     _ <-
       for state.context \context -> do
         when (state.input.size /= input.size) do
-          context' <- H.liftEffect $ controller.onResize input.size context
+          context' <- H.liftEffect $ controller.resize input.size context
           H.modify_ _ { context = Just context' }
         H.liftEffect $ controller.render context input.operations
     pure unit
@@ -127,7 +127,7 @@ handleAction controller = case _ of
     where
     changeInY = WE.deltaY event
 
-calculateNewCanvasSize :: Effect (Maybe Size)
+calculateNewCanvasSize :: Effect Size
 calculateNewCanvasSize = do
   container <- findElementById "canvasContainer"
   containerWidth <- offsetWidth container
@@ -135,4 +135,4 @@ calculateNewCanvasSize = do
     newWidth = containerWidth - 40.0 -- Account for padding
 
     newHeight = (newWidth * 5.0) / 8.0
-  pure $ Just { width: toRational (round newWidth), height: toRational (round newHeight) }
+  pure $ { width: toRational (round newWidth), height: toRational (round newHeight) }
