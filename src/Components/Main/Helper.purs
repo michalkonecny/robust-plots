@@ -1,6 +1,7 @@
 module Components.Main.Helper where
 
 import Prelude
+
 import Components.ExpressionInput (Status(..))
 import Components.ExpressionManager.Types (DrawingStatus(..), ExpressionPlot)
 import Components.Main.Types (State)
@@ -43,6 +44,12 @@ queueHasJobs plot = hasJobs plot.queue
 
 anyPlotHasJobs :: Array ExpressionPlot -> Boolean
 anyPlotHasJobs = anyPlotExpression queueHasJobs
+
+isAllRobustPlotsComplete ::Array ExpressionPlot -> Boolean
+isAllRobustPlotsComplete = allPlotExpression $ \plot -> plot.commands.status == DrawnRobust
+
+allPlotExpression :: (ExpressionPlot -> Boolean) -> Array ExpressionPlot -> Boolean
+allPlotExpression f = (foldl (&&) true) <<< (map f)
 
 anyPlotExpression :: (ExpressionPlot -> Boolean) -> Array ExpressionPlot -> Boolean
 anyPlotExpression f = (foldl (||) false) <<< (map f)
@@ -96,13 +103,19 @@ clearAddPlotCommands autoRobust batchCount size newBounds = parSequence <<< (map
     Nothing -> pure plot
     Just expression -> do
       drawCommands <- computePlotAsync size $ roughPlot newBounds expression plot.expressionText
-      pure $ plot { queue = queue, commands { rough = drawCommands, robust = pure unit } }
+      pure $ plot { queue = queue, commands { rough = drawCommands, robust = pure unit, status = status } }
       where
       queue =
         if autoRobust then
           addPlot (toDomainAccuracy plot.accuracy) batchCount (cancelAll plot.queue) newBounds expression plot.expressionText plot.id
         else
           cancelAll plot.queue
+
+      status =
+        if autoRobust then
+          RobustInProgress
+        else
+          DrawnRough
 
 fromPixelAccuracy :: Size -> XYBounds -> Number -> Number
 fromPixelAccuracy canvasSize bounds pixelAccuracy = pixelAccuracy * pixelToDomainRatio

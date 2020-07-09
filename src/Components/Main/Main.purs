@@ -1,13 +1,14 @@
 module Components.Main where
 
 import Prelude
+
 import Components.BatchInput (batchInputComponent)
 import Components.BoundsInput (initialBounds, boundsInputComponent)
 import Components.Canvas (canvasComponent)
 import Components.Canvas.Controller (canvasController)
-import Components.ExpressionManager (expressionManagerComponent)
+import Components.ExpressionManager (Input, expressionManagerComponent)
 import Components.Main.Action (Action(..), handleAction)
-import Components.Main.Helper (newPlot)
+import Components.Main.Helper (isAllRobustPlotsComplete, newPlot)
 import Components.Main.Types (ChildSlots, Config, State)
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT)
@@ -61,7 +62,6 @@ mainComponent =
     , clearPlot: pure unit
     , batchCount: 5
     , autoRobust: false
-    , allRobustDraw: false
     }
 
   render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
@@ -75,7 +75,7 @@ mainComponent =
                 [ HP.class_ (ClassName "row") ]
                 [ HH.div
                     [ HP.class_ (ClassName "col-md-4") ]
-                    [ HH.slot _expressionManager 1 expressionManagerComponent { plots: state.plots, autoRobust: state.autoRobust, allRobustDraw: state.allRobustDraw } (Just <<< HandleExpressionManager)
+                    [ HH.slot _expressionManager 1 expressionManagerComponent (toExpressionManagerInput state) (Just <<< HandleExpressionManager)
                     , HH.br_
                     , HH.div
                         [ HP.class_ (ClassName "card") ]
@@ -145,3 +145,6 @@ mainComponent =
 
 toActionEvent :: forall a. Action -> a -> Maybe Action
 toActionEvent action _ = Just action
+
+toExpressionManagerInput :: State -> Input
+toExpressionManagerInput state = { plots: state.plots, autoRobust: state.autoRobust, allRobustDraw: isAllRobustPlotsComplete state.plots }

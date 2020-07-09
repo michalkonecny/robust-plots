@@ -31,6 +31,8 @@ data DrawingStatus
   | DrawnRobust
   | DrawnNone
 
+derive instance drawingStatusEq :: Eq DrawingStatus
+
 type ChildSlots
   = ( expressionInput :: ExpressionInputSlot Int
     , checkbox :: CheckboxSlot Int
