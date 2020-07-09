@@ -39,10 +39,13 @@ drawLine isDashed color { x: x1, y: y1 } { x: x2, y: y2 } =
     stroke drawContext.context
 
 drawPlotLine :: Position -> Position -> DrawOperation
-drawPlotLine = drawLine false $ rgba 0.0 0.0 0.0 1.0
+drawPlotLine = drawLine false $ rgba 0.0 0.0 0.0 0.5
+
+drawAxisLine :: Position -> Position -> DrawOperation
+drawAxisLine = drawLine false $ rgba 0.0 0.0 0.0 1.0
 
 drawXAxisLine :: Number -> Number -> DrawOperation
-drawXAxisLine xZero range drawContext = drawPlotLine a b drawContext
+drawXAxisLine xZero range drawContext = drawAxisLine a b drawContext
   where
   relativeX = (xZero * drawContext.canvasWidth) / range
 
@@ -51,7 +54,7 @@ drawXAxisLine xZero range drawContext = drawPlotLine a b drawContext
   b = { x: relativeX, y: drawContext.canvasHeight }
 
 drawYAxisLine :: Number -> Number -> DrawOperation
-drawYAxisLine yZero range drawContext = drawPlotLine a b drawContext
+drawYAxisLine yZero range drawContext = drawAxisLine a b drawContext
   where
   relativeY = drawContext.canvasHeight - (yZero * drawContext.canvasHeight) / range
 
