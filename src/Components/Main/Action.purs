@@ -1,7 +1,6 @@
 module Components.Main.Action where
 
 import Prelude
-
 import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..))
 import Components.Canvas (CanvasMessage(..), calculateNewCanvasSize)
@@ -201,7 +200,7 @@ handleExpressionPlotMessage state (RenamePlot plotId name) = H.modify_ (_ { plot
 
 handleExpressionPlotMessage state ClearPlots = clearAction state
 
-handleExpressionPlotMessage state CalulateRobustPlots = redraw state { autoRobust = true }
+handleExpressionPlotMessage state CalulateRobustPlots = redrawRough state
 
 forkWithDelay :: forall output. Number -> HalogenMain output Unit
 forkWithDelay duration = lift $ lift $ delay $ Milliseconds duration
@@ -226,6 +225,26 @@ redraw state = do
   handleAction DrawPlot
   handleAction ProcessNextJob
 
+redrawRough :: forall output. State -> HalogenMain output Unit
+redrawRough state = do
+  plots <- mapPlots clearAddPlot state.plots
+  clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
+  H.modify_ (_ { plots = plots, clearPlot = clearBounds })
+  handleAction DrawPlot
+  handleAction ProcessNextJob
+  where
+  toDomainAccuracy :: Number -> Number
+  toDomainAccuracy = fromPixelAccuracy state.input.size state.bounds
+
+  clearAddPlot :: ExpressionPlot -> Aff ExpressionPlot
+  clearAddPlot plot = case plot.expression, plot.commands.status /= DrawnRobust of
+    Just expression, true -> do
+      drawCommands <- computePlotAsync state.input.size $ roughPlot state.bounds expression plot.expressionText
+      pure $ plot { queue = queue, commands { rough = drawCommands, robust = pure unit, status = RobustInProgress } }
+      where
+      queue = addPlot (toDomainAccuracy plot.accuracy) state.batchCount (cancelAll plot.queue) state.bounds expression plot.expressionText plot.id
+    _, _ -> pure plot
+
 redrawWithBounds :: forall output. State -> XYBounds -> HalogenMain output Unit
 redrawWithBounds state newBounds = do
   H.modify_ (_ { bounds = newBounds })
@@ -238,12 +257,12 @@ redrawWithoutRobustWithBounds state newBounds = do
   H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds })
   handleAction DrawPlot
   where
-  mapPlots :: (ExpressionPlot -> Aff ExpressionPlot) -> Array ExpressionPlot -> HalogenMain output (Array ExpressionPlot)
-  mapPlots f = lift <<< lift <<< parSequence <<< (map f)
-
   clearAddDrawRough :: ExpressionPlot -> Aff ExpressionPlot
   clearAddDrawRough plot = case plot.expression of
     Just expression -> do
       drawCommands <- computePlotAsync state.input.size $ roughPlot newBounds expression plot.expressionText
       pure $ plot { queue = cancelAll plot.queue, commands { rough = drawCommands, robust = pure unit, status = DrawnRough } }
     _ -> pure plot
+
+mapPlots :: forall output. (ExpressionPlot -> Aff ExpressionPlot) -> Array ExpressionPlot -> HalogenMain output (Array ExpressionPlot)
+mapPlots f = lift <<< lift <<< parSequence <<< (map f)
