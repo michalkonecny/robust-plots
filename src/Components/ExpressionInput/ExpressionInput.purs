@@ -1,41 +1,47 @@
 module Components.ExpressionInput where
 
 import Prelude
+
+import Components.Common.Action (onCheckedActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
+import Components.Common.ClassName (className)
 import Components.ExpressionInput.Controller (ExpressionInputController)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..))
 import Effect.Class (class MonadEffect)
-import Expression.Error (Expect)
-import Expression.Evaluator (roughEvaluate, presetConstants)
 import Expression.Syntax (Expression)
-import Halogen (ClassName(..))
 import Halogen as H
 import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
-import Halogen.HTML.Properties (ButtonType(..))
 import Halogen.HTML.Properties as HP
 
 type ExpressionInputSlot p
   = forall q. H.Slot q ExpressionInputMessage p
 
 type State
-  = { input :: String
+  = { expressionInput :: String
+    , accuracyInput :: String
     , error :: Maybe String
     , id :: Int
+    , input :: Input
+    }
+
+type Input
+  = { expressionText :: String
     , status :: Status
+    , accuracy :: Number
     }
 
 data ExpressionInputMessage
-  = Parsed Int Expression String
+  = ParsedExpression Int Expression String
   | ChangedStatus Int Status
+  | ParsedAccuracy Int Number
 
 data Action
-  = Init
-  | HandleInput String
-  | HandleMessage (Tuple String Status)
-  | Parse
+  = HandleExpressionInput String
+  | HandleMessage Input
+  | UpdateExpression
+  | UpdateAccuracy
   | Status Status
+  | HandleAccuracyInput String
 
 data Status
   = Off
@@ -44,7 +50,7 @@ data Status
 
 derive instance statusEq :: Eq Status
 
-expressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> Int -> H.Component HH.HTML query (Tuple String Status) ExpressionInputMessage m
+expressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> Int -> H.Component HH.HTML query Input ExpressionInputMessage m
 expressionInputComponent controller id =
   H.mkComponent
     { initialState: initialState id
@@ -54,16 +60,16 @@ expressionInputComponent controller id =
           $ H.defaultEval
               { handleAction = handleAction controller
               , receive = Just <<< HandleMessage
-              , initialize = Just Init
               }
     }
 
-initialState :: Int -> Tuple String Status -> State
-initialState id (Tuple input status) =
+initialState :: Int -> Input -> State
+initialState id input =
   { input
   , error: Nothing
   , id
-  , status
+  , expressionInput: input.expressionText
+  , accuracyInput: show input.accuracy
   }
 
 render :: forall slots m. State -> HH.ComponentHTML Action slots m
@@ -71,103 +77,108 @@ render state =
   HH.div_
     $ [ HH.form_
           [ HH.div
-              [ HP.class_ (ClassName "input-group mb-3") ]
+              [ className "input-group mb-3" ]
               [ HH.div
-                  [ HP.class_ (ClassName "input-group-prepend") ]
-                  [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "f(x)=" ] ]
+                  [ className "input-group-prepend" ]
+                  [ HH.span
+                      [ className "input-group-text" ]
+                      [ HH.text "f(x)=" ]
+                  ]
               , HH.input
                   [ HP.type_ HP.InputText
-                  , HE.onValueChange $ toValueChangeActionEvent
-                  , HP.value state.input
-                  , HP.class_ (ClassName "form-control")
+                  , onValueChangeActionEvent HandleExpressionInput
+                  , HP.value state.expressionInput
+                  , onFocusOutActionEvent UpdateExpression
+                  , onEnterPressActionEvent UpdateExpression
+                  , className "form-control"
                   ]
-              , HH.button
-                  [ HP.type_ ButtonButton
-                  , HP.class_ (ClassName "btn btn-primary")
-                  , HE.onClick $ toActionEvent Parse
-                  ]
-                  [ HH.text "Plot" ]
               ]
           , HH.div
-              [ HP.class_ (ClassName "form-check form-check-inline") ]
+              [ className "form-check form-check-inline" ]
               [ HH.input
                   [ HP.type_ HP.InputRadio
-                  , HE.onChecked $ toCheckedEvent (Status Off)
+                  , onCheckedActionEvent $ Status Off
                   , HP.id_ "offCheckBox"
-                  , HP.checked (state.status == Off)
-                  , HP.class_ (ClassName "form-check-input")
+                  , HP.checked (state.input.status == Off)
+                  , className "form-check-input"
                   ]
               , HH.label
-                  [ HP.for "offCheckBox", HP.class_ (ClassName "form-check-label pr-3") ]
+                  [ HP.for "offCheckBox"
+                  , className "form-check-label pr-3"
+                  ]
                   [ HH.text "Off" ]
               , HH.input
                   [ HP.type_ HP.InputRadio
-                  , HE.onChecked $ toCheckedEvent (Status Rough)
+                  , onCheckedActionEvent $ Status Rough
                   , HP.id_ "roughCheckBox"
-                  , HP.checked (state.status == Rough)
-                  , HP.class_ (ClassName "form-check-input")
+                  , HP.checked (state.input.status == Rough)
+                  , className "form-check-input"
                   ]
               , HH.label
-                  [ HP.for "roughCheckBox", HP.class_ (ClassName "form-check-label pr-3") ]
+                  [ HP.for "roughCheckBox"
+                  , className "form-check-label pr-3"
+                  ]
                   [ HH.text "Rough" ]
               , HH.input
                   [ HP.type_ HP.InputRadio
-                  , HE.onChecked $ toCheckedEvent (Status Robust)
+                  , onCheckedActionEvent $ Status Robust
                   , HP.id_ "robustCheckBox"
-                  , HP.checked (state.status == Robust)
-                  , HP.class_ (ClassName "form-check-input")
+                  , HP.checked (state.input.status == Robust)
+                  , className "form-check-input"
                   ]
               , HH.label
-                  [ HP.for "robustCheckBox", HP.class_ (ClassName "form-check-label") ]
-                  [ HH.text "Rough and Robust" ]
+                  [ HP.for "robustCheckBox"
+                  , className "form-check-label pr-2"
+                  ]
+                  [ HH.text "Robust with accuracy" ]
+              , HH.input
+                  [ HP.type_ HP.InputText
+                  , onValueChangeActionEvent HandleAccuracyInput
+                  , HP.value state.accuracyInput
+                  , onFocusOutActionEvent UpdateAccuracy
+                  , onEnterPressActionEvent UpdateAccuracy
+                  , className "form-control small-input"
+                  ]
+              , HH.span
+                  [ className "form-check-label pl-2" ]
+                  [ HH.text "px" ]
               ]
           ]
       ]
     <> (errorMessage state.error)
-
-toValueChangeActionEvent :: String -> Maybe Action
-toValueChangeActionEvent value = Just $ HandleInput value
-
-toActionEvent :: forall a. Action -> a -> Maybe Action
-toActionEvent action _ = Just action
-
-toCheckedEvent :: Action -> Boolean -> Maybe Action
-toCheckedEvent action true = Just action
-
-toCheckedEvent _ false = Nothing
 
 errorMessage :: forall slots m. Maybe String -> Array (HH.ComponentHTML Action slots m)
 errorMessage Nothing = []
 
 errorMessage (Just message) =
   [ HH.div
-      [ HP.class_ (ClassName "alert alert-danger") ]
+      [ className "alert alert-danger" ]
       [ HH.text message ]
   ]
 
 handleAction :: forall m. MonadEffect m => ExpressionInputController -> Action -> H.HalogenM State Action () ExpressionInputMessage m Unit
 handleAction controller = case _ of
-  Init -> do
-    { input } <- H.get
-    handleAction controller (HandleInput input)
-    pure unit
-  Parse -> do
-    { input, id } <- H.get
-    let
-      result = controller.parse input
-    case result of
+  UpdateExpression -> do
+    { expressionInput, id, input } <- H.get
+    case controller.parse expressionInput of
       Left parseError -> H.modify_ _ { error = Just $ show parseError }
-      Right expression -> case checkExpression expression of
+      Right expression -> case controller.checkExpression expression of
         Left evaluationError -> H.modify_ _ { error = Just $ show evaluationError }
         Right _ -> do
           H.modify_ _ { error = Nothing }
-          H.raise (Parsed id (controller.clean expression) input)
-  HandleInput input -> H.modify_ _ { input = input }
-  HandleMessage (Tuple input status) -> H.modify_ _ { input = input, status = status }
+          when (expressionInput /= input.expressionText) do
+            H.raise (ParsedExpression id (controller.clean expression) expressionInput)
+  UpdateAccuracy -> do
+    { accuracyInput, id, input } <- H.get
+    case controller.checkAccuracy accuracyInput of
+      Right error -> H.modify_ _ { error = Just error }
+      Left accuracy -> do
+        H.modify_ _ { error = Nothing }
+        when (accuracyInput /= show input.accuracy) do
+          H.raise (ParsedAccuracy id accuracy)
+  HandleExpressionInput input -> H.modify_ _ { expressionInput = input }
+  HandleAccuracyInput input -> H.modify_ _ { accuracyInput = input }
+  HandleMessage input -> H.modify_ _ { input = input, expressionInput = input.expressionText, accuracyInput = show input.accuracy }
   Status status -> do
     { id } <- H.get
-    H.modify_ _ { status = status }
     H.raise (ChangedStatus id status)
-
-checkExpression :: Expression -> Expect Number
-checkExpression expression = roughEvaluate (presetConstants <> [ Tuple "x" 0.0 ]) expression

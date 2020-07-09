@@ -1,20 +1,19 @@
 module Components.Main.Action where
 
 import Prelude
-import Components.AccuracyInput (AccuracyInputMessage(..))
 import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..))
 import Components.Canvas (CanvasMessage(..), calculateNewCanvasSize)
-import Components.ExpressionInput (ExpressionInputMessage(..))
+import Components.ExpressionInput (ExpressionInputMessage(..), Status(..))
 import Components.ExpressionManager (ExpressionManagerMessage(..))
-import Components.ExpressionManager.Types (ExpressionPlot)
-import Components.Main.Helper (alterPlot, anyPlotHasJobs, clearAllCancelled, foldDrawCommands, isCancelledInAnyPlot, newPlot, runFirstJob, clearAddPlotCommands, setFirstRunningJob, updateExpressionPlotCommands)
+import Components.ExpressionManager.Types (DrawingStatus(..), ExpressionPlot)
+import Components.Main.Helper (alterPlot, anyPlotHasJobs, clearAddPlotCommands, clearAllCancelled, foldDrawCommands, fromPixelAccuracy, isCancelledInAnyPlot, newPlot, queueHasJobs, runFirstJob, setFirstRunningJob, updateExpressionPlotCommands)
 import Components.Main.Types (ChildSlots, Config, State)
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.Trans.Class (lift)
 import Control.Parallel (parSequence)
 import Data.Array (filter)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), isJust)
 import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff, Milliseconds(..), delay)
 import Halogen as H
@@ -45,7 +44,6 @@ data Action
   | HandleCanvas CanvasMessage
   | HandleBoundsInput BoundsInputMessage
   | HandleBatchInput BatchInputMessage
-  | HandleAccuracyInput AccuracyInputMessage
   | DrawPlot
   | ProcessNextJob
   | ResizeAndRedraw
@@ -66,9 +64,6 @@ handleAction action = do
     HandleBatchInput (UpdatedBatchInput batchCount) -> do
       H.modify_ (_ { batchCount = batchCount })
       redraw state { batchCount = batchCount }
-    HandleAccuracyInput (UpdatedAccuracyInput accuracy) -> do
-      H.modify_ (_ { accuracy = accuracy })
-      redraw state { accuracy = accuracy }
     ResizeAndRedraw -> do
       resizeCanvas
       newState <- H.get
@@ -78,12 +73,15 @@ handleJobResult :: forall output. Maybe JobResult -> State -> HalogenMain output
 handleJobResult Nothing _ = pure unit
 
 handleJobResult (Just jobResult) newState =
-  if isCancelledInAnyPlot jobResult.job newState.plots then
-    pure unit
-  else do
-    H.modify_ (_ { plots = alterPlot (updateExpressionPlotCommands jobResult.drawCommands) jobResult.job.batchId newState.plots })
+  when (not (isCancelledInAnyPlot jobResult.job newState.plots)) do
+    H.modify_ (_ { plots = alterPlot updatePlot jobResult.job.batchId newState.plots })
     handleAction DrawPlot
     handleAction ProcessNextJob
+  where
+  updatePlot :: ExpressionPlot -> ExpressionPlot
+  updatePlot plot = updateExpressionPlotCommands jobResult.drawCommands $ plot { commands { status = status } }
+    where
+    status = if queueHasJobs plot then plot.commands.status else DrawnRobust
 
 scrollAction :: forall output. WheelEvent -> HalogenMain output Unit
 scrollAction event = do
@@ -133,34 +131,76 @@ handleCanvasMessage state (Dragged delta) = redrawWithoutRobustWithBounds state 
 handleCanvasMessage state StoppedDragging = redraw state
 
 handleExpressionPlotMessage :: forall output. State -> ExpressionManagerMessage -> HalogenMain output Unit
-handleExpressionPlotMessage state (RaisedExpressionInputMessage (Parsed id expression text)) = do
+handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpression id expression text)) = do
   newRoughCommands <- lift $ lift $ computePlotAsync state.input.size (roughPlot state.bounds expression text)
   H.modify_ (_ { plots = alterPlot (updatePlot newRoughCommands) id state.plots })
+  handleAction DrawPlot
   handleAction ProcessNextJob
   where
+  toDomainAccuracy :: Number -> Number
+  toDomainAccuracy = fromPixelAccuracy state.input.size state.bounds
+
   updatePlot :: DrawCommand Unit -> ExpressionPlot -> ExpressionPlot
   updatePlot newRoughCommands plot =
     plot
       { expressionText = text
       , expression = Just expression
-      , roughDrawCommands = newRoughCommands
-      , robustDrawCommands = pure unit
-      , queue = addPlot state.accuracy state.batchCount (cancelAll plot.queue) state.bounds expression text id
+      , commands
+        { rough = newRoughCommands
+        , robust = pure unit
+        , status = status
+        }
+      , queue = queue
       }
+    where
+    status = if state.autoRobust then RobustInProgress else DrawnRough
+
+    queue =
+      if state.autoRobust then
+        addPlot (toDomainAccuracy plot.accuracy) state.batchCount (cancelAll plot.queue) state.bounds expression text id
+      else
+        cancelAll plot.queue
 
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ChangedStatus id status)) = do
   H.modify_ (_ { plots = alterPlot (_ { status = status }) id state.plots })
   handleAction DrawPlot
 
+handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedAccuracy id accuracy)) = do
+  H.modify_ (_ { plots = alterPlot updatePlot id state.plots })
+  handleAction DrawPlot
+  handleAction ProcessNextJob
+  where
+  toDomainAccuracy :: Number -> Number
+  toDomainAccuracy = fromPixelAccuracy state.input.size state.bounds
+
+  updatePlot :: ExpressionPlot -> ExpressionPlot
+  updatePlot plot =
+    plot
+      { commands
+        { robust = pure unit }
+      , queue = queue
+      , accuracy = accuracy
+      }
+    where
+    status = if plot.status == Robust && isJust plot.expression then RobustInProgress else DrawnRough
+
+    queue = case plot.expression, plot.status == Robust of
+      Just expression, true -> addPlot (toDomainAccuracy accuracy) state.batchCount (cancelAll plot.queue) state.bounds expression plot.expressionText plot.id
+      _, _ -> cancelAll plot.queue
+
 handleExpressionPlotMessage state (DeletePlot plotId) = do
   H.modify_ (_ { plots = filter (\p -> p.id /= plotId) state.plots })
   handleAction DrawPlot
+
+handleExpressionPlotMessage state (ToggleAuto autoRobust) = H.modify_ (_ { autoRobust = autoRobust })
 
 handleExpressionPlotMessage state (AddPlot nextId) = H.modify_ (_ { plots = state.plots <> [ newPlot nextId ] })
 
 handleExpressionPlotMessage state (RenamePlot plotId name) = H.modify_ (_ { plots = alterPlot (_ { name = name }) plotId state.plots })
 
 handleExpressionPlotMessage state ClearPlots = clearAction state
+
+handleExpressionPlotMessage state CalulateRobustPlots = redrawRough state
 
 forkWithDelay :: forall output. Number -> HalogenMain output Unit
 forkWithDelay duration = lift $ lift $ delay $ Milliseconds duration
@@ -170,7 +210,7 @@ fork = forkWithDelay 0.0
 
 redrawWithDelayAndBounds :: forall output. State -> XYBounds -> HalogenMain output Unit
 redrawWithDelayAndBounds state newBounds = do
-  plots <- lift $ lift $ clearAddPlotCommands state.accuracy state.batchCount state.input.size newBounds state.plots
+  plots <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size newBounds state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
   H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds })
   handleAction DrawPlot
@@ -179,11 +219,31 @@ redrawWithDelayAndBounds state newBounds = do
 
 redraw :: forall output. State -> HalogenMain output Unit
 redraw state = do
-  plots <- lift $ lift $ clearAddPlotCommands state.accuracy state.batchCount state.input.size state.bounds state.plots
+  plots <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size state.bounds state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
   H.modify_ (_ { plots = plots, clearPlot = clearBounds })
   handleAction DrawPlot
   handleAction ProcessNextJob
+
+redrawRough :: forall output. State -> HalogenMain output Unit
+redrawRough state = do
+  plots <- mapPlots clearAddPlot state.plots
+  clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
+  H.modify_ (_ { plots = plots, clearPlot = clearBounds })
+  handleAction DrawPlot
+  handleAction ProcessNextJob
+  where
+  toDomainAccuracy :: Number -> Number
+  toDomainAccuracy = fromPixelAccuracy state.input.size state.bounds
+
+  clearAddPlot :: ExpressionPlot -> Aff ExpressionPlot
+  clearAddPlot plot = case plot.expression, plot.commands.status /= DrawnRobust && plot.status == Robust of
+    Just expression, true -> do
+      drawCommands <- computePlotAsync state.input.size $ roughPlot state.bounds expression plot.expressionText
+      pure $ plot { queue = queue, commands { rough = drawCommands, robust = pure unit, status = RobustInProgress } }
+      where
+      queue = addPlot (toDomainAccuracy plot.accuracy) state.batchCount (cancelAll plot.queue) state.bounds expression plot.expressionText plot.id
+    _, _ -> pure plot
 
 redrawWithBounds :: forall output. State -> XYBounds -> HalogenMain output Unit
 redrawWithBounds state newBounds = do
@@ -197,12 +257,12 @@ redrawWithoutRobustWithBounds state newBounds = do
   H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds })
   handleAction DrawPlot
   where
-  mapPlots :: (ExpressionPlot -> Aff ExpressionPlot) -> Array ExpressionPlot -> HalogenMain output (Array ExpressionPlot)
-  mapPlots f = lift <<< lift <<< parSequence <<< (map f)
-
   clearAddDrawRough :: ExpressionPlot -> Aff ExpressionPlot
   clearAddDrawRough plot = case plot.expression of
-    Nothing -> pure plot
     Just expression -> do
       drawCommands <- computePlotAsync state.input.size $ roughPlot newBounds expression plot.expressionText
-      pure $ plot { queue = cancelAll plot.queue, roughDrawCommands = drawCommands, robustDrawCommands = pure unit }
+      pure $ plot { queue = cancelAll plot.queue, commands { rough = drawCommands, robust = pure unit, status = DrawnRough } }
+    _ -> pure plot
+
+mapPlots :: forall output. (ExpressionPlot -> Aff ExpressionPlot) -> Array ExpressionPlot -> HalogenMain output (Array ExpressionPlot)
+mapPlots f = lift <<< lift <<< parSequence <<< (map f)

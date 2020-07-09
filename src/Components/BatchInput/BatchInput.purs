@@ -1,14 +1,15 @@
 module Components.BatchInput where
 
 import Prelude
+
+import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, onValueChangeActionEvent)
+import Components.Common.ClassName (className)
 import Data.Either (Either(..))
 import Data.Int (fromString)
 import Data.Maybe (Maybe(..))
 import Effect.Class (class MonadEffect)
-import Halogen (ClassName(..))
 import Halogen as H
 import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 
 type BatchInputSlot p
@@ -50,19 +51,25 @@ render :: forall slots m. State -> HH.ComponentHTML Action slots m
 render state =
   HH.div_
     $ [ HH.div
-          [ HP.class_ (ClassName "input-group mb-3") ]
+          [ className "input-group mb-3" ]
           [ HH.div
-              [ HP.class_ (ClassName "input-group-prepend") ]
-              [ HH.span [ HP.class_ (ClassName "input-group-text") ] [ HH.text "Number of Batches:" ] ]
+              [ className "input-group-prepend" ]
+              [ HH.span
+                  [ className "input-group-text" ]
+                  [ HH.text "Number of Batches:" ]
+              ]
           , HH.input
               [ HP.type_ HP.InputText
-              , HE.onValueChange $ Just <<< ChangeBatchCount
+              , onValueChangeActionEvent ChangeBatchCount
+              , onEnterPressActionEvent Update
               , HP.value state.batchCount
               , HP.id_ "batchCount"
-              , HP.class_ (ClassName "form-control")
+              , className "form-control"
               ]
           , HH.button
-              [ HE.onClick $ toActionEvent Update, HP.class_ (ClassName "btn btn-primary") ]
+              [ onClickActionEvent Update
+              , className "btn btn-primary"
+              ]
               [ HH.text "Update" ]
           ]
       ]
@@ -73,12 +80,9 @@ errorMessage Nothing = []
 
 errorMessage (Just message) =
   [ HH.div
-      [ HP.class_ (ClassName "alert alert-danger") ]
+      [ className "alert alert-danger" ]
       [ HH.text message ]
   ]
-
-toActionEvent :: forall a. Action -> a -> Maybe Action
-toActionEvent action _ = Just action
 
 handleAction :: forall m. MonadEffect m => Action -> H.HalogenM State Action () BatchInputMessage m Unit
 handleAction = case _ of

@@ -3,13 +3,14 @@ module Components.Main.Helper where
 import Prelude
 
 import Components.ExpressionInput (Status(..))
-import Components.ExpressionManager.Types (ExpressionPlot)
+import Components.ExpressionManager.Types (DrawingStatus(..), ExpressionPlot)
 import Components.Main.Types (State)
 import Control.Parallel (parSequence)
 import Data.Array (cons, fold, foldl, mapMaybe, uncons)
 import Data.Maybe (Maybe(..))
 import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff)
+import IntervalArith.Misc (rationalToNumber)
 import Misc.Array (alterWhere)
 import Plot.Commands (roughPlot)
 import Plot.JobBatcher (Job, JobResult, addPlot, cancelAll, clearCancelled, hasJobs, initialJobQueue, isCancelled, runFirst, setRunning)
@@ -21,15 +22,19 @@ newPlot id =
   { expressionText: ""
   , expression: Nothing
   , id
-  , robustDrawCommands: pure unit
-  , roughDrawCommands: pure unit
+  , commands:
+      { robust: pure unit
+      , rough: pure unit
+      , status: DrawnNone
+      }
   , queue: initialJobQueue
   , status: Robust
   , name: "Plot " <> (show id)
+  , accuracy: 0.1
   }
 
 updateExpressionPlotCommands :: DrawCommand Unit -> ExpressionPlot -> ExpressionPlot
-updateExpressionPlotCommands commands plot = plot { robustDrawCommands = fold [ plot.robustDrawCommands, commands ] }
+updateExpressionPlotCommands commands plot = plot { commands { robust = fold [ plot.commands.robust, commands ] } }
 
 alterPlot :: (ExpressionPlot -> ExpressionPlot) -> Id -> Array ExpressionPlot -> Array ExpressionPlot
 alterPlot alterF id = alterWhere (\p -> p.id == id) alterF
@@ -39,6 +44,12 @@ queueHasJobs plot = hasJobs plot.queue
 
 anyPlotHasJobs :: Array ExpressionPlot -> Boolean
 anyPlotHasJobs = anyPlotExpression queueHasJobs
+
+isAllRobustPlotsComplete ::Array ExpressionPlot -> Boolean
+isAllRobustPlotsComplete = allPlotExpression $ \plot -> plot.commands.status == DrawnRobust
+
+allPlotExpression :: (ExpressionPlot -> Boolean) -> Array ExpressionPlot -> Boolean
+allPlotExpression f = (foldl (&&) true) <<< (map f)
 
 anyPlotExpression :: (ExpressionPlot -> Boolean) -> Array ExpressionPlot -> Boolean
 anyPlotExpression f = (foldl (||) false) <<< (map f)
@@ -74,23 +85,41 @@ toMaybeDrawCommand :: ExpressionPlot -> Maybe (DrawCommand Unit)
 toMaybeDrawCommand plot = case plot.expression of
   Just expression -> case plot.status of
     Off -> Nothing
-    Rough -> Just plot.roughDrawCommands
-    Robust -> Just $ fold [ plot.roughDrawCommands, plot.robustDrawCommands ]
+    Rough -> Just plot.commands.rough
+    Robust -> Just $ fold [ plot.commands.rough, plot.commands.robust ]
   Nothing -> Nothing
 
 foldDrawCommands :: State -> DrawCommand Unit
 foldDrawCommands state = fold $ [ state.clearPlot ] <> mapMaybe toMaybeDrawCommand state.plots
 
-clearAddPlotCommands :: Number -> Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
-clearAddPlotCommands accuracy batchCount size newBounds = parSequence <<< (map clearAddPlot)
+clearAddPlotCommands :: Boolean -> Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
+clearAddPlotCommands autoRobust batchCount size newBounds = parSequence <<< (map clearAddPlot)
   where
+  toDomainAccuracy :: Number -> Number
+  toDomainAccuracy = fromPixelAccuracy size newBounds
+
   clearAddPlot :: ExpressionPlot -> Aff ExpressionPlot
   clearAddPlot plot = case plot.expression of
     Nothing -> pure plot
     Just expression -> do
-      let
-        cancelledQueue = cancelAll plot.queue
-
-        queueWithPlot = addPlot accuracy batchCount cancelledQueue newBounds expression plot.expressionText plot.id
       drawCommands <- computePlotAsync size $ roughPlot newBounds expression plot.expressionText
-      pure $ plot { queue = queueWithPlot, roughDrawCommands = drawCommands, robustDrawCommands = pure unit }
+      pure $ plot { queue = queue, commands { rough = drawCommands, robust = pure unit, status = status } }
+      where
+      queue =
+        if autoRobust && plot.status == Robust then
+          addPlot (toDomainAccuracy plot.accuracy) batchCount (cancelAll plot.queue) newBounds expression plot.expressionText plot.id
+        else
+          cancelAll plot.queue
+
+      status =
+        if autoRobust && plot.status == Robust then
+          RobustInProgress
+        else
+          DrawnRough
+
+fromPixelAccuracy :: Size -> XYBounds -> Number -> Number
+fromPixelAccuracy canvasSize bounds pixelAccuracy = pixelAccuracy * pixelToDomainRatio
+  where
+  rangeY = bounds.yBounds.upper - bounds.yBounds.lower
+
+  pixelToDomainRatio = rationalToNumber $ rangeY / canvasSize.height
