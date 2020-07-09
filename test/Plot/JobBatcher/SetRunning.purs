@@ -4,7 +4,7 @@ module Test.Plot.JobBatcher.SetRunning
 
 import Prelude
 
-import Components.BoundsInput (initialBounds)
+import Components.BoundsInput (unitBounds)
 import Data.Foldable (class Foldable, foldl)
 import Data.Maybe (Maybe(..))
 import Misc.Queue (Queue, push)
@@ -41,7 +41,7 @@ setRunningTests =
 basicJob :: Id -> Job
 basicJob id =
   { id
-  , command: Empty initialBounds
+  , command: Empty unitBounds
   , batchId: 0
   }
 

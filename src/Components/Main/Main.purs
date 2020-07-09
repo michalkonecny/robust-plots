@@ -1,9 +1,10 @@
 module Components.Main where
 
 import Prelude
+
 import Components.BatchInput (batchInputComponent)
-import Components.BoundsInput (initialBounds, boundsInputComponent)
-import Components.Canvas (canvasComponent)
+import Components.BoundsInput (boundsInputComponent, canvasSizeToBounds)
+import Components.Canvas (canvasComponent, defaultCanvasSize)
 import Components.Canvas.Controller (canvasController)
 import Components.Common.Action (onClickActionEvent)
 import Components.Common.ClassName (className)
@@ -21,7 +22,7 @@ import Effect.Class (class MonadEffect)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
-import IntervalArith.Misc (toRational)
+
 import Types (Direction(..))
 
 _canvas = SProxy :: SProxy "canvas"
@@ -50,12 +51,9 @@ mainComponent =
     { input:
         { operations: pure unit
         , canvasId: canvasId
-        , size:
-            { width: toRational 800
-            , height: toRational 500
-            }
+        , size: defaultCanvasSize
         }
-    , bounds: initialBounds
+    , bounds: canvasSizeToBounds defaultCanvasSize
     , plots:
         [ newPlot 0
         ]

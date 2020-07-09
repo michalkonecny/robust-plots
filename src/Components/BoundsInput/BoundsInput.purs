@@ -1,7 +1,6 @@
 module Components.BoundsInput where
 
 import Prelude
-
 import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (className)
 import Control.Lazy (fix)
@@ -12,10 +11,10 @@ import Expression.Parser (P, literal)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
-import IntervalArith.Misc (Rational, rationalToNumber)
+import IntervalArith.Misc (Rational, rationalToNumber, toRational)
 import Text.Parsing.Parser (runParser)
 import Text.Parsing.Parser.Expr (buildExprParser)
-import Types (XYBounds)
+import Types (XYBounds, Size)
 
 type BoundsInputSlot p
   = forall q. H.Slot q BoundsInputMessage p
@@ -149,7 +148,7 @@ handleAction = case _ of
   HandleInput YUpper stringInput -> H.modify_ _ { yBounds { upper = stringInput } }
   ResetBounds -> do
     H.modify_ _ { error = Nothing }
-    H.raise (UpdatedBoundsInput initialBounds)
+    H.raise (UpdatedBoundsInput unitBounds)
   Recieve bounds ->
     H.modify_
       _
@@ -197,8 +196,13 @@ parse input = case runParser input expressionParser of
 expressionParser :: P Rational
 expressionParser = fix (\p -> buildExprParser [] literal)
 
-initialBounds :: XYBounds
-initialBounds = xyBounds (-one) one (-one) one
+unitBounds :: XYBounds
+unitBounds = xyBounds (-one) one (-one) one
 
 xyBounds :: Rational -> Rational -> Rational -> Rational -> XYBounds
 xyBounds xLower xUpper yLower yUpper = { xBounds: { upper: xUpper, lower: xLower }, yBounds: { upper: yUpper, lower: yLower } }
+
+canvasSizeToBounds :: Size -> XYBounds
+canvasSizeToBounds size = xyBounds (-ratio) ratio (-one) one
+  where
+  ratio = size.width / size.height

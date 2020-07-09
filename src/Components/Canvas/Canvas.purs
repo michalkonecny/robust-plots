@@ -136,3 +136,9 @@ calculateNewCanvasSize = do
 
     newHeight = (newWidth * 5.0) / 8.0
   pure $ { width: toRational (round newWidth), height: toRational (round newHeight) }
+
+defaultCanvasSize :: Size
+defaultCanvasSize =
+  { width: toRational 800
+  , height: toRational 500
+  }

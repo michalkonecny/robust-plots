@@ -2,7 +2,7 @@ module Components.Main.Action where
 
 import Prelude
 import Components.BatchInput (BatchInputMessage(..))
-import Components.BoundsInput (BoundsInputMessage(..))
+import Components.BoundsInput (BoundsInputMessage(..), canvasSizeToBounds)
 import Components.Canvas (CanvasMessage(..), calculateNewCanvasSize)
 import Components.ExpressionInput (ExpressionInputMessage(..), Status(..))
 import Components.ExpressionManager (ExpressionManagerMessage(..))
@@ -26,7 +26,7 @@ import Plot.Zoom (zoomBounds)
 import Types (Direction, XYBounds)
 import Web.Event.Event as E
 import Web.HTML (window) as Web
-import Web.HTML.Window (document, toEventTarget) as Web
+import Web.HTML.Window (toEventTarget) as Web
 
 type HalogenMain output a
   = H.HalogenM State Action ChildSlots output (ReaderT Config Aff) a
@@ -52,7 +52,7 @@ handleAction action = do
     Pan direction -> redrawWithDelayAndBounds state (panBounds state.bounds direction)
     Zoom isZoomIn -> redrawWithDelayAndBounds state (zoomBounds state.bounds isZoomIn)
     HandleCanvas message -> handleCanvasMessage state message
-    Init -> initialiseAction state
+    Init -> initialiseAction
     DrawPlot -> H.modify_ (_ { input { operations = foldDrawCommands state } })
     ProcessNextJob -> processNextJobAction state
     HandleBatchInput (UpdatedBatchInput batchCount) -> do
@@ -80,14 +80,14 @@ handleJobResult (Just jobResult) newState =
 resizeCanvas :: forall output. HalogenMain output Unit
 resizeCanvas = do
   newCanvasSize <- H.liftEffect calculateNewCanvasSize
-  H.modify_ (_ { input { size = newCanvasSize } })
+  H.modify_ (_ { input { size = newCanvasSize }, bounds = canvasSizeToBounds newCanvasSize })
 
-initialiseAction :: forall output. State -> HalogenMain output Unit
-initialiseAction state = do
+initialiseAction :: forall output. HalogenMain output Unit
+initialiseAction = do
   window <- H.liftEffect $ Web.toEventTarget <$> Web.window
-  document <- H.liftEffect $ Web.document =<< Web.window
   H.subscribe' \id -> ES.eventListenerEventSource (E.EventType "resize") window (const (Just ResizeAndRedraw))
   resizeCanvas
+  state <- H.get
   clearAction state
 
 clearAction :: forall output. State -> HalogenMain output Unit
