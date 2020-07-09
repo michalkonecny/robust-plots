@@ -1,7 +1,6 @@
 module Components.Main.Action where
 
 import Prelude
-
 import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..))
 import Components.Canvas (CanvasMessage(..), calculateNewCanvasSize)
@@ -143,8 +142,10 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpressio
     plot
       { expressionText = text
       , expression = Just expression
-      , roughDrawCommands = newRoughCommands
-      , robustDrawCommands = pure unit
+      , commands
+        { rough = newRoughCommands
+        , robust = pure unit
+        }
       , queue = queue
       }
     where
@@ -169,7 +170,8 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedAccuracy 
   updatePlot :: ExpressionPlot -> ExpressionPlot
   updatePlot plot =
     plot
-      { robustDrawCommands = pure unit
+      { commands
+        { robust = pure unit }
       , queue = queue
       , accuracy = accuracy
       }
@@ -190,7 +192,7 @@ handleExpressionPlotMessage state (RenamePlot plotId name) = H.modify_ (_ { plot
 
 handleExpressionPlotMessage state ClearPlots = clearAction state
 
-handleExpressionPlotMessage state CalulateRobustPlots = do 
+handleExpressionPlotMessage state CalulateRobustPlots = do
   H.modify_ (_ { allRobustDraw = true })
   redraw state { autoRobust = true }
 
@@ -236,5 +238,5 @@ redrawWithoutRobustWithBounds state newBounds = do
   clearAddDrawRough plot = case plot.expression of
     Just expression -> do
       drawCommands <- computePlotAsync state.input.size $ roughPlot newBounds expression plot.expressionText
-      pure $ plot { queue = cancelAll plot.queue, roughDrawCommands = drawCommands, robustDrawCommands = pure unit }
+      pure $ plot { queue = cancelAll plot.queue, commands { rough = drawCommands, robust = pure unit } }
     _ -> pure plot

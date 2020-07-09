@@ -1,9 +1,8 @@
 module Components.Main.Helper where
 
 import Prelude
-
 import Components.ExpressionInput (Status(..))
-import Components.ExpressionManager.Types (ExpressionPlot)
+import Components.ExpressionManager.Types (DrawingStatus(..), ExpressionPlot)
 import Components.Main.Types (State)
 import Control.Parallel (parSequence)
 import Data.Array (cons, fold, foldl, mapMaybe, uncons)
@@ -22,8 +21,11 @@ newPlot id =
   { expressionText: ""
   , expression: Nothing
   , id
-  , robustDrawCommands: pure unit
-  , roughDrawCommands: pure unit
+  , commands:
+      { robust: pure unit
+      , rough: pure unit
+      , status: DrawnNone
+      }
   , queue: initialJobQueue
   , status: Robust
   , name: "Plot " <> (show id)
@@ -31,7 +33,7 @@ newPlot id =
   }
 
 updateExpressionPlotCommands :: DrawCommand Unit -> ExpressionPlot -> ExpressionPlot
-updateExpressionPlotCommands commands plot = plot { robustDrawCommands = fold [ plot.robustDrawCommands, commands ] }
+updateExpressionPlotCommands commands plot = plot { commands { robust = fold [ plot.commands.robust, commands ] } }
 
 alterPlot :: (ExpressionPlot -> ExpressionPlot) -> Id -> Array ExpressionPlot -> Array ExpressionPlot
 alterPlot alterF id = alterWhere (\p -> p.id == id) alterF
@@ -76,8 +78,8 @@ toMaybeDrawCommand :: ExpressionPlot -> Maybe (DrawCommand Unit)
 toMaybeDrawCommand plot = case plot.expression of
   Just expression -> case plot.status of
     Off -> Nothing
-    Rough -> Just plot.roughDrawCommands
-    Robust -> Just $ fold [ plot.roughDrawCommands, plot.robustDrawCommands ]
+    Rough -> Just plot.commands.rough
+    Robust -> Just $ fold [ plot.commands.rough, plot.commands.robust ]
   Nothing -> Nothing
 
 foldDrawCommands :: State -> DrawCommand Unit
@@ -94,7 +96,7 @@ clearAddPlotCommands autoRobust batchCount size newBounds = parSequence <<< (map
     Nothing -> pure plot
     Just expression -> do
       drawCommands <- computePlotAsync size $ roughPlot newBounds expression plot.expressionText
-      pure $ plot { queue = queue, roughDrawCommands = drawCommands, robustDrawCommands = pure unit }
+      pure $ plot { queue = queue, commands { rough = drawCommands, robust = pure unit } }
       where
       queue =
         if autoRobust then
@@ -102,8 +104,9 @@ clearAddPlotCommands autoRobust batchCount size newBounds = parSequence <<< (map
         else
           cancelAll plot.queue
 
-fromPixelAccuracy :: Size -> XYBounds -> Number -> Number 
+fromPixelAccuracy :: Size -> XYBounds -> Number -> Number
 fromPixelAccuracy canvasSize bounds pixelAccuracy = pixelAccuracy * pixelToDomainRatio
-  where 
-    rangeY = bounds.yBounds.upper - bounds.yBounds.lower
-    pixelToDomainRatio = rationalToNumber $ rangeY / canvasSize.height 
+  where
+  rangeY = bounds.yBounds.upper - bounds.yBounds.lower
+
+  pixelToDomainRatio = rationalToNumber $ rangeY / canvasSize.height

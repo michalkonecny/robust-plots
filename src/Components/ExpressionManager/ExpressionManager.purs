@@ -109,7 +109,8 @@ render state =
                     [ HP.class_ (ClassName "btn-group") ]
                     [ HH.button
                         [ HP.class_ (ClassName "btn btn-danger")
-                        , HE.onClick $ toActionEvent Clear ]
+                        , HE.onClick $ toActionEvent Clear
+                        ]
                         [ HH.text "Clear plots" ]
                     , HH.button
                         [ HP.class_ $ ClassName $ "btn btn-primary" <> if state.allRobustDraw then " disabled" else ""
@@ -135,7 +136,15 @@ handleAction = case _ of
           selectedPlotId
         else
           firstPlotId plots
-    H.modify_ _ { plots = plots, selectedPlotId = newSelectedPlotId, editingSelected = false, editedName = selectedPlotName plots newSelectedPlotId, autoRobust = autoRobust, allRobustDraw = allRobustDraw }
+    H.modify_
+      _
+        { plots = plots
+        , selectedPlotId = newSelectedPlotId
+        , editingSelected = false
+        , editedName = selectedPlotName plots newSelectedPlotId
+        , autoRobust = autoRobust
+        , allRobustDraw = allRobustDraw
+        }
   Clear -> H.raise ClearPlots
   Add -> do
     { nextPlotId } <- H.get

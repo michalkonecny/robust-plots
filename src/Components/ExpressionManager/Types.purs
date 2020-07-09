@@ -11,14 +11,25 @@ import Plot.JobBatcher (JobQueue)
 type ExpressionPlot
   = { expression :: Maybe Expression
     , expressionText :: String
-    , robustDrawCommands :: DrawCommand Unit
-    , roughDrawCommands :: DrawCommand Unit
+    , commands :: ExpressionPlotCommands
     , id :: Int
     , queue :: JobQueue
     , status :: Status
     , name :: String
     , accuracy :: Number
     }
+
+type ExpressionPlotCommands
+  = { robust :: DrawCommand Unit
+    , rough :: DrawCommand Unit
+    , status :: DrawingStatus
+    }
+
+data DrawingStatus
+  = DrawnRough
+  | RobustInProgress
+  | DrawnRobust
+  | DrawnNone
 
 type ChildSlots
   = ( expressionInput :: ExpressionInputSlot Int
