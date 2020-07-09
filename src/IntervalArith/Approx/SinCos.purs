@@ -9,7 +9,7 @@ import Data.Int as Int
 import Data.List.Lazy as L
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import IntervalArith.Approx (Approx(..), boundErrorTerm, fromInt, fromIntegerMB, lowerA, modA, recipA, setMB, sqrA, unionA, upperA)
+import IntervalArith.Approx (Approx(..), boundErrorTerm, fromInt, fromInteger, fromIntegerMB, lowerA, modA, recipA, setMB, sqrA, unionA, upperA)
 import IntervalArith.Approx.NumOrder (absA, (!<=!))
 import IntervalArith.Approx.Pi (piA)
 import IntervalArith.Approx.Taylor (taylorA)
@@ -53,7 +53,7 @@ sinTaylorRed2A a@(Approx mb m _ s) =
 
     a2 = negate $ sqrA a'
 
-    t = taylorA mb (map (recipA <<< setMB mb) oddFactorials) a2
+    t = taylorA mb (map (recipA <<< setMB mb <<< fromInteger) oddFactorials) a2
 
     step x = boundErrorTerm $ x * ((fromInt 3) - (fromInt 4) * sqrA x)
   in
