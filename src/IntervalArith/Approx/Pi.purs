@@ -5,6 +5,7 @@
 module IntervalArith.Approx.Pi where
 
 import Prelude
+
 import Data.Foldable (product, sum)
 import Data.List.Lazy (List, (:))
 import Data.List.Lazy as L
@@ -17,7 +18,8 @@ import IntervalArith.Approx.Sqrt (sqrtA)
 import IntervalArith.Dyadic ((:^))
 import IntervalArith.Extended (Extended(..))
 import IntervalArith.Misc (Integer, big, (^))
-import Misc.LazyList (ones, onetwoetc, unsafeHead, unsafeTail, zipWith4, (!!))
+import Misc.LazyList (unsafeHead, unsafeTail, zipWith4, (!!))
+import Misc.LazyList.NumberSequences (ones, onetwoetc)
 import Misc.Tuple (Tuple22, tuple22)
 
 {-|
