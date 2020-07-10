@@ -3,13 +3,12 @@ module Test.Expression.SubExpression.JoinCommonSubExpressions
   ) where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Data.Int (toNumber)
 import Data.Tuple (Tuple(..))
 import Expression.Differentiator (differentiate)
 import Expression.Error (Expect, throw)
-import Expression.Evaluator (presetConstants, roughEvaluate)
+import Expression.Evaluator (roughEvaluate)
 import Expression.Parser (parse)
 import Expression.SubExpression (joinCommonSubExpressions)
 import Expression.Syntax (Expression)
@@ -102,7 +101,7 @@ joinCommonSubExpressionsTests =
       $ \(n :: Int) -> do
           let
             -- given
-            variables = presetConstants <> [ Tuple "x" (toNumber n) ]
+            variables = [ Tuple "x" (toNumber n) ]
 
             rawExpression = "sin((x+x)+(x+x))+(x+x)+sin((x+x)+(x+x))"
           case parse rawExpression of
@@ -116,7 +115,7 @@ joinCommonSubExpressionsTests =
       $ \(n :: Int) -> do
           let
             -- given
-            variables = presetConstants <> [ Tuple "x" (toNumber n) ]
+            variables = [ Tuple "x" (toNumber n) ]
 
             rawExpression = "sin((x+x)+(x+x))+(x+x)+sin((x+x)+(x+x))"
           case parse rawExpression of

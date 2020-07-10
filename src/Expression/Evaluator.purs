@@ -13,16 +13,13 @@ import IntervalArith.Approx.Sqrt (sqrtA)
 import IntervalArith.Misc (Rational, multiplicativePowerRecip, rationalToNumber)
 import Math (cos, exp, log, pow, sin, sqrt, tan, e, pi)
 
-presetConstants :: Array (Tuple String Number)
-presetConstants = [ (Tuple "pi" pi), (Tuple "e" e) ]
-
 ----------------------------------------------------
 -- Evaluate Number
 ----------------------------------------------------
 roughEvaluate :: VariableMap Number -> Expression -> Expect Number
 roughEvaluate variableMap = case _ of
   ExpressionLiteral value -> pure $ rationalToNumber value
-  ExpressionVariable name -> case lookup variableMap name of
+  ExpressionVariable name -> case lookup (presetConstants <> variableMap) name of
     Just value -> pure value
     _ -> unknownValue name
   ExpressionBinary operation leftExpression rightExpression -> roughEvaluateBinaryOperation operation variableMap leftExpression rightExpression
@@ -30,6 +27,9 @@ roughEvaluate variableMap = case _ of
   ExpressionLet name expression parentExpression -> case roughEvaluate variableMap expression of
     Right value -> roughEvaluate (variableMap <> [ (Tuple name value) ]) parentExpression
     Left error -> Left error
+  where
+  presetConstants :: Array (Tuple String Number)
+  presetConstants = [ (Tuple "pi" pi), (Tuple "e" e) ]
 
 roughEvaluateBinaryOperation :: BinaryOperation -> VariableMap Number -> Expression -> Expression -> Expect Number
 roughEvaluateBinaryOperation Plus = roughEvaluateArithmeticBinaryOperation add

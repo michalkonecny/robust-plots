@@ -8,7 +8,7 @@ import Data.Int (toNumber)
 import Data.Tuple (Tuple(..))
 import Expression.Error (Expect, throw)
 import Expression.VariableMap (VariableMap)
-import Expression.Evaluator (roughEvaluate, presetConstants)
+import Expression.Evaluator (roughEvaluate)
 import Expression.Parser (parse)
 import Test.QuickCheck ((===))
 import Test.Unit (TestSuite, suite, test)
@@ -22,7 +22,7 @@ roughEvaluateTests =
       $ \(n :: Int) -> do
           let
             -- given
-            variables = presetConstants
+            variables = []
 
             rawExpression = show $ toNumber n
 
@@ -35,7 +35,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 9.0 WHEN f(x) = 4+5" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "4+5"
 
@@ -48,7 +48,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 7.5 WHEN f(x) = 4.5+3" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "4.5+3"
 
@@ -61,7 +61,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 12.0 WHEN f(x) = 4*3" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "4*3"
 
@@ -74,7 +74,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 9.0 WHEN f(x) = 4.5*2" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "4.5*2"
 
@@ -87,7 +87,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 4.0 WHEN f(x) = 8/2" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "8/2"
 
@@ -100,7 +100,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 4.5 WHEN f(x) = 9/2" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "9/2"
 
@@ -113,7 +113,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 4.75 WHEN f(x) = 9.5/2" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "9.5/2"
 
@@ -126,7 +126,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 4.75 WHEN f(x) = 9.5/2" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "9.5/2"
 
@@ -139,7 +139,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 7.0 WHEN f(x) = 9-2" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "9-2"
 
@@ -152,7 +152,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 6.0 WHEN f(x) = 9.5-3.5" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "9.5-3.5"
 
@@ -165,7 +165,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 12.0 WHEN f(x) = (2+4)+6" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "(2+4)+6"
 
@@ -178,7 +178,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 36.0 WHEN f(x) = (2+4)*6" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "(2+4)*6"
 
@@ -191,7 +191,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 26.0 WHEN f(x) = 2+4*6" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "2+4*6"
 
@@ -204,7 +204,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 8.0 WHEN f(x) = 2^3" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "2^3"
 
@@ -217,7 +217,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 1.0 WHEN f(x) = sin(pi/2)" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "sin(pi/2)"
 
@@ -230,7 +230,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 0.0 WHEN f(x) = sin(0)" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "sin(0)"
 
@@ -243,7 +243,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = -1.0 WHEN f(x) = cos(pi)" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "cos(pi)"
 
@@ -256,7 +256,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 1.0 WHEN f(x) = cos(0)" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "cos(0)"
 
@@ -269,7 +269,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 0.0 WHEN f(x) = tan(0)" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "tan(0)"
 
@@ -282,7 +282,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 2.0 WHEN f(x) = sqrt(4)" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "sqrt(4)"
 
@@ -295,7 +295,7 @@ roughEvaluateTests =
     test "ASSERT f(x) = 0.0 WHEN f(x) = log(1)" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "log(1)"
 
@@ -310,7 +310,7 @@ roughEvaluateTests =
         -- given
         x = 5.0
 
-        variables = [ (Tuple "x" x) ] <> presetConstants
+        variables = [ (Tuple "x" x) ]
 
         rawExpression = "x"
 
@@ -325,7 +325,7 @@ roughEvaluateTests =
         -- given
         x = 2.0
 
-        variables = [ (Tuple "x" x) ] <> presetConstants
+        variables = [ (Tuple "x" x) ]
 
         rawExpression = "2.0*x"
 
@@ -340,7 +340,7 @@ roughEvaluateTests =
         -- given
         x = 2.0
 
-        variables = [ (Tuple "x" x) ] <> presetConstants
+        variables = [ (Tuple "x" x) ]
 
         rawExpression = "2.0*x"
 
@@ -355,7 +355,7 @@ roughEvaluateTests =
         -- given
         x = 0.0
 
-        variables = [ (Tuple "x" x) ] <> presetConstants
+        variables = [ (Tuple "x" x) ]
 
         rawExpression = "1 / (1 + (100 * (x ^ 2)))"
 
@@ -370,7 +370,7 @@ roughEvaluateTests =
         -- given
         x = 0.1
 
-        variables = [ (Tuple "x" x) ] <> presetConstants
+        variables = [ (Tuple "x" x) ]
 
         rawExpression = "1 / (1 + (100 * (x ^ 2)))"
 
@@ -385,7 +385,7 @@ roughEvaluateTests =
         -- given
         x = 0.0
 
-        variables = [ (Tuple "x" x) ] <> presetConstants
+        variables = [ (Tuple "x" x) ]
 
         rawExpression = "1-(x/6)*(1-(x/20))"
 
@@ -398,7 +398,7 @@ roughEvaluateTests =
     test "SHOULD throw error 'Unknown value: x' WHEN f(x) = 1 / (1 + (100 * (x ^ 2))) AND x is undefined" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "1 / (1 + (100 * (x ^ 2)))"
 
@@ -411,7 +411,7 @@ roughEvaluateTests =
     test "SHOULD throw error 'Unknown value: a | Unknown value: b' WHEN f(x) = a + b AND a is undefined AND b in undefined" do
       let
         -- given
-        variables = presetConstants
+        variables = []
 
         rawExpression = "a + b"
 
