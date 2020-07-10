@@ -1,4 +1,4 @@
-module Misc.Tuple where
+module Misc.Tuple22 where
 
 import Data.Tuple (Tuple(..))
 

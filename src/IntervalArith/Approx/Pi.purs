@@ -20,7 +20,7 @@ import IntervalArith.Extended (Extended(..))
 import IntervalArith.Misc (Integer, big, (^))
 import Misc.LazyList (unsafeHead, unsafeTail, zipWith4, (!!))
 import Misc.LazyList.NumberSequences (ones, onetwoetc)
-import Misc.Tuple (Tuple22, tuple22)
+import Misc.Tuple22 (Tuple22, tuple22)
 
 {-|
 Binary splitting summation of linearly convergent series as described in
