@@ -3,45 +3,47 @@ module Plot.Label
   ) where
 
 import Prelude
+import Control.Alt ((<|>))
 import Control.Monad.Free (resume)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Draw.Commands (DrawCommand, DrawCommandF(..))
 import Types (Position)
 
-toRoughLabelPosition :: DrawCommand Unit -> Maybe Position
-toRoughLabelPosition = toLabelPosition interpretRough
+toRoughLabelPosition :: (Position -> Boolean) -> DrawCommand Unit -> Maybe Position
+toRoughLabelPosition isOnCanvas = toLabelPosition $ interpretRough isOnCanvas
 
 toLabelPosition :: (DrawCommandF (DrawCommand Unit) -> Maybe Position) -> DrawCommand Unit -> Maybe Position
 toLabelPosition interpret commands = case resume commands of
   Right _ -> Nothing
   Left command -> interpret command
 
-interpretRough :: DrawCommandF (DrawCommand Unit) -> Maybe Position
-interpretRough (ClearCanvas nextCommands) = toLabelPosition interpretRough nextCommands
+interpretRough :: (Position -> Boolean) -> DrawCommandF (DrawCommand Unit) -> Maybe Position
+interpretRough isOnCanvas = case _ of
+  (ClearCanvas nextCommands) -> toLabelPosition (interpretRough isOnCanvas) nextCommands
+  (DrawText _ _ _ _ nextCommands) -> toLabelPosition (interpretRough isOnCanvas) nextCommands
+  (DrawXGridLine _ _ _ nextCommands) -> toLabelPosition (interpretRough isOnCanvas) nextCommands
+  (DrawYGridLine _ _ _ nextCommands) -> toLabelPosition (interpretRough isOnCanvas) nextCommands
+  (DrawXAxis _ _ nextCommands) -> toLabelPosition (interpretRough isOnCanvas) nextCommands
+  (DrawYAxis _ _ nextCommands) -> toLabelPosition (interpretRough isOnCanvas) nextCommands
+  (DrawPolygon _ nextCommands) -> toLabelPosition (interpretRough isOnCanvas) nextCommands
+  (DrawEnclosure _ _ nextCommands) -> toLabelPosition (interpretRough isOnCanvas) nextCommands
+  (DrawRootEnclosure _ _ _ nextCommands) -> toLabelPosition (interpretRough isOnCanvas) nextCommands
+  (DrawPlotLine a b nextCommands) -> mostLeft midPoint nextCommandsPosition
+    where
+    midPoint = takeIf isOnCanvas $ Just $ toMidPoint a b
 
-interpretRough (DrawText _ _ _ _ nextCommands) = toLabelPosition interpretRough nextCommands
+    nextCommandsPosition = toLabelPosition (interpretRough isOnCanvas) nextCommands
 
-interpretRough (DrawXGridLine _ _ _ nextCommands) = toLabelPosition interpretRough nextCommands
+mostLeft :: Maybe Position -> Maybe Position -> Maybe Position
+mostLeft (Just a) (Just b) = if a.x < b.x then Just a else Just b
 
-interpretRough (DrawYGridLine _ _ _ nextCommands) = toLabelPosition interpretRough nextCommands
+mostLeft a b = a <|> b
 
-interpretRough (DrawXAxis _ _ nextCommands) = toLabelPosition interpretRough nextCommands
+toMidPoint :: Position -> Position -> Position
+toMidPoint a b = { x: (a.x + b.x) / 2.0, y: (a.y + b.y) / 2.0 }
 
-interpretRough (DrawYAxis _ _ nextCommands) = toLabelPosition interpretRough nextCommands
+takeIf :: (Position -> Boolean) -> Maybe Position -> Maybe Position
+takeIf _ Nothing = Nothing
 
-interpretRough (DrawPolygon _ nextCommands) = toLabelPosition interpretRough nextCommands
-
-interpretRough (DrawEnclosure _ _ nextCommands) = toLabelPosition interpretRough nextCommands
-
-interpretRough (DrawRootEnclosure _ _ _ nextCommands) = toLabelPosition interpretRough nextCommands
-
-interpretRough (DrawPlotLine a b nextCommands) = mostLeft (midPoint a b) $ toLabelPosition interpretRough nextCommands
-
-mostLeft :: Position -> Maybe Position -> Maybe Position
-mostLeft a Nothing = Just a
-
-mostLeft a (Just b) = if a.x < b.x then Just a else Just b
-
-midPoint :: Position -> Position -> Position
-midPoint a b = { x: (a.x + b.x) / 2.0, y: (a.y + b.y) / 2.0 }
+takeIf check (Just a) = if check a then Just a else Nothing
