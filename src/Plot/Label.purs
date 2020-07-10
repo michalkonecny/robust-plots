@@ -14,9 +14,9 @@ import Misc.Maybe (toNothingIf)
 import Types (Position)
 
 drawLabels :: (Position -> Boolean) -> Array (Tuple String (DrawCommand Unit)) -> DrawCommand Unit
-drawLabels isOnCanvas labelledCommands = pure unit -- TODO: Fix label position and draw labels
+drawLabels isOffCanvas labelledCommands = pure unit -- TODO: Fix label position and draw labels
   where
-  labelledPoints = mapMaybe (withLabelText (toRoughLabelPosition isOnCanvas)) labelledCommands
+  labelledPoints = mapMaybe (withLabelText (toRoughLabelPosition isOffCanvas)) labelledCommands
 
 withLabelText :: (DrawCommand Unit -> Maybe Position) -> Tuple String (DrawCommand Unit) -> Maybe (Tuple String Position)
 withLabelText toPosition (Tuple text commands) = case toPosition commands of
@@ -24,7 +24,7 @@ withLabelText toPosition (Tuple text commands) = case toPosition commands of
   Just position -> Just $ Tuple text position
 
 toRoughLabelPosition :: (Position -> Boolean) -> DrawCommand Unit -> Maybe Position
-toRoughLabelPosition isOnCanvas = interpretWith interpretRough
+toRoughLabelPosition isOffCanvas = interpretWith interpretRough
   where 
     interpretRough :: DrawCommandF (DrawCommand Unit) -> Maybe Position
     interpretRough = case _ of
@@ -39,7 +39,7 @@ toRoughLabelPosition isOnCanvas = interpretWith interpretRough
       (DrawRootEnclosure _ _ _ nextCommands) -> interpretWith interpretRough nextCommands
       (DrawPlotLine a b nextCommands) -> mostLeft midPoint nextCommandsPosition
         where
-        midPoint = toNothingIf isOnCanvas $ Just $ toMidPoint a b
+        midPoint = toNothingIf isOffCanvas $ Just $ toMidPoint a b
 
         nextCommandsPosition = interpretWith interpretRough nextCommands
 

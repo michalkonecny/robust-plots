@@ -43,7 +43,7 @@ emptyDrawCommands :: DrawCommand Unit
 emptyDrawCommands = fold []
 
 alwaysOnCanvas :: Position -> Boolean
-alwaysOnCanvas = const true
+alwaysOnCanvas = const false
 
 alwaysOffCanvas :: Position -> Boolean
-alwaysOffCanvas = const false
+alwaysOffCanvas = const true
