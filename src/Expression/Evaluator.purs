@@ -12,7 +12,7 @@ import IntervalArith.Approx (Approx, fromRationalPrec)
 import IntervalArith.Approx.Pi (piA)
 import IntervalArith.Approx.Sqrt (sqrtA)
 import IntervalArith.Misc (Rational, multiplicativePowerRecip, rationalToNumber)
-import Math (cos, exp, log, pow, sin, sqrt, tan, e, pi)
+import Math (cos, exp, log, pow, sin, sqrt, tan, pi)
 
 ----------------------------------------------------
 -- Evaluate Number
@@ -29,7 +29,7 @@ roughEvaluate variableMap = case _ of
     Right value -> roughEvaluate (variableMap <> [ (Tuple name value) ]) parentExpression
     Left error -> Left error
   where
-  presetConstants = [ (Tuple "pi" pi), (Tuple "e" e) ]
+  presetConstants = [ (Tuple "pi" pi) ]
 
 roughEvaluateBinaryOperation :: BinaryOperation -> VariableMap Number -> Expression -> Expression -> Expect Number
 roughEvaluateBinaryOperation Plus = roughEvaluateArithmeticBinaryOperation add
