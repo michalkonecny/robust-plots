@@ -45,16 +45,16 @@ toRoughLabelPosition isOffCanvas = interpretWith interpretRough
   where
   interpretRough :: DrawCommandF (DrawCommand Unit) -> Maybe Position
   interpretRough = case _ of
-    (ClearCanvas nextCommands) -> interpretWith interpretRough nextCommands
-    (DrawText _ _ _ _ nextCommands) -> interpretWith interpretRough nextCommands
-    (DrawXGridLine _ _ _ nextCommands) -> interpretWith interpretRough nextCommands
-    (DrawYGridLine _ _ _ nextCommands) -> interpretWith interpretRough nextCommands
-    (DrawXAxis _ _ nextCommands) -> interpretWith interpretRough nextCommands
-    (DrawYAxis _ _ nextCommands) -> interpretWith interpretRough nextCommands
-    (DrawPolygon _ nextCommands) -> interpretWith interpretRough nextCommands
-    (DrawEnclosure _ _ nextCommands) -> interpretWith interpretRough nextCommands
-    (DrawRootEnclosure _ _ _ nextCommands) -> interpretWith interpretRough nextCommands
-    (DrawPlotLine a b nextCommands) -> mostLeft midPoint nextCommandsPosition
+    ClearCanvas nextCommands -> interpretWith interpretRough nextCommands
+    DrawText _ _ _ _ nextCommands -> interpretWith interpretRough nextCommands
+    DrawXGridLine _ _ _ nextCommands -> interpretWith interpretRough nextCommands
+    DrawYGridLine _ _ _ nextCommands -> interpretWith interpretRough nextCommands
+    DrawXAxis _ _ nextCommands -> interpretWith interpretRough nextCommands
+    DrawYAxis _ _ nextCommands -> interpretWith interpretRough nextCommands
+    DrawPolygon _ nextCommands -> interpretWith interpretRough nextCommands
+    DrawEnclosure _ _ nextCommands -> interpretWith interpretRough nextCommands
+    DrawRootEnclosure _ _ _ nextCommands -> interpretWith interpretRough nextCommands
+    DrawPlotLine a b nextCommands -> mostLeft midPoint nextCommandsPosition
       where
       midPoint = toNothingIf isOffCanvas $ Just $ toMidPoint a b
 
