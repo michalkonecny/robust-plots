@@ -188,7 +188,7 @@ parseAndDifferentiate rawExpression = valueOrEvaluationError
   expressionOrParseError = parse rawExpression
 
   valueOrEvaluationError = case expressionOrParseError of
-    Right expression -> pure $ simplify $ differentiate expression
+    Right expression -> pure $ simplify $ differentiate "x" expression
     Left error -> throw error
 
 fromExpect :: Expect Expression -> String

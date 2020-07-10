@@ -120,7 +120,7 @@ joinCommonSubExpressionsTests =
             rawExpression = "sin((x+x)+(x+x))+(x+x)+sin((x+x)+(x+x))"
           case parse rawExpression of
             Left error -> Failed $ show error
-            Right expression -> case roughEvaluate variables (differentiate $ joinCommonSubExpressions expression), roughEvaluate variables (differentiate expression) of
+            Right expression -> case roughEvaluate variables (differentiate "x" $ joinCommonSubExpressions expression), roughEvaluate variables (differentiate "x" expression) of
               Right joinedValue, Right value -> assertEquals joinedValue value
               Right _, Left error -> Failed $ show error
               Left error, Right _ -> Failed $ show error

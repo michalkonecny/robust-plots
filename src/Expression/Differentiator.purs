@@ -3,54 +3,55 @@ module Expression.Differentiator (differentiate, secondDifferentiate) where
 import Prelude
 
 import Expression.SubExpression (removeSubExpressions)
-import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
+import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..), VariableName)
 import IntervalArith.Misc (Rational)
 
-secondDifferentiate :: Expression -> Expression
-secondDifferentiate = differentiate <<< differentiate
+secondDifferentiate :: VariableName -> Expression -> Expression
+secondDifferentiate x = differentiate x <<< differentiate x
 
-differentiate :: Expression -> Expression
-differentiate = case _ of
+differentiate :: VariableName -> Expression -> Expression
+differentiate x = case _ of
   ExpressionLiteral _ -> ExpressionLiteral zero
-  ExpressionVariable _ -> ExpressionLiteral one
-  ExpressionBinary operation leftExpression rightExpression -> differentiateBinaryOperation operation leftExpression rightExpression
-  ExpressionUnary operation expression -> differentiateUnaryOperation operation expression
-  ExpressionLet name expression parentExpression -> differentiate $ removeSubExpressions $ ExpressionLet name expression parentExpression
+  ExpressionVariable varName | varName == x -> ExpressionLiteral one
+  ExpressionVariable _ -> ExpressionLiteral zero
+  ExpressionBinary operation leftExpression rightExpression -> differentiateBinaryOperation x operation leftExpression rightExpression
+  ExpressionUnary operation expression -> differentiateUnaryOperation x operation expression
+  ExpressionLet name expression parentExpression -> differentiate x $ removeSubExpressions $ ExpressionLet name expression parentExpression
 
-differentiateBinaryOperation :: BinaryOperation -> Expression -> Expression -> Expression
-differentiateBinaryOperation (Plus) leftExpression rightExpression = ExpressionBinary Plus (differentiate leftExpression) (differentiate rightExpression)
+differentiateBinaryOperation :: VariableName -> BinaryOperation -> Expression -> Expression -> Expression
+differentiateBinaryOperation x (Plus) leftExpression rightExpression = ExpressionBinary Plus (differentiate x leftExpression) (differentiate x rightExpression)
 
-differentiateBinaryOperation (Minus) leftExpression rightExpression = ExpressionBinary Minus (differentiate leftExpression) (differentiate rightExpression)
+differentiateBinaryOperation x (Minus) leftExpression rightExpression = ExpressionBinary Minus (differentiate x leftExpression) (differentiate x rightExpression)
 
-differentiateBinaryOperation (Times) leftExpression rightExpression = ExpressionBinary Plus (ExpressionBinary Times u v') (ExpressionBinary Times u' v)
+differentiateBinaryOperation x (Times) leftExpression rightExpression = ExpressionBinary Plus (ExpressionBinary Times u v') (ExpressionBinary Times u' v)
   -- Product rule
   where
   u = leftExpression
 
   v = rightExpression
 
-  u' = differentiate u
+  u' = differentiate x u
 
-  v' = differentiate v
+  v' = differentiate x v
 
-differentiateBinaryOperation (Divide) topExpression bottomExpression = ExpressionBinary Divide (ExpressionBinary Minus (ExpressionBinary Times f' g) (ExpressionBinary Times f g')) (ExpressionBinary Power g (ExpressionLiteral two))
+differentiateBinaryOperation x (Divide) topExpression bottomExpression = ExpressionBinary Divide (ExpressionBinary Minus (ExpressionBinary Times f' g) (ExpressionBinary Times f g')) (ExpressionBinary Power g (ExpressionLiteral two))
   -- Quotient rule
   where
   f = topExpression
 
   g = bottomExpression
 
-  f' = differentiate f
+  f' = differentiate x f
 
-  g' = differentiate g
+  g' = differentiate x g
 
-differentiateBinaryOperation (Power) (ExpressionVariable "e") (ExpressionLiteral _) = ExpressionLiteral zero
+differentiateBinaryOperation x (Power) (ExpressionVariable "e") (ExpressionLiteral _) = ExpressionLiteral zero
 
-differentiateBinaryOperation (Power) (ExpressionVariable "e") exponentExpression = ExpressionBinary Times (differentiate exponentExpression) (ExpressionUnary Exp exponentExpression)
+differentiateBinaryOperation x (Power) (ExpressionVariable "e") exponentExpression = ExpressionBinary Times (differentiate x exponentExpression) (ExpressionUnary Exp exponentExpression)
 
-differentiateBinaryOperation (Power) baseExpression (ExpressionLiteral value) = ExpressionBinary Times (ExpressionLiteral value) (ExpressionBinary Power baseExpression (ExpressionLiteral (value - one)))
+differentiateBinaryOperation x (Power) baseExpression (ExpressionLiteral value) = ExpressionBinary Times (ExpressionLiteral value) (ExpressionBinary Power baseExpression (ExpressionLiteral (value - one)))
 
-differentiateBinaryOperation (Power) baseExpression exponentExpression = ExpressionBinary Times k (ExpressionBinary Plus j l)
+differentiateBinaryOperation x (Power) baseExpression exponentExpression = ExpressionBinary Times k (ExpressionBinary Plus j l)
   -- (g^f)' = g^(f-1) * ((f*g')+(g*f'*log(g)))
   -- (g^f)' = k * (j + l)
   -- source: https://www.wolframalpha.com/input/?i=(f%5E(g))%27
@@ -59,9 +60,9 @@ differentiateBinaryOperation (Power) baseExpression exponentExpression = Express
 
   g = baseExpression
 
-  f' = differentiate f
+  f' = differentiate x f
 
-  g' = differentiate g
+  g' = differentiate x g
 
   -- k = g^(f - 1)
   k = ExpressionBinary Power g (ExpressionBinary Minus f (ExpressionLiteral (-one)))
@@ -72,33 +73,33 @@ differentiateBinaryOperation (Power) baseExpression exponentExpression = Express
   -- l = g * f' * log(g)
   l = ExpressionBinary Times (ExpressionBinary Times g f) (ExpressionUnary Log g)
 
-differentiateUnaryOperation :: UnaryOperation -> Expression -> Expression
-differentiateUnaryOperation (Neg) expression = ExpressionUnary Neg $ differentiate expression
+differentiateUnaryOperation :: VariableName -> UnaryOperation -> Expression -> Expression
+differentiateUnaryOperation x (Neg) expression = ExpressionUnary Neg $ differentiate x expression
 
-differentiateUnaryOperation (Sqrt) expression = ExpressionBinary Divide f' (ExpressionBinary Times (ExpressionLiteral two) (ExpressionUnary Sqrt f))
+differentiateUnaryOperation x (Sqrt) expression = ExpressionBinary Divide f' (ExpressionBinary Times (ExpressionLiteral two) (ExpressionUnary Sqrt f))
   -- (sqrt(f))' = f'/(2*sqrt(f))
   where
   f = expression
 
-  f' = differentiate f
+  f' = differentiate x f
 
-differentiateUnaryOperation (Exp) (ExpressionLiteral _) = ExpressionLiteral zero
+differentiateUnaryOperation x (Exp) (ExpressionLiteral _) = ExpressionLiteral zero
 
-differentiateUnaryOperation (Exp) expression = ExpressionBinary Times (differentiate expression) (ExpressionUnary Exp expression)
+differentiateUnaryOperation x (Exp) expression = ExpressionBinary Times (differentiate x expression) (ExpressionUnary Exp expression)
 
-differentiateUnaryOperation (Log) expression = ExpressionBinary Divide (differentiate expression) (expression)
+differentiateUnaryOperation x (Log) expression = ExpressionBinary Divide (differentiate x expression) (expression)
 
-differentiateUnaryOperation (Sine) expression = ExpressionBinary Times (differentiate expression) (ExpressionUnary Cosine expression)
+differentiateUnaryOperation x (Sine) expression = ExpressionBinary Times (differentiate x expression) (ExpressionUnary Cosine expression)
 
-differentiateUnaryOperation (Cosine) expression = ExpressionUnary Neg $ (ExpressionBinary Times (differentiate expression) (ExpressionUnary Sine expression))
+differentiateUnaryOperation x (Cosine) expression = ExpressionUnary Neg $ (ExpressionBinary Times (differentiate x expression) (ExpressionUnary Sine expression))
 
-differentiateUnaryOperation (Tan) expression = ExpressionBinary Times f' (ExpressionBinary Plus (ExpressionLiteral one) k)
+differentiateUnaryOperation x (Tan) expression = ExpressionBinary Times f' (ExpressionBinary Plus (ExpressionLiteral one) k)
   -- tan(f)' = f' * (1 + tan^2(f)) 
   -- tan(f)' = f' * (1 + k)
   where
   f = expression
 
-  f' = differentiate f
+  f' = differentiate x f
 
   -- k = tan^2(f)
   k = ExpressionBinary Power (ExpressionUnary Tan f) (ExpressionLiteral two)

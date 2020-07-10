@@ -39,9 +39,9 @@ buildExpressionEvaluator evaluator expression = { f, f', f'' }
   where
   f = evaluator expression
 
-  f' = (evaluator <<< simplify <<< differentiate) expression
+  f' = (evaluator <<< simplify <<< differentiate "x") expression
 
-  f'' = (evaluator <<< simplify <<< secondDifferentiate) expression
+  f'' = (evaluator <<< simplify <<< secondDifferentiate "x") expression
 
 numberExpressionEvaluator :: Expression -> ExpressionEvaluator Number
 numberExpressionEvaluator = buildExpressionEvaluator evaluateN

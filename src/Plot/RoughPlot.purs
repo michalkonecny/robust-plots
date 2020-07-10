@@ -22,7 +22,7 @@ drawRoughPlot canvasSize bounds expression label = drawCommands
   where
   f = evaluateWithX expression
 
-  f'' = (evaluateWithX <<< simplify <<< secondDifferentiate) expression
+  f'' = (evaluateWithX <<< simplify <<< secondDifferentiate "x") expression
 
   points = plotPoints canvasSize bounds f f''
 
