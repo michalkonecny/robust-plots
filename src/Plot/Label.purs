@@ -8,6 +8,7 @@ import Control.Monad.Free (resume)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Draw.Commands (DrawCommand, DrawCommandF(..))
+import Misc.Maybe (toNothingIf)
 import Types (Position)
 
 toRoughLabelPosition :: (Position -> Boolean) -> DrawCommand Unit -> Maybe Position
@@ -31,7 +32,7 @@ interpretRough isOnCanvas = case _ of
   (DrawRootEnclosure _ _ _ nextCommands) -> toLabelPosition (interpretRough isOnCanvas) nextCommands
   (DrawPlotLine a b nextCommands) -> mostLeft midPoint nextCommandsPosition
     where
-    midPoint = takeIf isOnCanvas $ Just $ toMidPoint a b
+    midPoint = toNothingIf isOnCanvas $ Just $ toMidPoint a b
 
     nextCommandsPosition = toLabelPosition (interpretRough isOnCanvas) nextCommands
 
@@ -42,8 +43,3 @@ mostLeft a b = a <|> b
 
 toMidPoint :: Position -> Position -> Position
 toMidPoint a b = { x: (a.x + b.x) / 2.0, y: (a.y + b.y) / 2.0 }
-
-takeIf :: (Position -> Boolean) -> Maybe Position -> Maybe Position
-takeIf _ Nothing = Nothing
-
-takeIf check (Just a) = if check a then Just a else Nothing
