@@ -16,11 +16,11 @@ import Types (Size)
 type CanvasController commands
   = { init :: Size -> Effect (Maybe DrawContext)
     , render :: DrawContext -> commands -> Effect Unit
-    , onResize :: Size -> DrawContext -> Effect DrawContext
+    , resize :: Size -> DrawContext -> Effect DrawContext
     }
 
 canvasController :: CanvasController (DrawCommand Unit)
-canvasController = { init, render, onResize }
+canvasController = { init, render, resize }
   where
   init :: Size -> Effect (Maybe DrawContext)
   init size = do
@@ -37,5 +37,5 @@ canvasController = { init, render, onResize }
   render :: DrawContext -> DrawCommand Unit -> Effect Unit
   render = runDrawCommands
 
-  onResize :: Size -> DrawContext -> Effect DrawContext
-  onResize size ctx = pure $ ctx { canvasWidth = rationalToNumber size.width, canvasHeight = rationalToNumber size.height }
+  resize :: Size -> DrawContext -> Effect DrawContext
+  resize size ctx = pure $ ctx { canvasWidth = rationalToNumber size.width, canvasHeight = rationalToNumber size.height }

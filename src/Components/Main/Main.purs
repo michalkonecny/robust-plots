@@ -2,8 +2,8 @@ module Components.Main where
 
 import Prelude
 import Components.BatchInput (batchInputComponent)
-import Components.BoundsInput (initialBounds, boundsInputComponent)
-import Components.Canvas (canvasComponent)
+import Components.BoundsInput (boundsInputComponent, canvasSizeToBounds)
+import Components.Canvas (canvasComponent, defaultCanvasSize)
 import Components.Canvas.Controller (canvasController)
 import Components.Common.Action (onClickActionEvent)
 import Components.Common.ClassName (className)
@@ -16,11 +16,11 @@ import Control.Monad.Reader (ReaderT)
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
+import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
-import IntervalArith.Misc (toRational)
 import Types (Direction(..))
 
 _canvas = SProxy :: SProxy "canvas"
@@ -49,12 +49,9 @@ mainComponent =
     { input:
         { operations: pure unit
         , canvasId: canvasId
-        , size:
-            { width: toRational 800
-            , height: toRational 500
-            }
+        , size: defaultCanvasSize
         }
-    , bounds: initialBounds
+    , bounds: canvasSizeToBounds defaultCanvasSize
     , plots:
         [ newPlot 0
         ]
@@ -63,7 +60,7 @@ mainComponent =
     , autoRobust: false
     }
 
-  render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
+  render :: forall m. MonadAff m => MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
   render state =
     HH.div_
       $ [ HH.h1_
@@ -73,7 +70,7 @@ mainComponent =
             [ HH.div
                 [ className "row" ]
                 [ HH.div
-                    [ className "col-md-4" ]
+                    [ className "col-xl-3 col-md-12 sidebar" ]
                     [ HH.slot _expressionManager 1 expressionManagerComponent (toExpressionManagerInput state) (Just <<< HandleExpressionManager)
                     , HH.br_
                     , HH.div
@@ -87,15 +84,16 @@ mainComponent =
                             [ HH.slot _batchInput 1 batchInputComponent state.batchCount (Just <<< HandleBatchInput)
                             ]
                         ]
+                    , HH.br_
                     ]
                 , HH.div
-                    [ className "col-md-8" ]
+                    [ className "col-xl col-md-12 canvasCol" ]
                     [ HH.div
                         [ className "card" ]
                         [ HH.div
                             [ className "card-header" ]
                             [ HH.div
-                                [ className "row" ]
+                                [ className "form-inline" ]
                                 [ HH.div
                                     [ className "pr-2" ]
                                     [ HH.div
@@ -138,10 +136,7 @@ mainComponent =
                                             [ HH.text "-" ]
                                         ]
                                     ]
-                                , HH.div
-                                    []
-                                    [ HH.slot _boundsInput 1 boundsInputComponent state.bounds (Just <<< HandleBoundsInput)
-                                    ]
+                                , HH.slot _boundsInput 1 boundsInputComponent state.bounds (Just <<< HandleBoundsInput)
                                 ]
                             ]
                         , HH.div
