@@ -40,12 +40,13 @@ data Bound
 
 data BoundsInputMessage
   = UpdatedBoundsInput XYBounds
+  | ResetBounds
 
 data Action
   = Recieve XYBounds
   | HandleInput Bound String
   | Update
-  | ResetBounds
+  | Reset
 
 boundsInputComponent :: forall query m. MonadEffect m => H.Component HH.HTML query XYBounds BoundsInputMessage m
 boundsInputComponent =
@@ -123,7 +124,7 @@ render state =
               [ className "btn-group" ]
               [ HH.button
                   [ className "btn btn-warning"
-                  , onClickActionEvent $ ResetBounds
+                  , onClickActionEvent $ Reset
                   ]
                   [ HH.text "Reset bounds" ]
               ]
@@ -146,9 +147,9 @@ handleAction = case _ of
   HandleInput XUpper stringInput -> H.modify_ _ { xBounds { upper = stringInput } }
   HandleInput YLower stringInput -> H.modify_ _ { yBounds { lower = stringInput } }
   HandleInput YUpper stringInput -> H.modify_ _ { yBounds { upper = stringInput } }
-  ResetBounds -> do
+  Reset -> do
     H.modify_ _ { error = Nothing }
-    H.raise (UpdatedBoundsInput unitBounds)
+    H.raise ResetBounds
   Recieve bounds ->
     H.modify_
       _

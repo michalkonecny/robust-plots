@@ -48,7 +48,7 @@ handleAction action = do
   state <- H.get
   case action of
     HandleExpressionManager message -> handleExpressionPlotMessage state message
-    HandleBoundsInput (UpdatedBoundsInput newBounds) -> redrawWithBounds state newBounds
+    HandleBoundsInput message -> handleBoundsInputMessage state message
     Pan direction -> redrawWithDelayAndBounds state (panBounds state.bounds direction)
     Zoom isZoomIn -> redrawWithDelayAndBounds state (zoomBounds state.bounds isZoomIn)
     HandleCanvas message -> handleCanvasMessage state message
@@ -89,6 +89,11 @@ initialiseAction = do
   resizeCanvas
   state <- H.get
   clearAction state
+
+handleBoundsInputMessage :: forall output. State -> BoundsInputMessage -> HalogenMain output Unit
+handleBoundsInputMessage state (UpdatedBoundsInput newBounds) = redrawWithBounds state newBounds
+
+handleBoundsInputMessage state ResetBounds = redrawWithBounds state $ canvasSizeToBounds state.input.size
 
 clearAction :: forall output. State -> HalogenMain output Unit
 clearAction state = do
