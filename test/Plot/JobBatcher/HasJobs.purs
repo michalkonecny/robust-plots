@@ -4,7 +4,7 @@ module Test.Plot.JobBatcher.HasJobs
 
 import Prelude
 
-import Components.BoundsInput (initialBounds)
+import Components.BoundsInput (unitBounds)
 import Misc.Queue (push)
 import Plot.Commands (PlotCommand(..))
 import Plot.JobBatcher (Job, hasJobs, initialJobQueue)
@@ -28,6 +28,6 @@ hasJobsTests =
 basicJob :: Job
 basicJob =
   { id: 0
-  , command: Empty initialBounds
+  , command: Empty unitBounds
   , batchId: 0
   }

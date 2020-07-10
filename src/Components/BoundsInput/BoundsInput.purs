@@ -1,7 +1,6 @@
 module Components.BoundsInput where
 
 import Prelude
-
 import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (className)
 import Control.Lazy (fix)
@@ -15,7 +14,7 @@ import Halogen.HTML.Properties as HP
 import IntervalArith.Misc (Rational, rationalToNumber)
 import Text.Parsing.Parser (runParser)
 import Text.Parsing.Parser.Expr (buildExprParser)
-import Types (XYBounds)
+import Types (XYBounds, Size)
 
 type BoundsInputSlot p
   = forall q. H.Slot q BoundsInputMessage p
@@ -41,12 +40,13 @@ data Bound
 
 data BoundsInputMessage
   = UpdatedBoundsInput XYBounds
+  | ResetBounds
 
 data Action
   = Recieve XYBounds
   | HandleInput Bound String
   | Update
-  | ResetBounds
+  | Reset
 
 boundsInputComponent :: forall query m. MonadEffect m => H.Component HH.HTML query XYBounds BoundsInputMessage m
 boundsInputComponent =
@@ -124,7 +124,7 @@ render state =
               [ className "btn-group" ]
               [ HH.button
                   [ className "btn btn-warning"
-                  , onClickActionEvent $ ResetBounds
+                  , onClickActionEvent $ Reset
                   ]
                   [ HH.text "Reset bounds" ]
               ]
@@ -147,9 +147,9 @@ handleAction = case _ of
   HandleInput XUpper stringInput -> H.modify_ _ { xBounds { upper = stringInput } }
   HandleInput YLower stringInput -> H.modify_ _ { yBounds { lower = stringInput } }
   HandleInput YUpper stringInput -> H.modify_ _ { yBounds { upper = stringInput } }
-  ResetBounds -> do
+  Reset -> do
     H.modify_ _ { error = Nothing }
-    H.raise (UpdatedBoundsInput initialBounds)
+    H.raise ResetBounds
   Recieve bounds ->
     H.modify_
       _
@@ -197,8 +197,13 @@ parse input = case runParser input expressionParser of
 expressionParser :: P Rational
 expressionParser = fix (\p -> buildExprParser [] literal)
 
-initialBounds :: XYBounds
-initialBounds = xyBounds (-one) one (-one) one
+unitBounds :: XYBounds
+unitBounds = xyBounds (-one) one (-one) one
 
 xyBounds :: Rational -> Rational -> Rational -> Rational -> XYBounds
 xyBounds xLower xUpper yLower yUpper = { xBounds: { upper: xUpper, lower: xLower }, yBounds: { upper: yUpper, lower: yLower } }
+
+canvasSizeToBounds :: Size -> XYBounds
+canvasSizeToBounds size = xyBounds (-ratio) ratio (-one) one
+  where
+  ratio = size.width / size.height
