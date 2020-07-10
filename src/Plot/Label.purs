@@ -3,10 +3,12 @@ module Plot.Label where
 import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.Free (resume)
-import Data.Array (mapMaybe, uncons)
+import Data.Array (fold, mapMaybe, uncons)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
+import Draw.Actions (drawText)
+import Draw.Color (rgba)
 import Draw.Commands (DrawCommand, DrawCommandF(..))
 import Misc.Maybe (toNothingIf)
 import Types (Position)
@@ -21,17 +23,23 @@ drawRoughLabels :: (Position -> Boolean) -> Array LabelledDrawCommand -> DrawCom
 drawRoughLabels isOffCanvas = drawLabels (toRoughLabelPosition isOffCanvas) isOffCanvas
 
 drawLabels :: (DrawCommand Unit -> Maybe Position) -> (Position -> Boolean) -> Array LabelledDrawCommand -> DrawCommand Unit
-drawLabels toLabelPosition isOffCanvas labelledCommands = pure unit -- TODO: draw labels
+drawLabels toLabelPosition isOffCanvas = fold <<< (map draw) <<< fixLabelledPositions <<< mapMaybe toLabelPositionWithText
   where
   toLabelPositionWithText :: LabelledDrawCommand -> Maybe LabelledPosition
   toLabelPositionWithText = withLabelText toLabelPosition
 
-  labelledPoints = mapMaybe toLabelPositionWithText labelledCommands
-
-  placedLabelledPoints = fixLabelledPositionsWith repositionBasedOnPlaced [] labelledPoints
+  fixLabelledPositions :: Array LabelledPosition -> Array LabelledPosition
+  fixLabelledPositions = fixLabelledPositionsWith repositionBasedOnPlaced []
 
   repositionBasedOnPlaced :: Array LabelledPosition -> LabelledPosition -> LabelledPosition
   repositionBasedOnPlaced fixed a@(Tuple text position) = a -- TODO: Fix label position
+
+draw :: LabelledPosition -> DrawCommand Unit
+draw (Tuple text position) = drawText color label 20.0 position
+  where
+  color = rgba 255.0 0.0 0.0 1.0
+
+  label = "f(x)=" <> text
 
 fixLabelledPositionsWith :: (Array LabelledPosition -> LabelledPosition -> LabelledPosition) -> Array LabelledPosition -> Array LabelledPosition -> Array LabelledPosition
 fixLabelledPositionsWith reposition = fixLabelledPositions
