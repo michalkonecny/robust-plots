@@ -1,6 +1,7 @@
 module Expression.Evaluator where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Data.Int (round, toNumber)
 import Data.Maybe (Maybe(..))
@@ -10,7 +11,7 @@ import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..
 import Expression.VariableMap (VariableMap, lookup)
 import IntervalArith.Approx (Approx, fromRationalPrec)
 import IntervalArith.Approx.Pi (piA)
-import IntervalArith.Approx.SinCos (cosA, sinA)
+import IntervalArith.Approx.SinCos (cosA, sinA, tanA)
 import IntervalArith.Approx.Sqrt (sqrtA)
 import IntervalArith.Misc (Rational, multiplicativePowerRecip, rationalToNumber)
 import Math (cos, exp, log, pow, sin, sqrt, tan, pi)
@@ -125,7 +126,7 @@ evaluateUnaryOperation (Sine) = evaluateSine
 
 evaluateUnaryOperation (Cosine) = evaluateCosine
 
-evaluateUnaryOperation (Tan) = (\_ _ -> unsupportedOperation "tan")
+evaluateUnaryOperation (Tan) = evaluateTan
 
 evaluateNegate :: VariableMap Approx -> Expression -> Expect Approx
 evaluateNegate variableMap expression = case evaluate variableMap expression of
@@ -148,6 +149,11 @@ evaluateCosine :: VariableMap Approx -> Expression -> Expect Approx
 evaluateCosine variableMap expression = case evaluate variableMap expression of
   Left error -> throw error
   Right value -> pure $ cosA value
+
+evaluateTan :: VariableMap Approx -> Expression -> Expect Approx
+evaluateTan variableMap expression = case evaluate variableMap expression of
+  Left error -> throw error
+  Right value -> pure $ tanA value
 
 evaluatePow :: VariableMap Approx -> Expression -> Expression -> Expect Approx
 evaluatePow variableMap expression (ExpressionLiteral value) = case asInteger value of

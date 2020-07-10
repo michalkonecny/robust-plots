@@ -88,3 +88,6 @@ cosA :: Approx -> Approx
 cosA Bottom = Approx 64 zero one 0 -- [-1,1]
 
 cosA x@(Approx mb _ _ _) = sinA ((Approx 1 one zero (-1)) * piA (mb + 2) - x)
+
+tanA :: Approx -> Approx
+tanA x = (sinA x) / (cosA x)
