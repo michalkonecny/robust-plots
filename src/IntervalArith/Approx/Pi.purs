@@ -19,7 +19,7 @@ import IntervalArith.Dyadic ((:^))
 import IntervalArith.Extended (Extended(..))
 import IntervalArith.Misc (Integer, big, (^))
 import Misc.LazyList (unsafeHead, unsafeTail, zipWith4, (!!))
-import Misc.LazyList.NumberSequences (ones, onetwoetc)
+import Misc.LazyList.NumberSequences (ones, oneTwoEtc)
 import Misc.Tuple22 (Tuple22, tuple22)
 
 {-|
@@ -104,9 +104,9 @@ piRaw = unfoldr f (Tuple 1 (Tuple (Tuple one one) (Tuple one (big 13591409))))
 
   bs = ones
 
-  ps = one : map (\n -> -((big 6) * n - (big 5)) * ((big 2) * n - one) * ((big 6) * n - one)) onetwoetc
+  ps = one : map (\n -> -((big 6) * n - (big 5)) * ((big 2) * n - one) * ((big 6) * n - one)) oneTwoEtc
 
-  qs = one : map (\n -> n ^ 3 * (big 640320) ^ 2 * (big 26680)) onetwoetc
+  qs = one : map (\n -> n ^ 3 * (big 640320) ^ 2 * (big 26680)) oneTwoEtc
 
   f (Tuple i (Tuple (Tuple pl ql) (Tuple bl tl))) =
     let
