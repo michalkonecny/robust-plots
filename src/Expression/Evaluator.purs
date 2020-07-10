@@ -9,6 +9,7 @@ import Expression.Error (Expect, evaluationError, multipleErrors, throw, unknown
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 import Expression.VariableMap (VariableMap, lookup)
 import IntervalArith.Approx (Approx, fromRationalPrec)
+import IntervalArith.Approx.Pi (piA)
 import IntervalArith.Approx.Sqrt (sqrtA)
 import IntervalArith.Misc (Rational, multiplicativePowerRecip, rationalToNumber)
 import Math (cos, exp, log, pow, sin, sqrt, tan, e, pi)
@@ -28,7 +29,6 @@ roughEvaluate variableMap = case _ of
     Right value -> roughEvaluate (variableMap <> [ (Tuple name value) ]) parentExpression
     Left error -> Left error
   where
-  presetConstants :: Array (Tuple String Number)
   presetConstants = [ (Tuple "pi" pi), (Tuple "e" e) ]
 
 roughEvaluateBinaryOperation :: BinaryOperation -> VariableMap Number -> Expression -> Expression -> Expect Number
@@ -79,8 +79,8 @@ roughEvaluateNegate variableMap expression = case roughEvaluate variableMap expr
 ----------------------------------------------------
 evaluate :: VariableMap Approx -> Expression -> Expect Approx
 evaluate variableMap = case _ of
-  ExpressionLiteral value -> pure $ fromRationalPrec 50 value
-  ExpressionVariable name -> case lookup variableMap name of
+  ExpressionLiteral value -> pure $ fromRationalPrec precision value
+  ExpressionVariable name -> case lookup (presetConstants <> variableMap) name of
     Just value -> pure value
     _ -> unknownValue name
   ExpressionBinary operation leftExpression rightExpression -> evaluateBinaryOperation operation variableMap leftExpression rightExpression
@@ -88,6 +88,10 @@ evaluate variableMap = case _ of
   ExpressionLet name expression parentExpression -> case evaluate variableMap expression of
     Right value -> evaluate (variableMap <> [ (Tuple name value) ]) parentExpression
     Left error -> Left error
+  where
+  precision = 50
+
+  presetConstants = [ (Tuple "pi" (piA precision)) ]
 
 evaluateBinaryOperation :: BinaryOperation -> VariableMap Approx -> Expression -> Expression -> Expect Approx
 evaluateBinaryOperation Plus = evaluateArithmeticBinaryOperation add
