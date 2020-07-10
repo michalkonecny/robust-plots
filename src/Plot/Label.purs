@@ -1,6 +1,4 @@
-module Plot.Label
-  ( toRoughLabelPosition
-  ) where
+module Plot.Label where
 
 import Prelude
 import Control.Alt ((<|>))
@@ -13,40 +11,49 @@ import Draw.Commands (DrawCommand, DrawCommandF(..))
 import Misc.Maybe (toNothingIf)
 import Types (Position)
 
-drawLabels :: (Position -> Boolean) -> Array (Tuple String (DrawCommand Unit)) -> DrawCommand Unit
-drawLabels isOffCanvas labelledCommands = pure unit -- TODO: Fix label position and draw labels
-  where
-  labelledPoints = mapMaybe (withLabelText (toRoughLabelPosition isOffCanvas)) labelledCommands
+type LabelledDrawCommand
+  = Tuple String (DrawCommand Unit)
 
-withLabelText :: (DrawCommand Unit -> Maybe Position) -> Tuple String (DrawCommand Unit) -> Maybe (Tuple String Position)
-withLabelText toPosition (Tuple text commands) = case toPosition commands of
-  Nothing -> Nothing
-  Just position -> Just $ Tuple text position
+drawRoughLabels :: (Position -> Boolean) -> Array LabelledDrawCommand -> DrawCommand Unit
+drawRoughLabels isOffCanvas = drawLabels (toRoughLabelPosition isOffCanvas) isOffCanvas
+
+drawLabels :: (DrawCommand Unit -> Maybe Position) -> (Position -> Boolean) -> Array LabelledDrawCommand -> DrawCommand Unit
+drawLabels toLabelPosition isOffCanvas labelledCommands = pure unit -- TODO: Fix label position and draw labels
+  where
+  toLabelPositionWithText :: LabelledDrawCommand -> Maybe (Tuple String Position)
+  toLabelPositionWithText = withLabelText toLabelPosition
+
+  labelledPoints = mapMaybe toLabelPositionWithText labelledCommands
 
 toRoughLabelPosition :: (Position -> Boolean) -> DrawCommand Unit -> Maybe Position
 toRoughLabelPosition isOffCanvas = interpretWith interpretRough
-  where 
-    interpretRough :: DrawCommandF (DrawCommand Unit) -> Maybe Position
-    interpretRough = case _ of
-      (ClearCanvas nextCommands) -> interpretWith interpretRough nextCommands
-      (DrawText _ _ _ _ nextCommands) -> interpretWith interpretRough nextCommands
-      (DrawXGridLine _ _ _ nextCommands) -> interpretWith interpretRough nextCommands
-      (DrawYGridLine _ _ _ nextCommands) -> interpretWith interpretRough nextCommands
-      (DrawXAxis _ _ nextCommands) -> interpretWith interpretRough nextCommands
-      (DrawYAxis _ _ nextCommands) -> interpretWith interpretRough nextCommands
-      (DrawPolygon _ nextCommands) -> interpretWith interpretRough nextCommands
-      (DrawEnclosure _ _ nextCommands) -> interpretWith interpretRough nextCommands
-      (DrawRootEnclosure _ _ _ nextCommands) -> interpretWith interpretRough nextCommands
-      (DrawPlotLine a b nextCommands) -> mostLeft midPoint nextCommandsPosition
-        where
-        midPoint = toNothingIf isOffCanvas $ Just $ toMidPoint a b
+  where
+  interpretRough :: DrawCommandF (DrawCommand Unit) -> Maybe Position
+  interpretRough = case _ of
+    (ClearCanvas nextCommands) -> interpretWith interpretRough nextCommands
+    (DrawText _ _ _ _ nextCommands) -> interpretWith interpretRough nextCommands
+    (DrawXGridLine _ _ _ nextCommands) -> interpretWith interpretRough nextCommands
+    (DrawYGridLine _ _ _ nextCommands) -> interpretWith interpretRough nextCommands
+    (DrawXAxis _ _ nextCommands) -> interpretWith interpretRough nextCommands
+    (DrawYAxis _ _ nextCommands) -> interpretWith interpretRough nextCommands
+    (DrawPolygon _ nextCommands) -> interpretWith interpretRough nextCommands
+    (DrawEnclosure _ _ nextCommands) -> interpretWith interpretRough nextCommands
+    (DrawRootEnclosure _ _ _ nextCommands) -> interpretWith interpretRough nextCommands
+    (DrawPlotLine a b nextCommands) -> mostLeft midPoint nextCommandsPosition
+      where
+      midPoint = toNothingIf isOffCanvas $ Just $ toMidPoint a b
 
-        nextCommandsPosition = interpretWith interpretRough nextCommands
+      nextCommandsPosition = interpretWith interpretRough nextCommands
 
 interpretWith :: forall a. (DrawCommandF (DrawCommand Unit) -> Maybe a) -> DrawCommand Unit -> Maybe a
 interpretWith interpret commands = case resume commands of
   Right _ -> Nothing
   Left command -> interpret command
+
+withLabelText :: forall a. (DrawCommand Unit -> Maybe a) -> LabelledDrawCommand -> Maybe (Tuple String a)
+withLabelText interpreter (Tuple text commands) = case interpreter commands of
+  Nothing -> Nothing
+  Just a -> Just $ Tuple text a
 
 mostLeft :: Maybe Position -> Maybe Position -> Maybe Position
 mostLeft (Just a) (Just b) = if a.x < b.x then Just a else Just b
