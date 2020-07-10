@@ -5,7 +5,9 @@ import Control.Alt ((<|>))
 import Control.Monad.Free (resume)
 import Data.Array (fold, mapMaybe, uncons)
 import Data.Either (Either(..))
+import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
+import Data.String (length)
 import Data.Tuple (Tuple(..))
 import Draw.Actions (drawText)
 import Draw.Color (rgba)
@@ -33,13 +35,38 @@ drawLabels toLabelPosition isOffCanvas = fold <<< (map draw) <<< fixLabelledPosi
 
   repositionBasedOnPlaced :: Array LabelledPosition -> LabelledPosition -> LabelledPosition
   repositionBasedOnPlaced fixed a@(Tuple text position) = a -- TODO: Fix label position
+    where
+    box = toSizeAndPosition a
+
+    overlap :: BoundingBox -> Boolean
+    overlap other = l  && r && u && d
+      where
+        l = box.position.x < other.position.x + other.size.width
+        r = box.position.x + box.size.width > other.position.x
+        u = box.position.y < other.position.y + other.size.height
+        d = box.position.y + box.size.height > other.position.y
+
+toSizeAndPosition :: LabelledPosition -> BoundingBox
+toSizeAndPosition (Tuple text position) = { size: toSize text, position }
+
+toSize :: String -> { width :: Number, height :: Number }
+toSize text = { width: characterWidth * toNumber (length text), height: textHeight }
+
+type BoundingBox
+  = { size :: { width :: Number, height :: Number }, position :: Position }
 
 draw :: LabelledPosition -> DrawCommand Unit
-draw (Tuple text position) = drawText color label 20.0 position
+draw (Tuple text position) = drawText color label textHeight position
   where
   color = rgba 255.0 0.0 0.0 1.0
 
   label = "f(x)=" <> text
+
+textHeight :: Number
+textHeight = 20.0
+
+characterWidth :: Number
+characterWidth = 10.0
 
 fixLabelledPositionsWith :: (Array LabelledPosition -> LabelledPosition -> LabelledPosition) -> Array LabelledPosition -> Array LabelledPosition -> Array LabelledPosition
 fixLabelledPositionsWith reposition = fixLabelledPositions
