@@ -1,5 +1,6 @@
 module Draw.Commands where
 
+import Prelude
 import Control.Monad.Free (Free)
 import Draw.Color (Color)
 import Types (Position, Polygon)
@@ -16,5 +17,7 @@ data DrawCommandF n
   | DrawEnclosure Boolean (Array Polygon) n
   | DrawRootEnclosure Number Number Number n
   | DrawPlotLine Position Position n
-  | DrawXAxis Number Number n 
-  | DrawYAxis Number Number n 
+  | DrawXAxis Number Number n
+  | DrawYAxis Number Number n
+
+derive instance drawCommandFunctor :: Functor DrawCommandF
