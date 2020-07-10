@@ -28,17 +28,24 @@ drawLabels toLabelPosition isOffCanvas labelledCommands = pure unit -- TODO: dra
 
   labelledPoints = mapMaybe toLabelPositionWithText labelledCommands
 
-  placedLabelledPoints = placeLabel [] labelledPoints
-
-  placeLabel :: Array LabelledPosition -> Array LabelledPosition -> Array LabelledPosition
-  placeLabel placed [] = placed
-
-  placeLabel placed toPlace = case uncons toPlace of
-    Nothing -> placed
-    Just { head, tail } -> placeLabel (placed <> [ repositionBasedOnPlaced placed head ]) tail
+  placedLabelledPoints = fixLabelledPositionsWith repositionBasedOnPlaced [] labelledPoints
 
   repositionBasedOnPlaced :: Array LabelledPosition -> LabelledPosition -> LabelledPosition
-  repositionBasedOnPlaced placed a@(Tuple text position) = a -- TODO: Fix label position
+  repositionBasedOnPlaced fixed a@(Tuple text position) = a -- TODO: Fix label position
+
+fixLabelledPositionsWith :: (Array LabelledPosition -> LabelledPosition -> LabelledPosition) -> Array LabelledPosition -> Array LabelledPosition -> Array LabelledPosition
+fixLabelledPositionsWith reposition = fixLabelledPositions
+  where
+  fixLabelledPositions :: Array LabelledPosition -> Array LabelledPosition -> Array LabelledPosition
+  fixLabelledPositions fixed [] = fixed
+
+  fixLabelledPositions fixed toFix = case uncons toFix of
+    Nothing -> fixed
+    Just { head, tail } -> fixLabelledPositions newFixed tail
+      where
+      newFixed = fixed <> [ repositioned ]
+
+      repositioned = reposition fixed head
 
 toRoughLabelPosition :: (Position -> Boolean) -> DrawCommand Unit -> Maybe Position
 toRoughLabelPosition isOffCanvas = interpretWith interpretRough
