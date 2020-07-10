@@ -39,12 +39,15 @@ drawLabels toLabelPosition isOffCanvas = fold <<< (map draw) <<< fixLabelledPosi
     box = toSizeAndPosition a
 
     overlap :: BoundingBox -> Boolean
-    overlap other = l  && r && u && d
+    overlap other = l && r && u && d
       where
-        l = box.position.x < other.position.x + other.size.width
-        r = box.position.x + box.size.width > other.position.x
-        u = box.position.y < other.position.y + other.size.height
-        d = box.position.y + box.size.height > other.position.y
+      l = box.position.x < other.position.x + other.size.width
+
+      r = box.position.x + box.size.width > other.position.x
+
+      u = box.position.y < other.position.y + other.size.height
+
+      d = box.position.y + box.size.height > other.position.y
 
 toSizeAndPosition :: LabelledPosition -> BoundingBox
 toSizeAndPosition (Tuple text position) = { size: toSize text, position }
