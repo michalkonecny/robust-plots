@@ -76,6 +76,12 @@ instance arbitraryPositiveExponent :: Arbitrary ArbitraryPositiveExponent where
     sized \size ->
       ArbitraryPositiveExponent <$> chooseInt 0 (2 * size + 1)
 
+newtype ArbitraryInt0To1000
+  = ArbitraryInt0To1000 Int
+
+instance arbitraryInt0To1000 :: Arbitrary ArbitraryInt0To1000 where
+  arbitrary = ArbitraryInt0To1000 <$> chooseInt 0 1000
+
 newtype ArbitraryRational
   = ArbitraryRational Rational
 

@@ -1,6 +1,7 @@
 module Expression.Evaluator where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Data.Int (round, toNumber)
 import Data.Maybe (Maybe(..))
@@ -9,12 +10,11 @@ import Expression.Error (Expect, evaluationError, multipleErrors, throw, unknown
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 import Expression.VariableMap (VariableMap, lookup)
 import IntervalArith.Approx (Approx, fromRationalPrec)
+import IntervalArith.Approx.Pi (piA)
+import IntervalArith.Approx.SinCos (cosA, sinA, tanA)
 import IntervalArith.Approx.Sqrt (sqrtA)
 import IntervalArith.Misc (Rational, multiplicativePowerRecip, rationalToNumber)
-import Math (cos, exp, log, pow, sin, sqrt, tan, e, pi)
-
-presetConstants :: Array (Tuple String Number)
-presetConstants = [ (Tuple "pi" pi), (Tuple "e" e) ]
+import Math (cos, exp, log, pow, sin, sqrt, tan, pi)
 
 ----------------------------------------------------
 -- Evaluate Number
@@ -22,7 +22,7 @@ presetConstants = [ (Tuple "pi" pi), (Tuple "e" e) ]
 roughEvaluate :: VariableMap Number -> Expression -> Expect Number
 roughEvaluate variableMap = case _ of
   ExpressionLiteral value -> pure $ rationalToNumber value
-  ExpressionVariable name -> case lookup variableMap name of
+  ExpressionVariable name -> case lookup (presetConstants <> variableMap) name of
     Just value -> pure value
     _ -> unknownValue name
   ExpressionBinary operation leftExpression rightExpression -> roughEvaluateBinaryOperation operation variableMap leftExpression rightExpression
@@ -30,6 +30,8 @@ roughEvaluate variableMap = case _ of
   ExpressionLet name expression parentExpression -> case roughEvaluate variableMap expression of
     Right value -> roughEvaluate (variableMap <> [ (Tuple name value) ]) parentExpression
     Left error -> Left error
+  where
+  presetConstants = [ (Tuple "pi" pi) ]
 
 roughEvaluateBinaryOperation :: BinaryOperation -> VariableMap Number -> Expression -> Expression -> Expect Number
 roughEvaluateBinaryOperation Plus = roughEvaluateArithmeticBinaryOperation add
@@ -79,8 +81,8 @@ roughEvaluateNegate variableMap expression = case roughEvaluate variableMap expr
 ----------------------------------------------------
 evaluate :: VariableMap Approx -> Expression -> Expect Approx
 evaluate variableMap = case _ of
-  ExpressionLiteral value -> pure $ fromRationalPrec 50 value
-  ExpressionVariable name -> case lookup variableMap name of
+  ExpressionLiteral value -> pure $ fromRationalPrec precision value
+  ExpressionVariable name -> case lookup (presetConstants <> variableMap) name of
     Just value -> pure value
     _ -> unknownValue name
   ExpressionBinary operation leftExpression rightExpression -> evaluateBinaryOperation operation variableMap leftExpression rightExpression
@@ -88,6 +90,10 @@ evaluate variableMap = case _ of
   ExpressionLet name expression parentExpression -> case evaluate variableMap expression of
     Right value -> evaluate (variableMap <> [ (Tuple name value) ]) parentExpression
     Left error -> Left error
+  where
+  precision = 50
+
+  presetConstants = [ (Tuple "pi" (piA precision)) ]
 
 evaluateBinaryOperation :: BinaryOperation -> VariableMap Approx -> Expression -> Expression -> Expect Approx
 evaluateBinaryOperation Plus = evaluateArithmeticBinaryOperation add
@@ -116,11 +122,11 @@ evaluateUnaryOperation (Exp) = (\_ _ -> unsupportedOperation "exp")
 
 evaluateUnaryOperation (Log) = (\_ _ -> unsupportedOperation "log")
 
-evaluateUnaryOperation (Sine) = (\_ _ -> unsupportedOperation "sin")
+evaluateUnaryOperation (Sine) = evaluateSine
 
-evaluateUnaryOperation (Cosine) = (\_ _ -> unsupportedOperation "cos")
+evaluateUnaryOperation (Cosine) = evaluateCosine
 
-evaluateUnaryOperation (Tan) = (\_ _ -> unsupportedOperation "tan")
+evaluateUnaryOperation (Tan) = evaluateTan
 
 evaluateNegate :: VariableMap Approx -> Expression -> Expect Approx
 evaluateNegate variableMap expression = case evaluate variableMap expression of
@@ -133,6 +139,21 @@ evaluateSqrt variableMap expression = case evaluate variableMap expression of
   Right value -> case sqrtA value of
     Just result -> pure result
     _ -> evaluationError "sqrt parameter out of range"
+
+evaluateSine :: VariableMap Approx -> Expression -> Expect Approx
+evaluateSine variableMap expression = case evaluate variableMap expression of
+  Left error -> throw error
+  Right value -> pure $ sinA value
+
+evaluateCosine :: VariableMap Approx -> Expression -> Expect Approx
+evaluateCosine variableMap expression = case evaluate variableMap expression of
+  Left error -> throw error
+  Right value -> pure $ cosA value
+
+evaluateTan :: VariableMap Approx -> Expression -> Expect Approx
+evaluateTan variableMap expression = case evaluate variableMap expression of
+  Left error -> throw error
+  Right value -> pure $ tanA value
 
 evaluatePow :: VariableMap Approx -> Expression -> Expression -> Expect Approx
 evaluatePow variableMap expression (ExpressionLiteral value) = case asInteger value of

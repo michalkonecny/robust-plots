@@ -10,7 +10,7 @@ import Data.Tuple (Tuple(..))
 import Draw.Actions (drawPlotLine)
 import Draw.Commands (DrawCommand)
 import Expression.Differentiator (secondDifferentiate)
-import Expression.Evaluator (roughEvaluate, presetConstants)
+import Expression.Evaluator (roughEvaluate)
 import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
 import IntervalArith.Misc (rationalToNumber)
@@ -22,7 +22,7 @@ drawRoughPlot canvasSize bounds expression label = drawCommands
   where
   f = evaluateWithX expression
 
-  f'' = (evaluateWithX <<< simplify <<< secondDifferentiate) expression
+  f'' = (evaluateWithX <<< simplify <<< secondDifferentiate "x") expression
 
   points = plotPoints canvasSize bounds f f''
 
@@ -31,7 +31,7 @@ drawRoughPlot canvasSize bounds expression label = drawCommands
 evaluateWithX :: Expression -> Number -> Maybe Number
 evaluateWithX expression x = value
   where
-  variableMap = presetConstants <> [ Tuple "x" x ]
+  variableMap = [ Tuple "x" x ]
 
   value = case roughEvaluate variableMap expression of
     Left _ -> Nothing

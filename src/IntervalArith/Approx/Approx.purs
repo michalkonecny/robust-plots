@@ -19,7 +19,7 @@ import FFI.BigInt (bitLength)
 import IntervalArith.Dyadic (Dyadic, dyadicToNumber, (:^))
 import IntervalArith.Dyadic as Dyadic
 import IntervalArith.Extended (Extended(..))
-import IntervalArith.Misc (class ToRational, Integer, Rational, big, bit, integerLog2, roundRational, scale, shift, testBit, toRational, two, (^))
+import IntervalArith.Misc (class ToRational, Integer, Rational, big, bit, ceilingRational, divMod, integerLog2, roundRational, scale, shift, testBit, toRational, two, (^))
 
 -- | A type synonym. Used to denote number of bits after binary point.
 type Precision
@@ -201,8 +201,8 @@ boundsA a = Tuple (lowerA a) (upperA a)
 
 toNumber :: Approx -> Number
 toNumber a = (l + u) / two
-  where 
-    (Tuple l u) = boundsNumber a
+  where
+  (Tuple l u) = boundsNumber a
 
 boundsNumber :: Approx -> Tuple Number Number
 boundsNumber a = biapply (Tuple f f) (bounds a)
@@ -250,6 +250,16 @@ diameter (Approx _ _ e s) = Finite $ (Dyadic.fromInt 2) * (e :^ s)
 
 diameter _ = PosInf
 
+-- |Computes the precision of an approximation. This is roughly the number of
+-- correct bits after the binary point.
+precision :: Approx -> Extended Precision
+precision (Approx _ _ e _)
+  | e == zero = PosInf
+
+precision (Approx _ _ e s) = Finite $ -s - (integerLog2 e) - 1
+
+precision Bottom = NegInf
+
 -- |Computes the significance of an approximation. This is roughly the number
 -- of significant bits.
 significance :: Approx -> Extended Int
@@ -271,6 +281,15 @@ exact :: Approx -> Boolean
 exact (Approx _ _ e _) = e == (big 0)
 
 exact Bottom = false
+
+-- | Checks if the centre of an approximation is not 0.
+nonZeroCentredA :: Approx -> Boolean
+nonZeroCentredA Bottom = false
+
+nonZeroCentredA (Approx _ m _ _)
+  | m == zero = false
+
+nonZeroCentredA _ = true
 
 -- |Checks if a number is approximated by an approximation, i.e., if it
 -- belongs to the interval encoded by the approximation.
@@ -442,6 +461,18 @@ instance ringApprox :: Ring Approx where
 
 instance commutativeRingApprox :: CommutativeRing Approx
 
+-- |Square an approximation. Gives the exact image interval, as opposed to
+-- multiplicating a number with itself which will give a slightly larger
+-- interval due to the dependency problem.
+sqrA :: Approx -> Approx
+sqrA Bottom = Bottom
+sqrA (Approx mb m e s) = result
+  where
+  am = abs m
+  result
+    | am > e = approxMB mb (m^2 + e^2) (two*am*e) (2*s)
+    | otherwise = let m' = (am + e)^2 in approxMB mb m' m' (2*s-1)
+
 instance divisionRingApprox :: DivisionRing Approx where
   recip = recipA
 
@@ -506,6 +537,49 @@ recipA (Approx mb m e s)
   --                        (ceiling (1%2 + unsafeShiftL e s'%(d)))
   --                        (-s-s')
   | otherwise = Bottom
+
+-- |Divide an approximation by an integer.
+divAInteger :: Approx -> Integer -> Approx
+divAInteger Bottom _ = Bottom
+
+divAInteger (Approx mb m e s) n =
+  let
+    t = integerLog2 n
+  in
+    approxMB mb
+      (roundRational (shift m t % n))
+      (ceilingRational (shift e t % n))
+      s
+
+-- |Compute the modulus of two approximations.
+modA :: Approx -> Approx -> Approx
+modA (Approx mb1 m e s) (Approx mb2 n f t) =
+  let
+    r = min s t
+
+    (Tuple d m') = divMod (shift m (s - r)) (shift n (t - r))
+
+    e' = scale e (s - r) + abs d * scale f (t - r)
+  in
+    approxMB2 mb1 mb2 m' e' r
+
+modA _ _ = Bottom
+
+-- |Compute the integer quotient (although returned as an 'Approx' since it
+-- may be necessary to return 'Bottom' if the integer quotient can't be
+-- determined) and the modulus as an approximation of two approximations.
+divModA :: Approx -> Approx -> (Tuple Approx Approx)
+divModA (Approx mb1 m e s) (Approx mb2 n f t) =
+  let
+    r = min s t
+
+    (Tuple d m') = divMod (shift m (s - r)) (shift n (t - r))
+
+    e' = e + abs d * f
+  in
+    Tuple (fromInteger d) (approxMB2 mb1 mb2 m' e' r)
+
+divModA _ _ = Tuple Bottom Bottom
 
 {-|
 This function bounds the error term of an 'Approx'.
@@ -634,3 +708,22 @@ increasingPartialFunctionViaBounds f a = do
   resultL <- f $ lowerA a
   resultU <- f $ upperA a
   pure $ resultL `unionA` resultU
+
+{-|
+Second argument is noise to be added to first argument. Used to allow for the
+error term when truncating a series.
+-}
+fudge :: Approx -> Approx -> Approx
+fudge a (Approx _ m e _)
+  | m == zero && e == zero = a
+
+fudge (Approx mb m e s) (Approx mb' m' e' s')
+  | e == zero = approxMB2 mb mb' (m `shift` (s - s')) (abs m' + e' + one) s'
+
+fudge (Approx mb m e s) (Approx mb' m' e' s') =
+  let
+    m'' = one + (abs m' + e') `shift` (s' - s + 1)
+  in
+    approxMB2 mb mb' m (e + m'') s
+
+fudge _ _ = Bottom

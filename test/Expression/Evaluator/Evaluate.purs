@@ -201,50 +201,71 @@ evaluateTests =
       expectValue result
         $ \value ->
             equal true $ consistent value expectedResult
-    test "SHOULD throw error 'Unsupported operation: sin' WHEN f(x) = sin(pi/2)" do
+    test "ASSERT f(x) = 1.0 WHEN f(x) = sin(pi/2)" do
       let
         -- given
         rawExpression = "sin(pi/2)"
 
         -- when
-        result = fromExpect $ parseAndEvaluate [] rawExpression
+        result = parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = "Unsupported operation: sin"
-      equal expectedResult result
-    test "SHOULD throw error 'Unsupported operation: cos' WHEN f(x) = cos(pi)" do
+        expectedResult = ratioHelp 1 1
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
+    test "ASSERT f(x) = -1.0  WHEN f(x) = cos(pi)" do
       let
         -- given
         rawExpression = "cos(pi)"
 
         -- when
-        result = fromExpect $ parseAndEvaluate [] rawExpression
+        result = parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = "Unsupported operation: cos"
-      equal expectedResult result
-    test "SHOULD throw error 'Unsupported operation: cos' WHEN f(x) = cos(0)" do
+        expectedResult = ratioHelp (-1) 1
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
+    test "ASSERT f(x) = 1.0 WHEN f(x) = cos(0)" do
       let
         -- given
         rawExpression = "cos(0)"
 
         -- when
-        result = fromExpect $ parseAndEvaluate [] rawExpression
+        result = parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = "Unsupported operation: cos"
-      equal expectedResult result
-    test "SHOULD throw error 'Unsupported operation: tan' WHEN f(x) = tan(0)" do
+        expectedResult = ratioHelp 1 1
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
+    test "ASSERT f(x) = 0.0 WHEN f(x) = tan(0)" do
       let
         -- given
         rawExpression = "tan(0)"
 
         -- when
-        result = fromExpect $ parseAndEvaluate [] rawExpression
+        result = parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = "Unsupported operation: tan"
-      equal expectedResult result
+        expectedResult = ratioHelp 0 1
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
+    test "ASSERT f(x) = 1.0 WHEN f(x) = tan(pi/4)" do
+      let
+        -- given
+        rawExpression = "tan(pi/4)"
+
+        -- when
+        result = parseAndEvaluate [] rawExpression
+
+        -- then
+        expectedResult = ratioHelp 1 1
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
     test "ASSERT f(x) = 2 WHEN f(x) = sqrt(4)" do
       let
         -- given
