@@ -24,27 +24,27 @@ withLabelText toPosition (Tuple text commands) = case toPosition commands of
   Just position -> Just $ Tuple text position
 
 toRoughLabelPosition :: (Position -> Boolean) -> DrawCommand Unit -> Maybe Position
-toRoughLabelPosition isOnCanvas = toLabelPosition interpretRough
+toRoughLabelPosition isOnCanvas = interpretWith interpretRough
   where 
     interpretRough :: DrawCommandF (DrawCommand Unit) -> Maybe Position
     interpretRough = case _ of
-      (ClearCanvas nextCommands) -> toLabelPosition interpretRough nextCommands
-      (DrawText _ _ _ _ nextCommands) -> toLabelPosition interpretRough nextCommands
-      (DrawXGridLine _ _ _ nextCommands) -> toLabelPosition interpretRough nextCommands
-      (DrawYGridLine _ _ _ nextCommands) -> toLabelPosition interpretRough nextCommands
-      (DrawXAxis _ _ nextCommands) -> toLabelPosition interpretRough nextCommands
-      (DrawYAxis _ _ nextCommands) -> toLabelPosition interpretRough nextCommands
-      (DrawPolygon _ nextCommands) -> toLabelPosition interpretRough nextCommands
-      (DrawEnclosure _ _ nextCommands) -> toLabelPosition interpretRough nextCommands
-      (DrawRootEnclosure _ _ _ nextCommands) -> toLabelPosition interpretRough nextCommands
+      (ClearCanvas nextCommands) -> interpretWith interpretRough nextCommands
+      (DrawText _ _ _ _ nextCommands) -> interpretWith interpretRough nextCommands
+      (DrawXGridLine _ _ _ nextCommands) -> interpretWith interpretRough nextCommands
+      (DrawYGridLine _ _ _ nextCommands) -> interpretWith interpretRough nextCommands
+      (DrawXAxis _ _ nextCommands) -> interpretWith interpretRough nextCommands
+      (DrawYAxis _ _ nextCommands) -> interpretWith interpretRough nextCommands
+      (DrawPolygon _ nextCommands) -> interpretWith interpretRough nextCommands
+      (DrawEnclosure _ _ nextCommands) -> interpretWith interpretRough nextCommands
+      (DrawRootEnclosure _ _ _ nextCommands) -> interpretWith interpretRough nextCommands
       (DrawPlotLine a b nextCommands) -> mostLeft midPoint nextCommandsPosition
         where
         midPoint = toNothingIf isOnCanvas $ Just $ toMidPoint a b
 
-        nextCommandsPosition = toLabelPosition interpretRough nextCommands
+        nextCommandsPosition = interpretWith interpretRough nextCommands
 
-toLabelPosition :: (DrawCommandF (DrawCommand Unit) -> Maybe Position) -> DrawCommand Unit -> Maybe Position
-toLabelPosition interpret commands = case resume commands of
+interpretWith :: forall a. (DrawCommandF (DrawCommand Unit) -> Maybe a) -> DrawCommand Unit -> Maybe a
+interpretWith interpret commands = case resume commands of
   Right _ -> Nothing
   Left command -> interpret command
 
