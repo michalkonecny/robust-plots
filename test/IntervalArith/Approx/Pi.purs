@@ -4,14 +4,10 @@ module Test.IntervalArith.Approx.Pi
 
 import Prelude
 
-import Data.Maybe (Maybe(..))
-import IntervalArith.Approx (Approx(..), consistent)
+import IntervalArith.Approx (consistent)
 import IntervalArith.Approx.Pi (piA)
 import IntervalArith.Approx.ShowA (showA)
-import IntervalArith.Approx.Sqrt (sqrtA)
-import IntervalArith.Misc (big)
-import Test.IntervalArith.Approx.Arbitrary (ArbitraryApprox(..))
-import Test.IntervalArith.Misc (ArbitraryInt0To1000(..), ArbitraryInteger(..), ArbitraryPositiveExponent(..))
+import Test.IntervalArith.Misc (ArbitraryInt0To1000(..))
 import Test.TestUtils (assertOpWithInput)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
