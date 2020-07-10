@@ -3,7 +3,7 @@ module Plot.Label where
 import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.Free (resume)
-import Data.Array (mapMaybe)
+import Data.Array (mapMaybe, uncons)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
@@ -14,16 +14,31 @@ import Types (Position)
 type LabelledDrawCommand
   = Tuple String (DrawCommand Unit)
 
+type LabelledPosition
+  = Tuple String Position
+
 drawRoughLabels :: (Position -> Boolean) -> Array LabelledDrawCommand -> DrawCommand Unit
 drawRoughLabels isOffCanvas = drawLabels (toRoughLabelPosition isOffCanvas) isOffCanvas
 
 drawLabels :: (DrawCommand Unit -> Maybe Position) -> (Position -> Boolean) -> Array LabelledDrawCommand -> DrawCommand Unit
-drawLabels toLabelPosition isOffCanvas labelledCommands = pure unit -- TODO: Fix label position and draw labels
+drawLabels toLabelPosition isOffCanvas labelledCommands = pure unit -- TODO: draw labels
   where
-  toLabelPositionWithText :: LabelledDrawCommand -> Maybe (Tuple String Position)
+  toLabelPositionWithText :: LabelledDrawCommand -> Maybe LabelledPosition
   toLabelPositionWithText = withLabelText toLabelPosition
 
   labelledPoints = mapMaybe toLabelPositionWithText labelledCommands
+
+  placedLabelledPoints = placeLabel [] labelledPoints
+
+  placeLabel :: Array LabelledPosition -> Array LabelledPosition -> Array LabelledPosition
+  placeLabel placed [] = placed
+
+  placeLabel placed toPlace = case uncons toPlace of
+    Nothing -> placed
+    Just { head, tail } -> placeLabel (placed <> [ repositionBasedOnPlaced placed head ]) tail
+
+  repositionBasedOnPlaced :: Array LabelledPosition -> LabelledPosition -> LabelledPosition
+  repositionBasedOnPlaced placed a@(Tuple text position) = a -- TODO: Fix label position
 
 toRoughLabelPosition :: (Position -> Boolean) -> DrawCommand Unit -> Maybe Position
 toRoughLabelPosition isOffCanvas = interpretWith interpretRough
@@ -51,7 +66,7 @@ interpretWith interpret commands = case resume commands of
   Left command -> interpret command
 
 withLabelText :: forall a. (DrawCommand Unit -> Maybe a) -> LabelledDrawCommand -> Maybe (Tuple String a)
-withLabelText interpreter (Tuple text commands) = case interpreter commands of
+withLabelText interpret (Tuple text commands) = case interpret commands of
   Nothing -> Nothing
   Just a -> Just $ Tuple text a
 
