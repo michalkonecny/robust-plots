@@ -125,10 +125,10 @@ logInternal (Approx mb m e s) =
 log2A :: Precision -> Approx
 log2A p = let (m :^ s) = ln2D (-p) in approxAutoMB m one s
 
-powViaLogA :: Approx -> Approx -> Maybe Approx
-powViaLogA x y = case logA x, toInt y of
-  Just logX, _ -> Just $ expA (y * logX)
+powA :: Approx -> Approx -> Maybe Approx
+powA x y = case logA x, toInt y of
   _, Just yInt -> Just $ multiplicativePowerRecip x yInt
+  Just logX, _ -> Just $ expA (y * logX)
   _, _ -> Nothing
 
 toInt :: Approx -> Maybe Int

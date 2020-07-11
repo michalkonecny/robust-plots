@@ -1,20 +1,18 @@
 module Expression.Evaluator where
 
 import Prelude
-
 import Data.Either (Either(..))
-import Data.Int (round, toNumber)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Expression.Error (Expect, evaluationError, multipleErrors, throw, unknownValue)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 import Expression.VariableMap (VariableMap, lookup)
 import IntervalArith.Approx (Approx, fromRationalPrec)
-import IntervalArith.Approx.ExpLog (eA, expA, logA)
+import IntervalArith.Approx.ExpLog (eA, expA, logA, powA)
 import IntervalArith.Approx.Pi (piA)
 import IntervalArith.Approx.SinCos (cosA, sinA, tanA)
 import IntervalArith.Approx.Sqrt (sqrtA)
-import IntervalArith.Misc (Rational, multiplicativePowerRecip, rationalToNumber)
+import IntervalArith.Misc (rationalToNumber)
 import Math (cos, e, exp, log, pi, pow, sin, sqrt, tan)
 
 ----------------------------------------------------
@@ -105,11 +103,20 @@ evaluateBinaryOperation Times = evaluateArithmeticBinaryOperation mul
 
 evaluateBinaryOperation Divide = evaluateArithmeticBinaryOperation div
 
-evaluateBinaryOperation Power = evaluatePow
+evaluateBinaryOperation Power = evaluateArithmeticPartialBinaryOperation powA
 
 evaluateArithmeticBinaryOperation :: (Approx -> Approx -> Approx) -> VariableMap Approx -> Expression -> Expression -> Expect Approx
 evaluateArithmeticBinaryOperation operation variableMap leftExpression rightExpression = case evaluate variableMap leftExpression, evaluate variableMap rightExpression of
   Right leftValue, Right rightValue -> pure $ operation leftValue rightValue
+  Left leftError, Left rightError -> multipleErrors [ leftError, rightError ]
+  Left leftError, _ -> throw leftError
+  _, Left rightError -> throw rightError
+
+evaluateArithmeticPartialBinaryOperation :: (Approx -> Approx -> Maybe Approx) -> VariableMap Approx -> Expression -> Expression -> Expect Approx
+evaluateArithmeticPartialBinaryOperation operation variableMap leftExpression rightExpression = case evaluate variableMap leftExpression, evaluate variableMap rightExpression of
+  Right leftValue, Right rightValue -> case operation leftValue rightValue of
+    Just result -> pure result
+    _ -> evaluationError "pow: a parameter is out of range"
   Left leftError, Left rightError -> multipleErrors [ leftError, rightError ]
   Left leftError, _ -> throw leftError
   _, Left rightError -> throw rightError
@@ -167,22 +174,3 @@ evaluateTan :: VariableMap Approx -> Expression -> Expect Approx
 evaluateTan variableMap expression = case evaluate variableMap expression of
   Left error -> throw error
   Right value -> pure $ tanA value
-
-evaluatePow :: VariableMap Approx -> Expression -> Expression -> Expect Approx
-evaluatePow variableMap expression (ExpressionLiteral value) = case asInteger value of
-  Just power -> case evaluate variableMap expression of
-    Right expressionResult -> pure $ multiplicativePowerRecip expressionResult power
-    Left error -> throw error
-  Nothing -> powError
-
-evaluatePow _ _ _ = powError
-
-powError :: Expect Approx
-powError = evaluationError "'^' only supported with positive integer powers"
-
-asInteger :: Rational -> Maybe Int
-asInteger value = if numberValue == toNumber integerValue then Just integerValue else Nothing
-  where
-  numberValue = rationalToNumber value
-
-  integerValue = round $ numberValue
