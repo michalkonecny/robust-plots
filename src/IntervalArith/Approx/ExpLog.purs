@@ -5,8 +5,10 @@
 module IntervalArith.Approx.ExpLog where
 
 import Prelude
+
 import Data.Int as Int
 import Data.List.Lazy as L
+import Data.Maybe (Maybe(..))
 import Effect.Exception.Unsafe (unsafeThrow)
 import IntervalArith.Approx (Approx(..), Precision, approxAutoMB, approxMB, boundErrorTerm, boundErrorTermMB, fromInt, fromIntegerMB, lowerA, recipA, setMB, sqrA, unionA, upperA)
 import IntervalArith.Approx.NumOrder ((!<!))
@@ -79,21 +81,22 @@ More thorough benchmarking is desirable.
 
 Binary splitting is faster than Taylor. AGM should be used over ~1000 bits.
 -}
-logA :: Approx -> Approx
+logA :: Approx -> Maybe Approx
 -- This implementation asks for the dyadic approximation of the endpoints, we
 -- should instead use that, after the first range reduction, the derivative is
 -- less than 3/2 on the interval, so it easy to just compute one expensive
 -- computation. We could even make use of the fact that the derivative on the
 -- interval x is bounded by 1/x to get a tighter bound on the error.
-logA Bottom = Bottom
+logA Bottom = Just Bottom
 
 logA x@(Approx _ m e _)
-  | m > e && upperA x !<! one = -(logInternal (recipA x))
-  | m > e = logInternal x
+  | m > e && x !<! one = Just $ -(logInternal (recipA x)) -- avoid small x
+  | m > e = Just $ logInternal x
   --    let (n :^ t) = logD (negate p) $ (m-e) :^ s
   --        (n' :^ t') = logD (negate p) $ (m+e) :^ s
   --    in endToApprox (Finite ((n-1):^t)) (Finite ((n'+1):^t'))
-  | otherwise = Bottom
+  | m + e <= zero = Nothing -- definitely not positive
+  | otherwise = Just Bottom -- possibly not positive
 
 logInternal :: Approx -> Approx
 logInternal Bottom = unsafeThrow "LogInternal: impossible"
