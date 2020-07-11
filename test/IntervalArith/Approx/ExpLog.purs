@@ -3,11 +3,10 @@ module Test.IntervalArith.Approx.ExpLog
   ) where
 
 import Prelude
-
 import Data.Maybe (fromJust)
-import IntervalArith.Approx (consistent, setMB)
+import IntervalArith.Approx (consistent, fromInt, lowerA, modA, setMB)
 import IntervalArith.Approx.ExpLog (eA, expA, logA)
-import IntervalArith.Approx.NumOrder (absA)
+import IntervalArith.Approx.NumOrder (absA, (!<=!))
 import IntervalArith.Approx.ShowA (showA)
 import Partial.Unsafe (unsafePartial)
 import Test.IntervalArith.Approx.Arbitrary (ArbitraryApprox(..))
@@ -43,9 +42,14 @@ approxTests_ExpLogA =
       $ \aPre bPre ->
           let
             -- given
-            (ArbitraryApprox a) = aPre
+            (ArbitraryApprox a1) = aPre
 
-            (ArbitraryApprox b) = bPre
+            (ArbitraryApprox b1) = bPre
+
+            -- avoid large expenonets, as they make exp take too long 
+            a = (lowerA a1) `modA` (fromInt 100) - (fromInt 50)
+
+            b = (lowerA b1) `modA` (fromInt 100) - (fromInt 50)
 
             -- when
             result = expA a * expA b
@@ -64,7 +68,9 @@ approxTests_ExpLogA =
             -- given
             (ArbitraryApprox a1) = aPre
 
-            a = absA a1
+            a2 = absA a1
+
+            a = if a2 !<=! zero then one else a2
 
             -- when
             result = expA (unsafePartial $ fromJust $ logA a)
