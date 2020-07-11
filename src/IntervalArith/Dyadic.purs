@@ -4,7 +4,7 @@ import Prelude
 import Data.BigInt (abs, fromNumber)
 import Data.BigInt as BigInt
 import Data.Foldable (sum)
-import Data.Int (even, odd)
+import Data.Int as Int
 import Data.List.Lazy as L
 import Data.Maybe (Maybe(..))
 import Data.Ratio ((%))
@@ -61,6 +61,16 @@ fromInteger i = i :^ 0
 
 fromInt :: Int -> Dyadic
 fromInt i = (big i) :^ 0
+
+toInt :: Dyadic -> Maybe Int
+toInt x =
+  let
+    x_Int = Int.round $ dyadicToNumber x
+  in
+    if fromInt x_Int == x then
+      Just x_Int
+    else
+      Nothing
 
 instance toRationalDyadic :: ToRational Dyadic where
   toRational (a :^ s) = (toRational a) * (toRational 2) ^^ s
@@ -154,7 +164,7 @@ sqrtD t x = sqrtD' t x $ initSqrtD x
 
       s' = (s + i) `div` 2 - 3
     in
-      if odd (s + i) then
+      if Int.odd (s + i) then
         (n + (big 8)) :^ s'
       else
         (n + (big 4)) :^ s'
@@ -197,13 +207,13 @@ initSqrtRecDoubleD (m :^ s) =
       (_ * (2.0 ^ 53)) <<< (1.0 / _) <<< sqrt
         $ (BigInt.toNumber n)
         * 0.5
-        ^ (if even (s + i) then 52 else 51)
+        ^ (if Int.even (s + i) then 52 else 51)
 
     m' = case fromNumber dbl_m' of
       Just m'' -> m''
       _ -> unsafeThrow "internal error in initSqrtRecDoubleD"
 
-    t = if m' /= bit 52 && even (s + i) then s' - 1 else s'
+    t = if m' /= bit 52 && Int.even (s + i) then s' - 1 else s'
   in
     m' :^ t
 

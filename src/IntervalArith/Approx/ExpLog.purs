@@ -5,16 +5,18 @@
 module IntervalArith.Approx.ExpLog where
 
 import Prelude
-
 import Data.Int as Int
 import Data.List.Lazy as L
 import Data.Maybe (Maybe(..))
+import Data.Tuple (Tuple(..))
 import Effect.Exception.Unsafe (unsafeThrow)
-import IntervalArith.Approx (Approx(..), Precision, approxAutoMB, approxMB, boundErrorTerm, boundErrorTermMB, fromInt, fromIntegerMB, lowerA, recipA, setMB, sqrA, unionA, upperA)
+import IntervalArith.Approx (Approx(..), Precision, approxAutoMB, approxMB, boundErrorTerm, boundErrorTermMB, bounds, fromInt, fromIntegerMB, lowerA, recipA, setMB, sqrA, unionA, upperA)
 import IntervalArith.Approx.NumOrder ((!<!))
 import IntervalArith.Approx.Taylor (taylorA)
 import IntervalArith.Dyadic (atanhD, divD', ln2D, (:^))
-import IntervalArith.Misc (big, integerLog2, scale)
+import IntervalArith.Dyadic as Dyadic
+import IntervalArith.Extended (Extended(..))
+import IntervalArith.Misc (big, integerLog2, multiplicativePowerRecip, scale)
 import Math (sqrt)
 import Misc.LazyList ((!!))
 import Misc.LazyList.NumberSequences (factorials)
@@ -122,3 +124,17 @@ logInternal (Approx mb m e s) =
 -- | Compute approximations of ln 2. Lifted from computation on dyadic numbers.
 log2A :: Precision -> Approx
 log2A p = let (m :^ s) = ln2D (-p) in approxAutoMB m one s
+
+powViaLogA :: Approx -> Approx -> Maybe Approx
+powViaLogA x y = case logA x, toInt y of
+  Just logX, _ -> Just $ expA (y * logX)
+  _, Just yInt -> Just $ multiplicativePowerRecip x yInt
+  _, _ -> Nothing
+
+toInt :: Approx -> Maybe Int
+toInt x = case xL_ED of
+  Finite xL_D
+    | xL_ED == xU_ED -> Dyadic.toInt xL_D
+  _ -> Nothing
+  where
+  Tuple xL_ED xU_ED = bounds x
