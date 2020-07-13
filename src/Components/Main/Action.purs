@@ -145,7 +145,7 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpressio
     where
     status = if state.autoRobust then RobustInProgress else DrawnRough
 
-    name = if plot.name == defaultPlotName id then text else plot.name
+    name = if plot.name == defaultPlotName id || plot.name == plot.expressionText then text else plot.name
 
     queue =
       if state.autoRobust then
