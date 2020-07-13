@@ -16,7 +16,7 @@ import Plot.Commands (roughPlot)
 import Plot.JobBatcher (Job, JobResult, addPlot, cancelAll, clearCancelled, hasJobs, initialJobQueue, isCancelled, runFirst, setRunning)
 import Plot.Label (LabelledDrawCommand, drawRoughLabels)
 import Plot.PlotController (computePlotAsync)
-import Types (Id, Size, XYBounds, Bounds)
+import Types (Bounds, Id, Size, XYBounds, Position)
 
 newPlot :: Int -> ExpressionPlot
 newPlot id =
@@ -46,8 +46,8 @@ queueHasJobs plot = hasJobs plot.queue
 toLabelledPositions :: Array ExpressionPlot -> Array LabelledDrawCommand
 toLabelledPositions = map (\p -> Tuple p.expressionText p.commands.rough)
 
-labelCommands :: Array ExpressionPlot -> DrawCommand Unit
-labelCommands = drawRoughLabels (const false) <<< toLabelledPositions
+labelCommands :: (Position -> Boolean) -> Array ExpressionPlot -> DrawCommand Unit
+labelCommands isOffCanvas = drawRoughLabels isOffCanvas <<< toLabelledPositions
 
 anyPlotHasJobs :: Array ExpressionPlot -> Boolean
 anyPlotHasJobs = anyPlotExpression queueHasJobs
@@ -97,7 +97,10 @@ toMaybeDrawCommand plot = case plot.expression of
   Nothing -> Nothing
 
 foldDrawCommands :: State -> DrawCommand Unit
-foldDrawCommands state = fold ([ state.clearPlot ] <> (mapMaybe toMaybeDrawCommand state.plots) <> [ labelCommands state.plots ])
+foldDrawCommands state = fold ([ state.clearPlot ] <> (mapMaybe toMaybeDrawCommand state.plots) <> [ labelCommands (isOffCanvasCheck state.input.size) state.plots ])
+
+isOffCanvasCheck :: Size -> Position -> Boolean
+isOffCanvasCheck canvasSize position = position.x < zero || position.x > rationalToNumber canvasSize.width || position.y < zero || position.y > rationalToNumber canvasSize.height
 
 clearAddPlotCommands :: Boolean -> Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
 clearAddPlotCommands autoRobust batchCount size newBounds = parSequence <<< (map clearAddPlot)
