@@ -25,7 +25,7 @@ drawRoughLabels :: (Position -> Boolean) -> Array LabelledDrawCommand -> DrawCom
 drawRoughLabels isOffCanvas = drawLabels (toRoughLabelPosition isOffCanvas) isOffCanvas
 
 drawLabels :: (DrawCommand Unit -> Maybe Position) -> (Position -> Boolean) -> Array LabelledDrawCommand -> DrawCommand Unit
-drawLabels toLabelPosition isOffCanvas = drawAll <<< fixLabelledPositions isOffCanvas <<< mapMaybe toLabelPositionWithText 
+drawLabels toLabelPosition isOffCanvas = drawAll <<< fixLabelledPositions isOffCanvas <<< mapMaybe toLabelPositionWithText
   where
   toLabelPositionWithText :: LabelledDrawCommand -> Maybe LabelledPosition
   toLabelPositionWithText = withLabelText toLabelPosition
@@ -79,9 +79,10 @@ fixLabelledPositions isOffCanvas = fixLabelledPositionsWith []
       newFixed = fixed <> [ repositioned ]
 
       repositioned = reposition fixed head
-  
+
   reposition :: Array LabelledPosition -> LabelledPosition -> LabelledPosition
   reposition [] labeledPosition = labeledPosition
+
   reposition fixed labeledPosition@(Tuple text _) = (Tuple text position)
     where
     fixedBoxes = map toSizeAndPosition fixed
