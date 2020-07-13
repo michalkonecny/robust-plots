@@ -50,9 +50,7 @@ queueHasJobs plot = hasJobs plot.queue
 toLabelledPositions :: ExpressionPlot -> LabelledDrawCommand
 toLabelledPositions p = Tuple text p.commands.rough
   where
-  fullLengthText = if p.name == defaultPlotName p.id then p.expressionText else p.name
-
-  { before: text } = splitAt 20 fullLengthText
+  { before: text } = splitAt 20 p.name
 
 labelCommands :: (Position -> Boolean) -> Array ExpressionPlot -> DrawCommand Unit
 labelCommands isOffCanvas = drawRoughLabels isOffCanvas <<< map toLabelledPositions

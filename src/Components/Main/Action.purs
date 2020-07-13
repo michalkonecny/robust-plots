@@ -7,7 +7,7 @@ import Components.Canvas (CanvasMessage(..), calculateNewCanvasSize)
 import Components.ExpressionInput (ExpressionInputMessage(..), Status(..))
 import Components.ExpressionManager (ExpressionManagerMessage(..))
 import Components.ExpressionManager.Types (DrawingStatus(..), ExpressionPlot)
-import Components.Main.Helper (alterPlot, anyPlotHasJobs, clearAddPlotCommands, clearAllCancelled, foldDrawCommands, fromPixelAccuracy, isCancelledInAnyPlot, newPlot, queueHasJobs, runFirstJob, setFirstRunningJob, updateExpressionPlotCommands)
+import Components.Main.Helper (alterPlot, anyPlotHasJobs, clearAddPlotCommands, clearAllCancelled, defaultPlotName, foldDrawCommands, fromPixelAccuracy, isCancelledInAnyPlot, newPlot, queueHasJobs, runFirstJob, setFirstRunningJob, updateExpressionPlotCommands)
 import Components.Main.Types (ChildSlots, Config, State)
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.Trans.Class (lift)
@@ -140,9 +140,12 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpressio
         , status = status
         }
       , queue = queue
+      , name = name
       }
     where
     status = if state.autoRobust then RobustInProgress else DrawnRough
+
+    name = if plot.name == defaultPlotName id then text else plot.name
 
     queue =
       if state.autoRobust then
