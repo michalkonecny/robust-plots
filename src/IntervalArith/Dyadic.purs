@@ -3,12 +3,15 @@ module IntervalArith.Dyadic where
 import Prelude
 import Data.BigInt (abs, fromNumber)
 import Data.BigInt as BigInt
-import Data.Int (even, odd)
+import Data.Foldable (sum)
+import Data.Int as Int
+import Data.List.Lazy as L
 import Data.Maybe (Maybe(..))
 import Data.Ratio ((%))
 import Effect.Exception.Unsafe (unsafeThrow)
 import IntervalArith.Misc (class Scalable, class ToRational, Integer, big, bit, integerLog2, roundRational, scale, shift, toRational, (^), (^^))
 import Math (sqrt)
+import Misc.LazyList.NumberSequences (oneThreeEtc, oneTwoEtc)
 
 -- |The Dyadic data type.
 data Dyadic
@@ -59,6 +62,16 @@ fromInteger i = i :^ 0
 fromInt :: Int -> Dyadic
 fromInt i = (big i) :^ 0
 
+toInt :: Dyadic -> Maybe Int
+toInt x =
+  let
+    x_Int = Int.round $ dyadicToNumber x
+  in
+    if fromInt x_Int == x then
+      Just x_Int
+    else
+      Nothing
+
 instance toRationalDyadic :: ToRational Dyadic where
   toRational (a :^ s) = (toRational a) * (toRational 2) ^^ s
 
@@ -73,13 +86,58 @@ shiftD t (m :^ s) =
   else
     shift (m + bit (t - s - 1)) (s - t) :^ t
 
--- Square root
 divD :: Dyadic -> Dyadic -> Dyadic
 divD a (n :^ t) =
   let
     (m :^ _) = shiftD (2 * t) a
   in
     roundRational (m % n) :^ t
+
+divD' :: Int -> Dyadic -> Dyadic -> Dyadic
+divD' p a b =
+  let
+    (m :^ _) = shiftD (2 * p) a
+
+    (n :^ _) = shiftD p b
+  in
+    roundRational (m % n) :^ p
+
+atanhD :: Int -> Dyadic -> Dyadic
+atanhD t x@(a :^ s) =
+  if integerLog2 (abs a) + s >= zero then
+    unsafeThrow "atanhD: Argument outside domain, (-1,1)"
+  else
+    let
+      -- number of guard digits is 5+k where k depends on the precision [how do we know if this is enough?]
+      t' = t - 5 - integerLog2 (abs $ big t) `div` 2
+
+      g _x _y = shiftD t' (_x * _y)
+
+      x2 = g x x
+
+      b = L.iterate (g x2) one
+
+      c = map (divD' t' one <<< fromInteger) oneThreeEtc
+    in
+      shiftD t <<< g x <<< sum <<< L.takeWhile (_ /= zero) $ L.zipWith g b c
+
+-- |Compute dyadic values close to ln 2.
+ln2D :: Int -> Dyadic
+ln2D t =
+  let
+    t' = t - 10 - 2 * (integerLog2 (abs (big t)))
+
+    a = map ((_ :^ t') <<< roundRational <<< (bit (-t') % _)) $ L.iterate ((big 3) * _) (big 3)
+
+    b = map ((_ :^ t') <<< roundRational <<< (bit (-t') % _)) $ L.iterate ((big 4) * _) (big 4)
+
+    c = map ((_ :^ t') <<< roundRational <<< (bit (-t') % _)) oneTwoEtc
+
+    d = L.zipWith (+) a b
+
+    e = L.takeWhile (_ /= zero) <<< map (shiftD t') $ L.zipWith (*) d c
+  in
+    shiftD t $ sum e
 
 {- |Computes the square root of a Dyadic number to the specified base. The
    Newton-Raphson method may overestimates the square root, but the
@@ -106,7 +164,7 @@ sqrtD t x = sqrtD' t x $ initSqrtD x
 
       s' = (s + i) `div` 2 - 3
     in
-      if odd (s + i) then
+      if Int.odd (s + i) then
         (n + (big 8)) :^ s'
       else
         (n + (big 4)) :^ s'
@@ -149,13 +207,13 @@ initSqrtRecDoubleD (m :^ s) =
       (_ * (2.0 ^ 53)) <<< (1.0 / _) <<< sqrt
         $ (BigInt.toNumber n)
         * 0.5
-        ^ (if even (s + i) then 52 else 51)
+        ^ (if Int.even (s + i) then 52 else 51)
 
     m' = case fromNumber dbl_m' of
       Just m'' -> m''
       _ -> unsafeThrow "internal error in initSqrtRecDoubleD"
 
-    t = if m' /= bit 52 && even (s + i) then s' - 1 else s'
+    t = if m' /= bit 52 && Int.even (s + i) then s' - 1 else s'
   in
     m' :^ t
 

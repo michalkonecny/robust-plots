@@ -10,7 +10,8 @@ import Expression.Error (Expect, throw)
 import Expression.Evaluator (evaluate)
 import Expression.Parser (parse)
 import Expression.VariableMap (VariableMap)
-import IntervalArith.Approx (Approx, consistent, fromRationalPrec)
+import IntervalArith.Approx (Approx(..), consistent, fromRationalPrec, recipA)
+import IntervalArith.Approx.ExpLog (eA)
 import IntervalArith.Misc (big)
 import Test.Expression.Helper (expectValue)
 import Test.Unit (TestSuite, suite, test)
@@ -279,16 +280,81 @@ evaluateTests =
       expectValue result
         $ \value ->
             equal true $ consistent value expectedResult
-    test "SHOULD throw error 'Unsupported operation: log' WHEN f(x) = log(1)" do
+    test "ASSERT f(x) = 1 WHEN f(x) = exp(0)" do
+      let
+        -- given
+        rawExpression = "exp(0)"
+
+        -- when
+        result = parseAndEvaluate [] rawExpression
+
+        -- then
+        expectedResult = ratioHelp 1 1
+      -- then
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
+    test "ASSERT f(x) = 1/e WHEN f(x) = exp(-1)" do
+      let
+        -- given
+        rawExpression = "exp(-1)"
+
+        -- when
+        result = parseAndEvaluate [] rawExpression
+
+        -- then
+        expectedResult = recipA (eA 100)
+      -- then
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
+    test "ASSERT f(x) = 0 WHEN f(x) = log(1)" do
       let
         -- given
         rawExpression = "log(1)"
 
         -- when
+        result = parseAndEvaluate [] rawExpression
+
+        -- then
+        expectedResult = ratioHelp 0 1
+      -- then
+      expectValue result
+        $ \value ->
+            equal true $ consistent value expectedResult
+    test "SHOULD throw error 'Evaluation error: log: parameter out of range' WHEN f(x) = log(-1)" do
+      let
+        -- given
+        rawExpression = "log(-1)"
+
+        -- when
         result = fromExpect $ parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = "Unsupported operation: log"
+        expectedResult = "Evaluation error: log: parameter out of range"
+      equal expectedResult result
+    test "SHOULD throw error 'Evaluation error: log: parameter out of range' WHEN f(x) = log(0)" do
+      let
+        -- given
+        rawExpression = "log(0)"
+
+        -- when
+        result = fromExpect $ parseAndEvaluate [] rawExpression
+
+        -- then
+        expectedResult = "Evaluation error: log: parameter out of range"
+      equal expectedResult result
+    test "ASSERT f(x) = Bottom WHEN f(x) = log(pi-pi)" do
+      let
+        -- given
+        rawExpression = "log(pi-pi)"
+
+        -- when
+        result = parseAndEvaluate [] rawExpression
+
+        -- then
+        expectedResult = pure Bottom
+      -- then
       equal expectedResult result
     test "ASSERT f(x) = 5.0 WHEN f(x) = x AND x = 5.0" do
       let

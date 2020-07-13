@@ -5,11 +5,12 @@
 module IntervalArith.Approx.Sqrt where
 
 import Prelude
+
 import Data.BigInt as BigInt
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Effect.Exception.Unsafe (unsafeThrow)
-import IntervalArith.Approx (Approx(..), Precision, approxAutoMB, approxMB, endToApprox, errorBits, increasingPartialFunctionViaBounds, limitAndBoundMB, mapMB, recipA, setMB, significance, upperBound)
+import IntervalArith.Approx (Approx(..), Precision, approxAutoMB, approxMB, endToApprox, errorBits, increasingPartialFunctionViaBounds, limitAndBoundMB, mapMB, recipA, setMB, significance, unionA, upperA, upperBound)
 import IntervalArith.Dyadic (shiftD, sqrtRecD, (:^))
 import IntervalArith.Extended (Extended(..))
 import IntervalArith.Misc (two)
@@ -28,8 +29,8 @@ sqrtA :: Approx -> Maybe Approx
 sqrtA Bottom = Just Bottom
 
 sqrtA x@(Approx mb m e _)
-  | -m > e = Nothing -- definitely negative
-  | m < e = Just Bottom -- possibly negative
+  | m < -e = Nothing -- definitely negative
+  | m < e = map (unionA zero) $ sqrtA (upperA x) -- possibly negative, be optimistic
   | m == zero && e == zero = Just x
   | e > zero && e /= m = increasingPartialFunctionViaBounds sqrtA x
   | otherwise = result -- e == zero || e == m
