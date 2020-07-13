@@ -1,4 +1,4 @@
-module Expression.AutomaticDifferentiator where
+module Expression.Evaluator.AutomaticDifferentiator where
 
 import Prelude
 import Data.Maybe (Maybe(..))
