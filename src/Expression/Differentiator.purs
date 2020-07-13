@@ -4,7 +4,7 @@ import Prelude
 
 import Expression.SubExpression (removeSubExpressions)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..), VariableName)
-import IntervalArith.Misc (Rational)
+import IntervalArith.Misc (two)
 
 secondDifferentiate :: VariableName -> Expression -> Expression
 secondDifferentiate x = differentiate x <<< differentiate x
@@ -103,6 +103,3 @@ differentiateUnaryOperation x (Tan) expression = ExpressionBinary Times f' (Expr
 
   -- k = tan^2(f)
   k = ExpressionBinary Power (ExpressionUnary Tan f) (ExpressionLiteral two)
-
-two :: Rational
-two = one + one
