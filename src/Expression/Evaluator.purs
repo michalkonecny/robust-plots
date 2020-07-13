@@ -103,7 +103,7 @@ evaluateBinaryOperation Times = evaluateArithmeticBinaryOperation mul
 
 evaluateBinaryOperation Divide = evaluateArithmeticBinaryOperation div
 
-evaluateBinaryOperation Power = evaluateArithmeticPartialBinaryOperation powA
+evaluateBinaryOperation Power = evaluateArithmeticPartialBinaryOperation powA "^ (power operator): a parameter is out of range"
 
 evaluateArithmeticBinaryOperation :: (Approx -> Approx -> Approx) -> VariableMap Approx -> Expression -> Expression -> Expect Approx
 evaluateArithmeticBinaryOperation operation variableMap leftExpression rightExpression = case evaluate variableMap leftExpression, evaluate variableMap rightExpression of
@@ -112,11 +112,11 @@ evaluateArithmeticBinaryOperation operation variableMap leftExpression rightExpr
   Left leftError, _ -> throw leftError
   _, Left rightError -> throw rightError
 
-evaluateArithmeticPartialBinaryOperation :: (Approx -> Approx -> Maybe Approx) -> VariableMap Approx -> Expression -> Expression -> Expect Approx
-evaluateArithmeticPartialBinaryOperation operation variableMap leftExpression rightExpression = case evaluate variableMap leftExpression, evaluate variableMap rightExpression of
+evaluateArithmeticPartialBinaryOperation :: (Approx -> Approx -> Maybe Approx) -> String -> VariableMap Approx -> Expression -> Expression -> Expect Approx
+evaluateArithmeticPartialBinaryOperation operation errorMessage variableMap leftExpression rightExpression = case evaluate variableMap leftExpression, evaluate variableMap rightExpression of
   Right leftValue, Right rightValue -> case operation leftValue rightValue of
     Just result -> pure result
-    _ -> evaluationError "pow: a parameter is out of range"
+    _ -> evaluationError errorMessage
   Left leftError, Left rightError -> multipleErrors [ leftError, rightError ]
   Left leftError, _ -> throw leftError
   _, Left rightError -> throw rightError
