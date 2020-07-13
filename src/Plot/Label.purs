@@ -132,4 +132,4 @@ mostLeft (Just a) (Just b) = if a.x < b.x then Just a else Just b
 mostLeft a b = a <|> b
 
 toMidPoint :: Position -> Position -> Position
-toMidPoint a b = { x: (a.x + b.x) / 2.0, y: (a.y + b.y) / 2.0}
+toMidPoint a b = { x: (a.x + b.x) / 2.0, y: (a.y + b.y) / 2.0 }

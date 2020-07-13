@@ -1,6 +1,7 @@
 module Components.Main.Helper where
 
 import Prelude
+
 import Components.ExpressionInput (Status(..))
 import Components.ExpressionManager.Types (DrawingStatus(..), ExpressionPlot)
 import Components.Main.Types (State)
@@ -14,7 +15,7 @@ import IntervalArith.Misc (rationalToNumber)
 import Misc.Array (alterWhere)
 import Plot.Commands (roughPlot)
 import Plot.JobBatcher (Job, JobResult, addPlot, cancelAll, clearCancelled, hasJobs, initialJobQueue, isCancelled, runFirst, setRunning)
-import Plot.Label (LabelledDrawCommand, drawRoughLabels)
+import Plot.Label (LabelledDrawCommand, drawRoughLabels, textHeight)
 import Plot.PlotController (computePlotAsync)
 import Types (Bounds, Id, Size, XYBounds, Position)
 
@@ -100,7 +101,10 @@ foldDrawCommands :: State -> DrawCommand Unit
 foldDrawCommands state = fold ([ state.clearPlot ] <> (mapMaybe toMaybeDrawCommand state.plots) <> [ labelCommands (isOffCanvasCheck state.input.size) state.plots ])
 
 isOffCanvasCheck :: Size -> Position -> Boolean
-isOffCanvasCheck canvasSize position = position.x < zero || position.x > rationalToNumber canvasSize.width || position.y < zero || position.y > rationalToNumber canvasSize.height
+isOffCanvasCheck canvasSize position = position.x < textHeight || position.x > width || position.y < textHeight || position.y > height
+  where
+    width = rationalToNumber canvasSize.width
+    height = (rationalToNumber canvasSize.height) - 5.0
 
 clearAddPlotCommands :: Boolean -> Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
 clearAddPlotCommands autoRobust batchCount size newBounds = parSequence <<< (map clearAddPlot)
