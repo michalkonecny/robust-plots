@@ -1,61 +1,16 @@
 module Expression.Evaluator.AutomaticDifferentiator where
 
 import Prelude
-import Data.Maybe (Maybe(..))
-import Data.Number (isNaN)
-import Data.Tuple (Tuple(..))
-import Expression.Error (Expect, evaluationError, unknownValue)
+
+import Data.Array ((!!))
+import Data.Maybe (Maybe(..), fromJust)
+import Data.Tuple (Tuple(..), snd)
+import Expression.Error (Expect, unknownValue)
+import Expression.Evaluate.OperatorClasses (class HasExpLog, class HasIsZero, class HasPower, class HasRational, class HasSinCos, class HasSqrt, cos, exp, fromRational, isZero, log, power, sin, sqrt, tan)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 import Expression.VariableMap (VariableMap, lookup)
-import IntervalArith.Misc (Rational, rationalToNumber, two, (^))
-import Math as Math
-
-class HasRational a where
-  fromRational :: Rational -> Expect a
-
-class HasIsZero a where
-  isZero :: a -> Boolean
-
-class HasSqrt a where
-  sqrt :: a -> Expect a
-
-class HasPower a where
-  power :: a -> a -> Expect a
-
-class HasSinCos a where
-  sin :: a -> a
-  cos :: a -> a
-  tan :: a -> a
-
-class HasExpLog a where
-  exp :: a -> a
-  log :: a -> Expect a
-
-instance numberHasRational :: HasRational Number where
-  fromRational = checkNumber "illegal literal" <<< rationalToNumber
-
-instance numberHasIsZero :: HasIsZero Number where
-  isZero = (_ == 0.0)
-
-instance numberHasSqrt :: HasSqrt Number where
-  sqrt = checkNumber "sqrt: parameter out of range" <<< Math.sqrt
-
-instance numberHasPower :: HasPower Number where
-  power a e = checkNumber "sqrt: parameter out of range" $ Math.exp (e * (Math.log a))
-
-instance numberHasSinCos :: HasSinCos Number where
-  sin = Math.sin
-  cos = Math.cos
-  tan = Math.tan
-
-instance numberHasExpLog :: HasExpLog Number where
-  exp = Math.exp
-  log = checkNumber "log: parameter out of range" <<< Math.log
-
-checkNumber :: String -> Number -> Expect Number
-checkNumber message n
-  | isNaN n = evaluationError message
-  | otherwise = pure n
+import IntervalArith.Misc (two, (^))
+import Partial.Unsafe (unsafePartial)
 
 type ValueAndDerivative a
   = { value :: a, derivative :: a }
@@ -74,9 +29,10 @@ evaluateDerivative ::
   Expect (ValueAndDerivative a)
 evaluateDerivative variableMap = eval
   where
+  sample = (snd $ unsafePartial $ fromJust (variableMap !! 0)).value
   eval = case _ of
     ExpressionLiteral valueR -> do
-      value <- fromRational valueR
+      value <- fromRational sample valueR
       pure { value, derivative: zero }
     ExpressionVariable name -> case lookup variableMap name of
       Just valueAndDerivative -> pure valueAndDerivative
@@ -150,9 +106,10 @@ evaluateDerivative2 ::
   Expect (ValueAndDerivative2 a)
 evaluateDerivative2 variableMap = eval
   where
+  sample = (snd $ unsafePartial $ fromJust (variableMap !! 0)).value
   eval = case _ of
     ExpressionLiteral valueR -> do
-      value <- fromRational valueR
+      value <- fromRational sample valueR
       pure { value, derivative: zero, derivative2: zero }
     ExpressionVariable name -> case lookup variableMap name of
       Just valueAndDerivative2 -> pure valueAndDerivative2
@@ -240,6 +197,3 @@ evaluateDerivative2 variableMap = eval
             , derivative: u' * (one + tanU ^ 2)
             , derivative2: two * (u'' + two * u' ^ 2 * tanU) / (cos2U + one)
             }
-
-t2 :: Expression
-t2 = ExpressionBinary Power (ExpressionVariable "x") (ExpressionLiteral two)
