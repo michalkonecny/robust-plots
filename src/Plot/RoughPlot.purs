@@ -67,10 +67,10 @@ plotPoints canvasSize bounds f f'' = points
     if (abs deltaGradient) < (width / rangeX) then
       [ value ]
     else
-      map (toNumber >>> toSubRange) $ -5 .. 5
+      map (toNumber >>> toSubRange) $ -2 .. 2
     where
     toSubRange :: Number -> Number
-    toSubRange x = value + ((x * rangeX) / (numberOfPoints * 10.0))
+    toSubRange x = value + ((x * rangeX) / (numberOfPoints * 4.0))
 
   toCanvasX :: Number -> Number
   toCanvasX x = ((x - xLower) * width) / rangeX
