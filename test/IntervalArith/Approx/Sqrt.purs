@@ -39,7 +39,7 @@ approxTests_SqrtA =
         -- then
         expected = Nothing
       equal result expected
-    test "SHOULD HOLD sqrtA [0±1] = Bottom" do
+    test "SHOULD HOLD sqrtA [0±1] = [0.5±0.5]" do
       let
         -- given
         input1 = Approx 10 (big 0) (big 1) 0
@@ -48,7 +48,7 @@ approxTests_SqrtA =
         result = sqrtA input1
 
         -- then
-        expected = Just Bottom
+        expected = Just $ Approx 11 (big 1025) (big 1025) (-11)
       equal result expected
     test "SHOULD HOLD (sqrt a)^2 ~ a WHEN a>=0 FOR ALL approx a"
       $ quickCheck \aPre ->
