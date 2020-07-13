@@ -137,11 +137,11 @@ calculateNewCanvasSize = do
   let
     newWidth = containerWidth - 40.0 -- Account for padding
 
-    newHeight = (newWidth * 5.0) / 8.0
+    newHeight = (newWidth * 4.4) / 8.0
   pure $ { width: toRational (round newWidth), height: toRational (round newHeight) }
 
 defaultCanvasSize :: Size
 defaultCanvasSize =
   { width: toRational 800
-  , height: toRational 500
+  , height: toRational 440
   }
