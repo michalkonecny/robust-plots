@@ -15,21 +15,6 @@ import Draw.Commands (DrawCommand, DrawCommandF(..))
 import Misc.Maybe (toNothingIf)
 import Types (Position)
 
-type LabelledDrawCommand
-  = Tuple String (DrawCommand Unit)
-
-type LabelledPosition
-  = Tuple String Position
-
-type BoundingBox
-  = { size :: { width :: Number, height :: Number }, position :: Position }
-
-textHeight :: Number
-textHeight = 20.0
-
-characterWidth :: Number
-characterWidth = 10.0
-
 drawRoughLabels :: (Position -> Boolean) -> Array LabelledDrawCommand -> DrawCommand Unit
 drawRoughLabels isOffCanvas = drawLabels (toRoughLabelPosition isOffCanvas) isOffCanvas
 
@@ -98,9 +83,26 @@ toRoughLabelPosition isOffCanvas = interpretWith interpretRough
       nextCommandsPosition = interpretWith interpretRough nextCommands
 
 ----------------------------------------------------
+-- Types and Constants
+----------------------------------------------------
+type LabelledDrawCommand
+  = Tuple String (DrawCommand Unit)
+
+type LabelledPosition
+  = Tuple String Position
+
+type BoundingBox
+  = { size :: { width :: Number, height :: Number }, position :: Position }
+
+textHeight :: Number
+textHeight = 20.0
+
+characterWidth :: Number
+characterWidth = 10.0
+
+----------------------------------------------------
 -- Utility functions
 ----------------------------------------------------
-
 interpretWith :: forall a. (DrawCommandF (DrawCommand Unit) -> Maybe a) -> DrawCommand Unit -> Maybe a
 interpretWith interpret commands = case resume commands of
   Right _ -> Nothing
