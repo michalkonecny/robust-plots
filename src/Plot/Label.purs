@@ -3,7 +3,7 @@ module Plot.Label where
 import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.Free (resume)
-import Data.Array (fold, mapMaybe, uncons)
+import Data.Array (any, fold, mapMaybe, uncons)
 import Data.Either (Either(..))
 import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
@@ -25,7 +25,7 @@ drawRoughLabels :: (Position -> Boolean) -> Array LabelledDrawCommand -> DrawCom
 drawRoughLabels isOffCanvas = drawLabels (toRoughLabelPosition isOffCanvas) isOffCanvas
 
 drawLabels :: (DrawCommand Unit -> Maybe Position) -> (Position -> Boolean) -> Array LabelledDrawCommand -> DrawCommand Unit
-drawLabels toLabelPosition isOffCanvas = fold <<< (map draw) <<< fixLabelledPositions <<< mapMaybe toLabelPositionWithText
+drawLabels toLabelPosition isOffCanvas = drawAll <<< fixLabelledPositions <<< mapMaybe toLabelPositionWithText
   where
   toLabelPositionWithText :: LabelledDrawCommand -> Maybe LabelledPosition
   toLabelPositionWithText = withLabelText toLabelPosition
@@ -34,20 +34,29 @@ drawLabels toLabelPosition isOffCanvas = fold <<< (map draw) <<< fixLabelledPosi
   fixLabelledPositions = fixLabelledPositionsWith repositionBasedOnPlaced []
 
   repositionBasedOnPlaced :: Array LabelledPosition -> LabelledPosition -> LabelledPosition
-  repositionBasedOnPlaced fixed a@(Tuple text position) = a -- TODO: Fix label position
+  repositionBasedOnPlaced fixed labeledPosition@(Tuple text _) = (Tuple text position)
     where
-    box = toSizeAndPosition a
+    fixedBoxes = map toSizeAndPosition fixed
 
-    overlap :: BoundingBox -> Boolean
-    overlap other = l && r && u && d
-      where
-      l = box.position.x < other.position.x + other.size.width
+    position = (reposition (toSizeAndPosition labeledPosition)).position
 
-      r = box.position.x + box.size.width > other.position.x
+    reposition :: BoundingBox -> BoundingBox
+    reposition box =
+      if any (overlap box) fixedBoxes then
+        reposition box { position { y = box.position.y + box.size.height } }
+      else
+        box
 
-      u = box.position.y < other.position.y + other.size.height
+overlap :: BoundingBox -> BoundingBox -> Boolean
+overlap box other = l && r && u && d
+  where
+  l = box.position.x < other.position.x + other.size.width
 
-      d = box.position.y + box.size.height > other.position.y
+  r = box.position.x + box.size.width > other.position.x
+
+  u = box.position.y < other.position.y + other.size.height
+
+  d = box.position.y + box.size.height > other.position.y
 
 toSizeAndPosition :: LabelledPosition -> BoundingBox
 toSizeAndPosition (Tuple text position) = { size: toSize text, position }
@@ -57,6 +66,9 @@ toSize text = { width: characterWidth * toNumber (length text), height: textHeig
 
 type BoundingBox
   = { size :: { width :: Number, height :: Number }, position :: Position }
+
+drawAll :: Array LabelledPosition -> DrawCommand Unit
+drawAll = fold <<< map draw
 
 draw :: LabelledPosition -> DrawCommand Unit
 draw (Tuple text position) = drawText color label textHeight position
@@ -101,7 +113,7 @@ toRoughLabelPosition isOffCanvas = interpretWith interpretRough
     DrawRootEnclosure _ _ _ nextCommands -> interpretWith interpretRough nextCommands
     DrawPlotLine a b nextCommands -> mostLeft midPoint nextCommandsPosition
       where
-      midPoint = toNothingIf isOffCanvas $ Just $ toMidPoint a b
+      midPoint = toNothingIf isOffCanvas (Just (toMidPoint a b))
 
       nextCommandsPosition = interpretWith interpretRough nextCommands
 
@@ -113,7 +125,7 @@ interpretWith interpret commands = case resume commands of
 withLabelText :: forall a. (DrawCommand Unit -> Maybe a) -> LabelledDrawCommand -> Maybe (Tuple String a)
 withLabelText interpret (Tuple text commands) = case interpret commands of
   Nothing -> Nothing
-  Just a -> Just $ Tuple text a
+  Just a -> Just (Tuple text a)
 
 mostLeft :: Maybe Position -> Maybe Position -> Maybe Position
 mostLeft (Just a) (Just b) = if a.x < b.x then Just a else Just b
