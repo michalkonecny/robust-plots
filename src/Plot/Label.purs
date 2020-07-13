@@ -28,11 +28,9 @@ drawAll :: Array LabelledPosition -> DrawCommand Unit
 drawAll = fold <<< map draw
 
 draw :: LabelledPosition -> DrawCommand Unit
-draw (Tuple text position) = drawText color label textHeight position
+draw (Tuple text position) = drawText color text textHeight position
   where
   color = rgba 255.0 0.0 0.0 1.0
-
-  label = "f(x)=" <> text
 
 fixLabelledPositions :: Array LabelledPosition -> Array LabelledPosition
 fixLabelledPositions = fixLabelledPositionsWith []
