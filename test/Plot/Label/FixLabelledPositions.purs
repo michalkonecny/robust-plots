@@ -4,11 +4,9 @@ module Test.Plot.Label.FixLabelledPositions
 
 import Prelude
 import Data.Tuple (Tuple(..))
-import Draw.Commands (DrawCommand)
 import Plot.Label (fixLabelledPositions)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
-import Types (Position)
 
 fixLabelledPositionsTests :: TestSuite
 fixLabelledPositionsTests =
@@ -19,7 +17,7 @@ fixLabelledPositionsTests =
 
         labelledPosition = Tuple "test" position
 
-        fixedLabelPosition = fixLabelledPositions alwaysOnCanvas [ labelledPosition ]
+        fixedLabelPosition = fixLabelledPositions [ labelledPosition ]
 
         expected = [ Tuple "test" position ]
       equal expected fixedLabelPosition
@@ -28,18 +26,10 @@ fixLabelledPositionsTests =
         position = { x: 2.0, y: 30.0 }
 
         labelledPositionA = Tuple "test" position
+
         labelledPositionB = Tuple "test" position
 
-        fixedLabelPosition = fixLabelledPositions alwaysOnCanvas [ labelledPositionA, labelledPositionB ]
+        fixedLabelPosition = fixLabelledPositions [ labelledPositionA, labelledPositionB ]
 
         expected = [ Tuple "test" position, Tuple "test" { x: 2.0, y: 10.0 } ]
       equal expected fixedLabelPosition
-
-emptyDrawCommands :: DrawCommand Unit
-emptyDrawCommands = pure unit
-
-alwaysOnCanvas :: Position -> Boolean
-alwaysOnCanvas = const false
-
-alwaysOffCanvas :: Position -> Boolean
-alwaysOffCanvas = const true

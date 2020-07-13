@@ -16,10 +16,10 @@ import Misc.Maybe (toNothingIf)
 import Types (Position)
 
 drawRoughLabels :: (Position -> Boolean) -> Array LabelledDrawCommand -> DrawCommand Unit
-drawRoughLabels isOffCanvas = drawLabels (toRoughLabelPosition isOffCanvas) isOffCanvas
+drawRoughLabels isOffCanvas = drawLabels (toRoughLabelPosition isOffCanvas)
 
-drawLabels :: (DrawCommand Unit -> Maybe Position) -> (Position -> Boolean) -> Array LabelledDrawCommand -> DrawCommand Unit
-drawLabels toLabelPosition isOffCanvas = drawAll <<< fixLabelledPositions isOffCanvas <<< mapMaybe toLabelPositionWithText
+drawLabels :: (DrawCommand Unit -> Maybe Position) -> Array LabelledDrawCommand -> DrawCommand Unit
+drawLabels toLabelPosition = drawAll <<< fixLabelledPositions <<< mapMaybe toLabelPositionWithText
   where
   toLabelPositionWithText :: LabelledDrawCommand -> Maybe LabelledPosition
   toLabelPositionWithText = withLabelText toLabelPosition
@@ -34,8 +34,8 @@ draw (Tuple text position) = drawText color label textHeight position
 
   label = "f(x)=" <> text
 
-fixLabelledPositions :: (Position -> Boolean) -> Array LabelledPosition -> Array LabelledPosition
-fixLabelledPositions isOffCanvas = fixLabelledPositionsWith []
+fixLabelledPositions :: Array LabelledPosition -> Array LabelledPosition
+fixLabelledPositions = fixLabelledPositionsWith []
   where
   fixLabelledPositionsWith :: Array LabelledPosition -> Array LabelledPosition -> Array LabelledPosition
   fixLabelledPositionsWith fixed [] = fixed
@@ -103,30 +103,44 @@ characterWidth = 10.0
 ----------------------------------------------------
 -- Utility functions
 ----------------------------------------------------
+-- | Interprets a `DrawCommand Unit` into a `Maybe a` using the given interpreter function.
 interpretWith :: forall a. (DrawCommandF (DrawCommand Unit) -> Maybe a) -> DrawCommand Unit -> Maybe a
 interpretWith interpret commands = case resume commands of
   Right _ -> Nothing
   Left command -> interpret command
 
-withLabelText :: forall a. (DrawCommand Unit -> Maybe a) -> LabelledDrawCommand -> Maybe (Tuple String a)
+-- | Maps a `LabelledDrawCommand` into a `Maybe LabelledPosition` using the given interpreter function.
+withLabelText :: (DrawCommand Unit -> Maybe Position) -> LabelledDrawCommand -> Maybe LabelledPosition
 withLabelText interpret (Tuple text commands) = case interpret commands of
   Nothing -> Nothing
   Just a -> Just (Tuple text a)
 
+-- | Converts a `LabelledPosition` into a `BoundingBox` using `toSize` to determine the size of the box.
 toSizeAndPosition :: LabelledPosition -> BoundingBox
 toSizeAndPosition (Tuple text position) = { size: toSize text, position }
 
+-- | Determines the size of a text `String` using the `textHeight` and `characterWidth`.
 toSize :: String -> { width :: Number, height :: Number }
 toSize text = { width: characterWidth * toNumber (length text), height: textHeight }
 
+-- | Determines the left most position of the given two `Maybe Position`s. If either of 
+-- | the `Maybe Position`s is `Nothing` then the other is retruned. If both are `Nothing` 
+-- | then `Nothing` is retruned.
+-- | ```purescript
+-- | mostLeft a Nothing = a
+-- | mostLeft Nothing b = b
+-- | mostLeft Nothing Nothing = Nothing
+-- | ```
 mostLeft :: Maybe Position -> Maybe Position -> Maybe Position
 mostLeft (Just a) (Just b) = if a.x < b.x then Just a else Just b
 
 mostLeft a b = a <|> b
 
+-- | Retrieves the mid point between the two given `Position`s.
 toMidPoint :: Position -> Position -> Position
 toMidPoint a b = { x: (a.x + b.x) / 2.0, y: (a.y + b.y) / 2.0 }
 
+-- | Determines if the two specified `BoundingBox`s overlap.
 overlap :: BoundingBox -> BoundingBox -> Boolean
 overlap box other = l && r && u && d
   where

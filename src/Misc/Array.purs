@@ -26,5 +26,6 @@ split splits values =
     where
     i = index * perSplit
 
+-- | Applies the given mapping function to all the elements in the given `Array` that conform to the given predicate.
 alterWhere :: forall a. (a -> Boolean) -> (a -> a) -> Array a -> Array a
 alterWhere predicate alterF = map (\element -> if predicate element then alterF element else element)
