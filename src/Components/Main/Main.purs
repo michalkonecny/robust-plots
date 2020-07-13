@@ -63,8 +63,13 @@ mainComponent =
   render :: forall m. MonadAff m => MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
   render state =
     HH.div_
-      $ [ HH.h1_
-            [ HH.text "Robust plot" ]
+      $ [ HH.nav
+            [ className "navbar navbar-expand navbar-dark bg-dark" ]
+            [ HH.div
+                [ className "navbar-brand" ]
+                [ HH.text "Robust plots" ]
+            ]
+        , HH.br_
         , HH.div
             [ className "container-fluid" ]
             [ HH.div

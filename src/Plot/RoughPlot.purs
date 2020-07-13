@@ -46,13 +46,15 @@ plotPoints canvasSize bounds f f'' = points
 
   width = rationalToNumber canvasSize.width
 
+  numberOfPoints = width / 2.0
+
   height = rationalToNumber canvasSize.height
 
   xLower = rationalToNumber bounds.xBounds.lower
 
   yLower = rationalToNumber bounds.yBounds.lower
 
-  defaultRange = map (toNumber >>> toDomainX) $ 0 .. (floor width)
+  defaultRange = map (toNumber >>> toDomainX) $ 0 .. (floor numberOfPoints)
 
   changeInGradient = map f'' defaultRange
 
@@ -65,10 +67,10 @@ plotPoints canvasSize bounds f f'' = points
     if (abs deltaGradient) < (width / rangeX) then
       [ value ]
     else
-      map (toNumber >>> toSubRange) $ -5 .. 5
+      map (toNumber >>> toSubRange) $ -2 .. 2
     where
     toSubRange :: Number -> Number
-    toSubRange x = value + ((x * rangeX) / (width * 10.0))
+    toSubRange x = value + ((x * rangeX) / (numberOfPoints * 4.0))
 
   toCanvasX :: Number -> Number
   toCanvasX x = ((x - xLower) * width) / rangeX
@@ -77,7 +79,7 @@ plotPoints canvasSize bounds f f'' = points
   toCanvasY y = height - (((y - yLower) * height) / rangeY)
 
   toDomainX :: Number -> Number
-  toDomainX canvasX = ((canvasX * rangeX) / width) + xLower
+  toDomainX canvasX = ((canvasX * rangeX) / numberOfPoints) + xLower
 
   toCanvasPoint :: Number -> Maybe Position
   toCanvasPoint x = case f x of
