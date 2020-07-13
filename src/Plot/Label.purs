@@ -25,27 +25,10 @@ drawRoughLabels :: (Position -> Boolean) -> Array LabelledDrawCommand -> DrawCom
 drawRoughLabels isOffCanvas = drawLabels (toRoughLabelPosition isOffCanvas) isOffCanvas
 
 drawLabels :: (DrawCommand Unit -> Maybe Position) -> (Position -> Boolean) -> Array LabelledDrawCommand -> DrawCommand Unit
-drawLabels toLabelPosition isOffCanvas = drawAll <<< fixLabelledPositions <<< mapMaybe toLabelPositionWithText
+drawLabels toLabelPosition isOffCanvas = drawAll <<< fixLabelledPositions isOffCanvas <<< mapMaybe toLabelPositionWithText 
   where
   toLabelPositionWithText :: LabelledDrawCommand -> Maybe LabelledPosition
   toLabelPositionWithText = withLabelText toLabelPosition
-
-  fixLabelledPositions :: Array LabelledPosition -> Array LabelledPosition
-  fixLabelledPositions = fixLabelledPositionsWith repositionBasedOnPlaced []
-
-  repositionBasedOnPlaced :: Array LabelledPosition -> LabelledPosition -> LabelledPosition
-  repositionBasedOnPlaced fixed labeledPosition@(Tuple text _) = (Tuple text position)
-    where
-    fixedBoxes = map toSizeAndPosition fixed
-
-    position = (reposition (toSizeAndPosition labeledPosition)).position
-
-    reposition :: BoundingBox -> BoundingBox
-    reposition box =
-      if any (overlap box) fixedBoxes then
-        reposition box { position { y = box.position.y + box.size.height } }
-      else
-        box
 
 overlap :: BoundingBox -> BoundingBox -> Boolean
 overlap box other = l && r && u && d
@@ -83,19 +66,34 @@ textHeight = 20.0
 characterWidth :: Number
 characterWidth = 10.0
 
-fixLabelledPositionsWith :: (Array LabelledPosition -> LabelledPosition -> LabelledPosition) -> Array LabelledPosition -> Array LabelledPosition -> Array LabelledPosition
-fixLabelledPositionsWith reposition = fixLabelledPositions
+fixLabelledPositions :: (Position -> Boolean) -> Array LabelledPosition -> Array LabelledPosition
+fixLabelledPositions isOffCanvas = fixLabelledPositionsWith []
   where
-  fixLabelledPositions :: Array LabelledPosition -> Array LabelledPosition -> Array LabelledPosition
-  fixLabelledPositions fixed [] = fixed
+  fixLabelledPositionsWith :: Array LabelledPosition -> Array LabelledPosition -> Array LabelledPosition
+  fixLabelledPositionsWith fixed [] = fixed
 
-  fixLabelledPositions fixed toFix = case uncons toFix of
+  fixLabelledPositionsWith fixed toFix = case uncons toFix of
     Nothing -> fixed
-    Just { head, tail } -> fixLabelledPositions newFixed tail
+    Just { head, tail } -> fixLabelledPositionsWith newFixed tail
       where
       newFixed = fixed <> [ repositioned ]
 
       repositioned = reposition fixed head
+  
+  reposition :: Array LabelledPosition -> LabelledPosition -> LabelledPosition
+  reposition [] labeledPosition = labeledPosition
+  reposition fixed labeledPosition@(Tuple text _) = (Tuple text position)
+    where
+    fixedBoxes = map toSizeAndPosition fixed
+
+    position = (repositionBox (toSizeAndPosition labeledPosition)).position
+
+    repositionBox :: BoundingBox -> BoundingBox
+    repositionBox box =
+      if any (overlap box) fixedBoxes then
+        repositionBox box { position { y = box.position.y - box.size.height } }
+      else
+        box
 
 toRoughLabelPosition :: (Position -> Boolean) -> DrawCommand Unit -> Maybe Position
 toRoughLabelPosition isOffCanvas = interpretWith interpretRough

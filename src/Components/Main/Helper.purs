@@ -1,19 +1,20 @@
 module Components.Main.Helper where
 
 import Prelude
-
 import Components.ExpressionInput (Status(..))
 import Components.ExpressionManager.Types (DrawingStatus(..), ExpressionPlot)
 import Components.Main.Types (State)
 import Control.Parallel (parSequence)
 import Data.Array (cons, fold, foldl, mapMaybe, uncons)
 import Data.Maybe (Maybe(..))
+import Data.Tuple (Tuple(..))
 import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff)
 import IntervalArith.Misc (rationalToNumber)
 import Misc.Array (alterWhere)
 import Plot.Commands (roughPlot)
 import Plot.JobBatcher (Job, JobResult, addPlot, cancelAll, clearCancelled, hasJobs, initialJobQueue, isCancelled, runFirst, setRunning)
+import Plot.Label (LabelledDrawCommand, drawRoughLabels)
 import Plot.PlotController (computePlotAsync)
 import Types (Id, Size, XYBounds, Bounds)
 
@@ -42,10 +43,16 @@ alterPlot alterF id = alterWhere (\p -> p.id == id) alterF
 queueHasJobs :: ExpressionPlot -> Boolean
 queueHasJobs plot = hasJobs plot.queue
 
+toLabelledPositions :: Array ExpressionPlot -> Array LabelledDrawCommand
+toLabelledPositions = map (\p -> Tuple p.expressionText p.commands.rough)
+
+labelCommands :: Array ExpressionPlot -> DrawCommand Unit
+labelCommands = drawRoughLabels (const false) <<< toLabelledPositions
+
 anyPlotHasJobs :: Array ExpressionPlot -> Boolean
 anyPlotHasJobs = anyPlotExpression queueHasJobs
 
-isAllRobustPlotsComplete ::Array ExpressionPlot -> Boolean
+isAllRobustPlotsComplete :: Array ExpressionPlot -> Boolean
 isAllRobustPlotsComplete = allPlotExpression $ \plot -> plot.commands.status == DrawnRobust
 
 allPlotExpression :: (ExpressionPlot -> Boolean) -> Array ExpressionPlot -> Boolean
@@ -90,7 +97,7 @@ toMaybeDrawCommand plot = case plot.expression of
   Nothing -> Nothing
 
 foldDrawCommands :: State -> DrawCommand Unit
-foldDrawCommands state = fold $ [ state.clearPlot ] <> mapMaybe toMaybeDrawCommand state.plots
+foldDrawCommands state = fold ([ state.clearPlot ] <> (mapMaybe toMaybeDrawCommand state.plots) <> [ labelCommands state.plots ])
 
 clearAddPlotCommands :: Boolean -> Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
 clearAddPlotCommands autoRobust batchCount size newBounds = parSequence <<< (map clearAddPlot)
