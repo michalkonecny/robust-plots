@@ -282,6 +282,12 @@ exact (Approx _ _ e _) = e == (big 0)
 
 exact Bottom = false
 
+-- |Returns 'True' if the approximation is finite, i.e., it is not Bottom
+finite :: Approx -> Boolean
+finite (Approx _ _ e _) = true
+
+finite Bottom = false
+
 -- | Checks if the centre of an approximation is not 0.
 nonZeroCentredA :: Approx -> Boolean
 nonZeroCentredA Bottom = false
