@@ -166,7 +166,7 @@ parseTests =
         result = fromExpect $ parse input
 
         -- then
-        expectedResult = "Parse error: Probably invalid operator location"
+        expectedResult = "Parse error: Probable cause: Missing operand"
       equal expectedResult result
     test "SHOULD parse as '1-((x/6)*(1-(x/20)))' WHEN input is '1-(x/6)*(1-(x/20))'" do
       let
