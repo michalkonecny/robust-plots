@@ -19,24 +19,24 @@ evaluateDerivative variableMap expr = do
   evaluateDerivativeWithSample variableMap sample expr
 
 evaluateDerivativeWithSample :: forall a. CanEvaluate a => VariableMap (ValueAndDerivative a) -> a -> Expression -> Expect (ValueAndDerivative a)
-evaluateDerivativeWithSample variableMap sample = eval
+evaluateDerivativeWithSample variableMap sample = evaluate
   where
-  eval = case _ of
+  evaluate = case _ of
     ExpressionLiteral valueR -> do
       value <- fromRational sample valueR
       pure { value, derivative: zero }
     ExpressionVariable name -> case lookup variableMap name of
       Just valueAndDerivative -> pure valueAndDerivative
       _ -> unknownValue name
-    ExpressionBinary operation leftExpression rightExpression -> evalBinary operation leftExpression rightExpression
-    ExpressionUnary operation subExpression -> evalUnary operation subExpression
+    ExpressionBinary operation leftExpression rightExpression -> evaluateBinary operation leftExpression rightExpression
+    ExpressionUnary operation subExpression -> evaluateUnary operation subExpression
     ExpressionLet name expression parentExpression -> do
-      expressionValueAndDerivative <- eval expression
+      expressionValueAndDerivative <- evaluate expression
       evaluateDerivative ([ (Tuple name expressionValueAndDerivative) ] <> variableMap) parentExpression
 
-  evalBinary operation leftExpression rightExpression = do
-    { value: u, derivative: u' } <- eval leftExpression
-    { value: v, derivative: v' } <- eval rightExpression
+  evaluateBinary operation leftExpression rightExpression = do
+    { value: u, derivative: u' } <- evaluate leftExpression
+    { value: v, derivative: v' } <- evaluate rightExpression
     case operation of
       Plus -> pure { value: u + v, derivative: u' + v' }
       Minus -> pure { value: u - v, derivative: u' - v' }
@@ -55,8 +55,8 @@ evaluateDerivativeWithSample variableMap sample = eval
         logU <- log u
         pure { value: uPowV, derivative: uPowVminus1 * (v * u' + u * v' * logU) }
 
-  evalUnary operation subExpression = do
-    { value: u, derivative: u' } <- eval subExpression
+  evaluateUnary operation subExpression = do
+    { value: u, derivative: u' } <- evaluate subExpression
     case operation of
       Neg -> pure { value: -u, derivative: -u' }
       Sqrt -> do
@@ -89,24 +89,24 @@ evaluateDerivative2 variableMap expr = do
   evaluateDerivative2WithSample variableMap sample expr
 
 evaluateDerivative2WithSample :: forall a. CanEvaluate a => VariableMap (ValueAndDerivative2 a) -> a -> Expression -> Expect (ValueAndDerivative2 a)
-evaluateDerivative2WithSample variableMap sample = eval
+evaluateDerivative2WithSample variableMap sample = evaluate
   where
-  eval = case _ of
+  evaluate = case _ of
     ExpressionLiteral valueR -> do
       value <- fromRational sample valueR
       pure { value, derivative: zero, derivative2: zero }
     ExpressionVariable name -> case lookup variableMap name of
       Just valueAndDerivative2 -> pure valueAndDerivative2
       _ -> unknownValue name
-    ExpressionBinary operation leftExpression rightExpression -> evalBinary operation leftExpression rightExpression
-    ExpressionUnary operation subExpression -> evalUnary operation subExpression
+    ExpressionBinary operation leftExpression rightExpression -> evaluateBinary operation leftExpression rightExpression
+    ExpressionUnary operation subExpression -> evaluateUnary operation subExpression
     ExpressionLet name expression parentExpression -> do
-      expressionValueAndDerivative2 <- eval expression
+      expressionValueAndDerivative2 <- evaluate expression
       evaluateDerivative2 ([ (Tuple name expressionValueAndDerivative2) ] <> variableMap) parentExpression
 
-  evalBinary operation leftExpression rightExpression = do
-    { value: u, derivative: u', derivative2: u'' } <- eval leftExpression
-    { value: v, derivative: v', derivative2: v'' } <- eval rightExpression
+  evaluateBinary operation leftExpression rightExpression = do
+    { value: u, derivative: u', derivative2: u'' } <- evaluate leftExpression
+    { value: v, derivative: v', derivative2: v'' } <- evaluate rightExpression
     case operation of
       Plus -> pure { value: u + v, derivative: u' + v', derivative2: u'' + v'' }
       Minus -> pure { value: u - v, derivative: u' - v', derivative2: u'' - v'' }
@@ -135,8 +135,8 @@ evaluateDerivative2WithSample variableMap sample = eval
           , derivative2: uPowV * (t ^ 2 + (v * u'' + two * u' * v') / u - v * u' ^ 2 / u ^ 2 + logU * v'')
           }
 
-  evalUnary operation subExpression = do
-    { value: u, derivative: u', derivative2: u'' } <- eval subExpression
+  evaluateUnary operation subExpression = do
+    { value: u, derivative: u', derivative2: u'' } <- evaluate subExpression
     case operation of
       Neg -> pure { value: -u, derivative: -u', derivative2: -u'' }
       Sqrt -> do
