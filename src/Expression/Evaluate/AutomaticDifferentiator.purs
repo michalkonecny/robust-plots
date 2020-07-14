@@ -1,38 +1,26 @@
 module Expression.Evaluator.AutomaticDifferentiator where
 
 import Prelude
-
-import Data.Array ((!!))
-import Data.Maybe (Maybe(..), fromJust)
-import Data.Tuple (Tuple(..), snd)
+import Data.Array (head)
+import Data.Maybe (Maybe(..))
+import Data.Tuple (Tuple(..))
 import Expression.Error (Expect, evaluationError, unknownValue)
-import Expression.Evaluate.OperatorClasses (class HasExpLog, class HasIsZero, class HasPower, class HasRational, class HasSinCos, class HasSqrt, cos, exp, fromRational, isZero, log, power, sin, sqrt, tan)
+import Expression.Evaluate.OperatorClasses (class CanEvaluate, cos, exp, fromRational, isZero, log, power, sin, sqrt, tan)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 import Expression.VariableMap (VariableMap, lookup)
 import IntervalArith.Misc (two, (^))
-import Partial.Unsafe (unsafePartial)
 
 type ValueAndDerivative a
   = { value :: a, derivative :: a }
 
-evaluateDerivative ::
-  forall a.
-  (Field a) =>
-  (HasRational a) =>
-  (HasIsZero a) =>
-  (HasSqrt a) =>
-  (HasPower a) =>
-  (HasSinCos a) =>
-  (HasExpLog a) =>
-  (VariableMap (ValueAndDerivative a)) ->
-  Expression ->
-  Expect (ValueAndDerivative a)
-evaluateDerivative [] = 
-  const $ 
-    evaluationError "evaluateDerivative: at least one variable has to be specified"
-evaluateDerivative variableMap = eval
+evaluateDerivative :: forall a. CanEvaluate a => VariableMap (ValueAndDerivative a) -> Expression -> Expect (ValueAndDerivative a)
+evaluateDerivative variableMap expr = do
+  sample <- getSample variableMap
+  evaluateDerivativeWithSample variableMap sample expr
+
+evaluateDerivativeWithSample :: forall a. CanEvaluate a => VariableMap (ValueAndDerivative a) -> a -> Expression -> Expect (ValueAndDerivative a)
+evaluateDerivativeWithSample variableMap sample = eval
   where
-  sample = (snd $ unsafePartial $ fromJust (variableMap !! 0)).value
   eval = case _ of
     ExpressionLiteral valueR -> do
       value <- fromRational sample valueR
@@ -95,21 +83,14 @@ evaluateDerivative variableMap = eval
 type ValueAndDerivative2 a
   = { value :: a, derivative :: a, derivative2 :: a }
 
-evaluateDerivative2 ::
-  forall a.
-  (Field a) =>
-  (HasRational a) =>
-  (HasIsZero a) =>
-  (HasSqrt a) =>
-  (HasPower a) =>
-  (HasSinCos a) =>
-  (HasExpLog a) =>
-  (VariableMap (ValueAndDerivative2 a)) ->
-  Expression ->
-  Expect (ValueAndDerivative2 a)
-evaluateDerivative2 variableMap = eval
+evaluateDerivative2 :: forall a. CanEvaluate a => VariableMap (ValueAndDerivative2 a) -> Expression -> Expect (ValueAndDerivative2 a)
+evaluateDerivative2 variableMap expr = do
+  sample <- getSample variableMap
+  evaluateDerivative2WithSample variableMap sample expr
+
+evaluateDerivative2WithSample :: forall a. CanEvaluate a => VariableMap (ValueAndDerivative2 a) -> a -> Expression -> Expect (ValueAndDerivative2 a)
+evaluateDerivative2WithSample variableMap sample = eval
   where
-  sample = (snd $ unsafePartial $ fromJust (variableMap !! 0)).value
   eval = case _ of
     ExpressionLiteral valueR -> do
       value <- fromRational sample valueR
@@ -200,3 +181,8 @@ evaluateDerivative2 variableMap = eval
             , derivative: u' * (one + tanU ^ 2)
             , derivative2: two * (u'' + two * u' ^ 2 * tanU) / (cos2U + one)
             }
+
+getSample :: forall a b. VariableMap { value :: a | b } -> Expect a
+getSample variableMap = case head variableMap of
+  Just (Tuple _ s) -> pure $ s.value
+  Nothing -> evaluationError "At least one variable has to be specified"

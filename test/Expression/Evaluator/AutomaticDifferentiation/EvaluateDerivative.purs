@@ -24,7 +24,7 @@ evaluateDerivativeTests =
         -- when
         result = fromExpect $ do 
           expr <- parseExpr rawExpression
-          valueAndDerivative <- evaluateDerivative [Tuple "x" {value : 1.0, derivative: 1.0} ] expr
+          valueAndDerivative <- evaluateDerivative [Tuple "x" { value : 1.0, derivative: 1.0 } ] expr
           pure valueAndDerivative.derivative
 
         -- then

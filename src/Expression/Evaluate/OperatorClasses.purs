@@ -33,6 +33,9 @@ class HasExpLog a where
   exp :: a -> a
   log :: a -> Expect a
 
+-- | Composite class that defines all the instances a type must have to be evaluated and derived.
+class (Field a, HasRational a, HasIsZero a, HasSqrt a, HasPower a, HasSinCos a, HasExpLog a) <= CanEvaluate a
+
 -- Number instances:
 
 instance numberHasRational :: HasRational Number where
@@ -60,6 +63,8 @@ checkNumber :: String -> Number -> Expect Number
 checkNumber message n
   | isNaN n = evaluationError message
   | otherwise = pure n
+
+instance numberCanEvaluate :: CanEvaluate Number
 
 -- Approx instances:
 
@@ -93,3 +98,5 @@ checkApprox :: String -> Maybe Approx -> Expect Approx
 checkApprox message = case _ of
   Just a -> pure a
   _ -> evaluationError message
+
+instance approxCanEvaluate :: CanEvaluate Approx
