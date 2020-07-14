@@ -157,6 +157,17 @@ parseTests =
         -- then
         expectedResult = "1+(2*3)"
       equal expectedResult result
+    test "SHOULD fail to parse WHEN input is 'x+/2'" do
+      let
+        -- given
+        input = "x+/2"
+
+        -- when
+        result = fromExpect $ parse input
+
+        -- then
+        expectedResult = "Parse error: Invalid operator location"
+      equal expectedResult result
     test "SHOULD parse as '1-((x/6)*(1-(x/20)))' WHEN input is '1-(x/6)*(1-(x/20))'" do
       let
         -- given
