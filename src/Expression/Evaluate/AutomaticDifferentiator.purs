@@ -5,7 +5,7 @@ import Prelude
 import Data.Array ((!!))
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Tuple (Tuple(..), snd)
-import Expression.Error (Expect, unknownValue)
+import Expression.Error (Expect, evaluationError, unknownValue)
 import Expression.Evaluate.OperatorClasses (class HasExpLog, class HasIsZero, class HasPower, class HasRational, class HasSinCos, class HasSqrt, cos, exp, fromRational, isZero, log, power, sin, sqrt, tan)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 import Expression.VariableMap (VariableMap, lookup)
@@ -27,6 +27,9 @@ evaluateDerivative ::
   (VariableMap (ValueAndDerivative a)) ->
   Expression ->
   Expect (ValueAndDerivative a)
+evaluateDerivative [] = 
+  const $ 
+    evaluationError "evaluateDerivative: at least one variable has to be specified"
 evaluateDerivative variableMap = eval
   where
   sample = (snd $ unsafePartial $ fromJust (variableMap !! 0)).value
