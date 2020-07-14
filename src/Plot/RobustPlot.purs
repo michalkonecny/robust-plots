@@ -9,7 +9,8 @@ import Data.Tuple (Tuple(..))
 import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
 import Expression.Syntax (Expression)
-import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, finite, fromRationalPrec, toNumber)
+import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, finite, fromRationalPrec, lowerA, toNumber, upperA)
+import IntervalArith.Approx.NumOrder ((!<=!), (!>=!))
 import IntervalArith.Misc (Rational, rationalToNumber, two)
 import Misc.Debug (unsafeSpy)
 import Plot.PlotEvaluator (ExpressionEvaluator, approxExpressionEvaluator)
@@ -54,24 +55,36 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
     -}
   toCanvasEnclosure x =
     let
-      xValue = map boundsA $ evaluator.f x
-
       xMidPointValue = map boundsA $ evaluator.f xMidPoint
 
       xGradGrad = map boundsA $ evaluator.f'' x
 
       xGradient = case xGradGrad of
-        -- Just (Tuple xGradGradLower xGradGradUpper)
-        --   | xGradGradLower !>=! zero -> do
-        --       xGradLeft <- evaluator.f' xLA
-        --       xGradRight <- evaluator.f' xUA
-        --       Just (Tuple (lowerA xGradLeft) (upperA xGradRight))
-        --   | xGradGradUpper !<=! zero -> do
-        --       xGradLeft <- evaluator.f' xLA
-        --       xGradRight <- evaluator.f' xUA
-        --       Just (Tuple (lowerA xGradRight) (upperA xGradLeft))
-        --   | otherwise -> map boundsA $ evaluator.f' x
+        Just (Tuple xGradGradLower xGradGradUpper)
+          | xGradGradLower !>=! zero -> do
+              xGradLeft <- evaluator.f' xLA
+              xGradRight <- evaluator.f' xUA
+              Just (Tuple (lowerA xGradLeft) (upperA xGradRight))
+          | xGradGradUpper !<=! zero -> do
+              xGradLeft <- evaluator.f' xLA
+              xGradRight <- evaluator.f' xUA
+              Just (Tuple (lowerA xGradRight) (upperA xGradLeft))
+          | otherwise -> map boundsA $ evaluator.f' x
         _ -> map boundsA $ evaluator.f' x
+
+      xValue = case xGradient of
+        Just (Tuple xGradLower xGradUpper)
+          | xGradLower !>=! zero -> do
+              xLeft <- evaluator.f xLA
+              xRight <- evaluator.f xUA
+              Just (Tuple (lowerA xLeft) (upperA xRight))
+          | xGradUpper !<=! zero -> do
+              xLeft <- evaluator.f xLA
+              xRight <- evaluator.f xUA
+              Just (Tuple (lowerA xRight) (upperA xLeft))
+          | otherwise -> map boundsA $ evaluator.f x
+        _ -> map boundsA $ evaluator.f x
+
     in
       -- TODO: computer yLower yUpper by endpoints if gradient is positive or negative
       case xValue, xMidPointValue, xGradient of
