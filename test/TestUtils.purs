@@ -62,7 +62,7 @@ leqWithInput :: forall t2. Ord t2 => Show t2 => Array String -> t2 -> t2 -> Resu
 leqWithInput = assertOpWithInput (<=) " <= "
 
 accuracyTolerance :: Number
-accuracyTolerance = 0.000001
+accuracyTolerance = 0.00000000001
 
 isWithinTolerance :: Number -> Number -> Boolean
 isWithinTolerance expected actual = expected <= actual + accuracyTolerance && expected >= actual - accuracyTolerance 
