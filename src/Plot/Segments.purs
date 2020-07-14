@@ -1,10 +1,12 @@
 module Plot.Segments where
 
 import Prelude
+
 import Data.Array (fromFoldable)
 import Data.List (List, singleton)
 import Data.Maybe (Maybe(..))
 import Data.Ord (abs)
+import Effect.Exception.Unsafe (unsafeThrow)
 import IntervalArith.Approx (Approx, fromRationalBoundsPrec)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
 import Plot.PlotEvaluator (ExpressionEvaluator)

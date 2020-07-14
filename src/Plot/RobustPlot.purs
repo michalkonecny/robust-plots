@@ -2,7 +2,7 @@ module Plot.RobustPlot where
 
 import Prelude
 
-import Data.Array (catMaybes)
+import Data.Array (catMaybes, reverse, take)
 import Data.Maybe (Maybe(..))
 import Data.Number (isFinite)
 import Data.Tuple (Tuple(..))
@@ -11,6 +11,7 @@ import Draw.Commands (DrawCommand)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, finite, fromRationalPrec, toNumber)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
+import Misc.Debug (unsafeSpy)
 import Plot.PlotEvaluator (ExpressionEvaluator, approxExpressionEvaluator)
 import Types (Polygon, Size, XYBounds)
 
@@ -44,36 +45,99 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
   toRange lower upper = Tuple lower upper
 
   toCanvasEnclosure :: Approx -> Maybe Polygon
-  toCanvasEnclosure x = case evaluator.f x, evaluator.f xMidPoint, evaluator.f' x of
-    _, Just midApproxValue, Just approxGradient | finite midApproxValue && finite approxGradient  -> Just polygon
-      where
-      (Tuple yMidLower yMidUpper) = boundsA midApproxValue
+  {- overview:
+      - try to compute f'(x)
+        - if f''(x) is positive or negative, get f'(x) by endpoints
+        - otherwise get f'(x) by midpoint and f''(x), or directly if f''(x) fails to compute
+      - if f'(x) cannot be computed, use a box with f(x)
+      - if f'(x) is available, use it to compute parallelogram and intersect it with the f(x) box
+    -}
+  toCanvasEnclosure x =
+    let
+      xValue = map boundsA $ evaluator.f x
 
-      (Tuple yLowerGradient yUpperGradient) = boundsA approxGradient
+      xMidPointValue = map boundsA $ evaluator.f xMidPoint
 
-      a = { x: canvasXLower, y: toCanvasY $ yMidLower - ((enclosureWidth * yUpperGradient) / twoA) }
+      xGradGrad = map boundsA $ evaluator.f'' x
 
-      b = { x: canvasXLower, y: toCanvasY $ yMidUpper - ((enclosureWidth * yLowerGradient) / twoA) }
+      xGradient = case xGradGrad of
+        -- Just (Tuple xGradGradLower xGradGradUpper)
+        --   | xGradGradLower !>=! zero -> do
+        --       xGradLeft <- evaluator.f' xLA
+        --       xGradRight <- evaluator.f' xUA
+        --       Just (Tuple (lowerA xGradLeft) (upperA xGradRight))
+        --   | xGradGradUpper !<=! zero -> do
+        --       xGradLeft <- evaluator.f' xLA
+        --       xGradRight <- evaluator.f' xUA
+        --       Just (Tuple (lowerA xGradRight) (upperA xGradLeft))
+        --   | otherwise -> map boundsA $ evaluator.f' x
+        _ -> map boundsA $ evaluator.f' x
+    in
+      -- TODO: computer yLower yUpper by endpoints if gradient is positive or negative
+      case xValue, xMidPointValue, xGradient of
+        Just (Tuple yLower yUpper), Just (Tuple yMidLower yMidUpper), Just (Tuple lowerGradient upperGradient) | finite lowerGradient && finite upperGradient ->
+          Just
+            $ upperBoundary
+            <> reverse lowerBoundary
+            <> take 1 upperBoundary
+          where
+          yUpperRight = yMidUpper + ((enclosureWidth * upperGradient) / twoA)
 
-      c = { x: canvasXUpper, y: toCanvasY $ yMidUpper + ((enclosureWidth * yUpperGradient) / twoA) }
+          yUpperLeft = yMidUpper - ((enclosureWidth * lowerGradient) / twoA)
 
-      d = { x: canvasXUpper, y: toCanvasY $ yMidLower + ((enclosureWidth * yLowerGradient) / twoA) }
+          yLowerRight = yMidLower + ((enclosureWidth * lowerGradient) / twoA)
 
-      polygon = [ a, b, c, d, a ]
-    Just approxValue, _, _ -> Just polygon
-      where
-      (Tuple yLower yUpper) = boundsA approxValue
+          yLowerLeft = yMidLower - ((enclosureWidth * upperGradient) / twoA)
 
-      a = { x: canvasXLower, y: toCanvasY yUpper }
+          upperBoundary =
+            minHorizontalSlantedBoundary
+              { xL: canvasXLower
+              , xR: canvasXUpper
+              , yU: toCanvasY yUpper
+              , yUL: toCanvasY yUpperLeft
+              , yUR: toCanvasY yUpperRight
+              }
 
-      b = { x: canvasXLower, y: toCanvasY yLower }
+          lowerBoundary =
+            map (\{ x, y } -> { x, y: (-y) })
+              $ minHorizontalSlantedBoundary
+                  { xL: canvasXLower
+                  , xR: canvasXUpper
+                  , yU: -(toCanvasY yLower)
+                  , yUL: -(toCanvasY yLowerLeft)
+                  , yUR: -(toCanvasY yLowerRight)
+                  }
 
-      c = { x: canvasXUpper, y: toCanvasY yLower }
+          minHorizontalSlantedBoundary params = aux $ unsafeSpy "params" params
+            where
+            aux { xL, xR, yU, yUL, yUR }
+              -- box wins all round, use horizontal line:
+              -- (In canvas coordinates Y origin is at the top, increasing Y goes donwwards!)
+              | yU >= yUL && yU >= yUR 
+                = [ { x: xL, y: yU }, { x: xR, y: yU } ]
+              -- box loses all round, use slanted line:
+              | yU <= yUL && yU <= yUR 
+                = [ { x: xL, y: yUL }, { x: xR, y: yUR } ]
+              -- box loses on the right, intersect both:
+              | yU > yUL && yU <= yUR = [ { x: xL, y: yU }, { x: xI, y: yU }, { x: xR, y: yUR } ]
+                where
+                xI = xL + (yU - yUL) * (xR - xL) / (yUR - yUL)
+              -- box loses on the left, intersect both:
+              | otherwise = [ { x: xL, y: yUL }, { x: xI, y: yU }, { x: xR, y: yU } ]
+                where
+                xI = xL + (yU - yUL) * (xR - xL) / (yUR - yUL)
+        Just (Tuple yLower yUpper), _, _ -> Just polygon
+          where
+          a = { x: canvasXLower, y: toCanvasY yUpper }
 
-      d = { x: canvasXUpper, y: toCanvasY yUpper }
+          b = { x: canvasXLower, y: toCanvasY yLower }
 
-      polygon = [ a, b, c, d, a ]
-    _, _, _ -> Nothing
+          c = { x: canvasXUpper, y: toCanvasY yLower }
+
+          d = { x: canvasXUpper, y: toCanvasY yUpper }
+
+          polygon = [ a, b, c, d, a ]
+        _, _, _ -> Nothing
     where
     (Tuple xLower xUpper) = boundsNumber x
 
