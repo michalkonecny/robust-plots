@@ -115,7 +115,7 @@ table =
   ]
 
 expectAllParsed :: P Unit
-expectAllParsed = eof <|> fail "Invalid operator location"
+expectAllParsed = eof <|> fail "Probably invalid operator location"
 
 expressionParser :: P Expression
 expressionParser = fix (\p -> buildExprParser table (term p))
