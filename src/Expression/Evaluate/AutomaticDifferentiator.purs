@@ -83,12 +83,12 @@ evaluateDerivativeWithSample variableMap sample = evaluate
 type ValueAndDerivative2 a
   = { value :: a, derivative :: a, derivative2 :: a }
 
-evaluateDerivative2 :: forall a. CanEvaluate a => VariableMap (ValueAndDerivative2 a) -> Expression -> Expect (ValueAndDerivative2 a)
+evaluateDerivative2 :: forall a. Show a => CanEvaluate a => VariableMap (ValueAndDerivative2 a) -> Expression -> Expect (ValueAndDerivative2 a)
 evaluateDerivative2 variableMap expr = do
   sample <- getSample variableMap
   evaluateDerivative2WithSample variableMap sample expr
 
-evaluateDerivative2WithSample :: forall a. CanEvaluate a => VariableMap (ValueAndDerivative2 a) -> a -> Expression -> Expect (ValueAndDerivative2 a)
+evaluateDerivative2WithSample :: forall a. Show a => CanEvaluate a => VariableMap (ValueAndDerivative2 a) -> a -> Expression -> Expect (ValueAndDerivative2 a)
 evaluateDerivative2WithSample variableMap sample = evaluate
   where
   evaluate = case _ of
@@ -126,14 +126,14 @@ evaluateDerivative2WithSample variableMap sample = evaluate
       -- source: https://www.wolframalpha.com/input/?i=(f%5E(g))%27
       Power
         | isZero v' && isZero v'' -> do
-        uPowV <- u `power` v
-        let
-          t = (v * u') / u
-        pure $ 
-          { value: uPowV
-          , derivative: uPowV * t
-          , derivative2: uPowV * (t ^ 2 + (v * u'') / u - v * u' ^ 2 / u ^ 2)
-          }
+          uPowV <- u `power` v
+          let
+            t = (v * u') / u
+          pure
+            { value: uPowV
+            , derivative: uPowV * t
+            , derivative2: uPowV * (t ^ 2 + (v * u'') / u - v * u' ^ 2 / u ^ 2)
+            }
       Power -> do
         uPowV <- u `power` v
         logU <- log u

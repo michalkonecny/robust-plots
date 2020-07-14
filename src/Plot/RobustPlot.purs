@@ -15,6 +15,7 @@ import IntervalArith.Approx.ExpLog (eA)
 import IntervalArith.Approx.Pi (piA)
 import IntervalArith.Extended (Extended(..))
 import IntervalArith.Misc (Rational, rationalToNumber, two)
+-- import Misc.Debug (unsafeLog, unsafeSpy)
 import Types (Polygon, Size, XYBounds)
 
 drawRobustPlot :: Size -> XYBounds -> Expression -> Array Approx -> String -> DrawCommand Unit
@@ -62,29 +63,23 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
   toRange lower upper = Tuple lower upper
 
   toCanvasEnclosure :: Approx -> Maybe Polygon
-  toCanvasEnclosure x = case evaluator x of
-    Nothing -> Nothing
-    Just approxValue -> case evaluator xMidPoint of
-      Nothing -> Nothing
-      Just midApproxValue -> case evaluator x of
-        Nothing -> Nothing
-        Just approxGradient -> Just polygon
-          where
-          (Tuple yLower yUpper) = boundsA approxValue.value
+  toCanvasEnclosure x = case evaluator x, evaluator xMidPoint of
+    Just approxValue, Just midApproxValue -> Just polygon
+      where
+      (Tuple yMidLower yMidUpper) = boundsA midApproxValue.value
 
-          (Tuple yMidLower yMidUpper) = boundsA midApproxValue.value
+      (Tuple yLowerGradient yUpperGradient) = boundsA approxValue.derivative
 
-          (Tuple yLowerGradient yUpperGradient) = boundsA approxGradient.derivative
+      a = { x: canvasXLower, y: toCanvasY $ yMidLower - ((enclosureWidth * yUpperGradient) / twoA) }
 
-          a = { x: canvasXLower, y: toCanvasY $ yMidLower - ((enclosureWidth * yUpperGradient) / twoA) }
+      b = { x: canvasXLower, y: toCanvasY $ yMidUpper - ((enclosureWidth * yLowerGradient) / twoA) }
 
-          b = { x: canvasXLower, y: toCanvasY $ yMidUpper - ((enclosureWidth * yLowerGradient) / twoA) }
+      c = { x: canvasXUpper, y: toCanvasY $ yMidUpper + ((enclosureWidth * yUpperGradient) / twoA) }
 
-          c = { x: canvasXUpper, y: toCanvasY $ yMidUpper + ((enclosureWidth * yUpperGradient) / twoA) }
+      d = { x: canvasXUpper, y: toCanvasY $ yMidLower + ((enclosureWidth * yLowerGradient) / twoA) }
 
-          d = { x: canvasXUpper, y: toCanvasY $ yMidLower + ((enclosureWidth * yLowerGradient) / twoA) }
-
-          polygon = [ a, b, c, d, a ]
+      polygon = [ a, b, c, d, a ]
+    _, _ -> Nothing
     where
     (Tuple xLower xUpper) = boundsNumber x
 
