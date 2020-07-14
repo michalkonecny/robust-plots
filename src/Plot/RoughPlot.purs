@@ -1,6 +1,7 @@
 module Plot.RoughPlot where
 
 import Prelude
+
 import Data.Array (concat, tail, zipWith, (..))
 import Data.Either (Either(..))
 import Data.Int (floor, toNumber)
@@ -9,12 +10,10 @@ import Data.Traversable (for_)
 import Data.Tuple (Tuple(..))
 import Draw.Actions (drawPlotLine)
 import Draw.Commands (DrawCommand)
-import Expression.Differentiator (secondDifferentiate)
-import Expression.Evaluator (roughEvaluate)
-import Expression.Simplifier (simplify)
+import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative2, evaluateDerivative2)
 import Expression.Syntax (Expression)
 import IntervalArith.Misc (rationalToNumber)
-import Math (abs)
+import Math (abs, e, pi)
 import Types (Size, XYBounds, Position)
 
 drawRoughPlot :: Size -> XYBounds -> Expression -> String -> DrawCommand Unit
@@ -22,23 +21,25 @@ drawRoughPlot canvasSize bounds expression label = drawCommands
   where
   f = evaluateWithX expression
 
-  f'' = (evaluateWithX <<< simplify <<< secondDifferentiate "x") expression
-
-  points = plotPoints canvasSize bounds f f''
+  points = plotPoints canvasSize bounds f
 
   drawCommands = drawPlot points
 
-evaluateWithX :: Expression -> Number -> Maybe Number
+evaluateWithX :: Expression -> Number -> Maybe (ValueAndDerivative2 Number)
 evaluateWithX expression x = value
   where
-  variableMap = [ Tuple "x" x ]
+  variableMap =
+    [ Tuple "x" { value: x, derivative: 1.0, derivative2: 0.0 }
+    , Tuple "e" { value: e, derivative: 0.0, derivative2: 0.0 }
+    , Tuple "pi" { value: pi, derivative: 0.0, derivative2: 0.0 }
+    ]
 
-  value = case roughEvaluate variableMap expression of
+  value = case evaluateDerivative2 variableMap expression of
     Left _ -> Nothing
     Right v -> Just v
 
-plotPoints :: Size -> XYBounds -> (Number -> Maybe Number) -> (Number -> Maybe Number) -> Array (Maybe Position)
-plotPoints canvasSize bounds f f'' = points
+plotPoints :: Size -> XYBounds -> (Number -> Maybe (ValueAndDerivative2 Number)) -> Array (Maybe Position)
+plotPoints canvasSize bounds f = points
   where
   rangeX = rationalToNumber $ bounds.xBounds.upper - bounds.xBounds.lower
 
@@ -56,7 +57,7 @@ plotPoints canvasSize bounds f f'' = points
 
   defaultRange = map (toNumber >>> toDomainX) $ 0 .. (floor numberOfPoints)
 
-  changeInGradient = map f'' defaultRange
+  changeInGradient = map toChangeInGradient defaultRange
 
   points = map toCanvasPoint $ concat $ zipWith toRange changeInGradient defaultRange
 
@@ -81,9 +82,14 @@ plotPoints canvasSize bounds f f'' = points
   toDomainX :: Number -> Number
   toDomainX canvasX = ((canvasX * rangeX) / numberOfPoints) + xLower
 
+  toChangeInGradient :: Number -> Maybe Number
+  toChangeInGradient x = case f x of
+    Nothing -> Nothing
+    Just y -> Just y.derivative2
+
   toCanvasPoint :: Number -> Maybe Position
   toCanvasPoint x = case f x of
-    Just y -> Just { x: toCanvasX x, y: toCanvasY y }
+    Just y -> Just { x: toCanvasX x, y: toCanvasY y.value }
     Nothing -> Nothing
 
 drawPlot :: Array (Maybe Position) -> DrawCommand Unit

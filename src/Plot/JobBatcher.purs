@@ -13,6 +13,7 @@ module Plot.JobBatcher
   ) where
 
 import Prelude
+
 import Data.Array (elem, foldl, foldr)
 import Data.Foldable (class Foldable)
 import Data.Maybe (Maybe(..))
@@ -21,11 +22,11 @@ import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx)
-import Plot.Commands (PlotCommand(..))
 import Misc.Array (split)
-import Plot.PlotController (computePlotAsync)
-import Plot.PlotEvaluator (numberExpressionEvaluator)
 import Misc.Queue (Queue, empty, null, peek, push, tail, toList) as Q
+import Plot.Commands (PlotCommand(..))
+import Plot.PlotController (computePlotAsync)
+import Plot.RoughPlot (evaluateWithX)
 import Plot.Segments (segmentDomain)
 import Types (Id, Size, XYBounds, Bounds)
 
@@ -141,7 +142,7 @@ addJob batchId jobQueue command = jobQueue { queue = newQueue, currentId = newCu
 segmentRobust :: Number -> Int -> XYBounds -> Expression -> String -> Array PlotCommand
 segmentRobust accuracyTarget batchSegmentCount bounds expression label = commands
   where
-  evaluator = numberExpressionEvaluator expression
+  evaluator = evaluateWithX expression
 
   domainSegments = segmentDomain accuracyTarget evaluator bounds.xBounds.lower bounds.xBounds.upper
 

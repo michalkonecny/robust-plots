@@ -2,27 +2,46 @@ module Plot.RobustPlot where
 
 import Prelude
 import Data.Array (catMaybes)
+import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Number (isFinite)
 import Data.Tuple (Tuple(..))
 import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
+import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative2, evaluateDerivative2)
 import Expression.Syntax (Expression)
-import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, fromRationalPrec, toNumber)
+import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, fromRationalPrec, precision, toNumber)
+import IntervalArith.Approx.ExpLog (eA)
+import IntervalArith.Approx.Pi (piA)
+import IntervalArith.Extended (Extended(..))
 import IntervalArith.Misc (Rational, rationalToNumber, two)
 import Types (Polygon, Size, XYBounds)
-import Plot.PlotEvaluator (ExpressionEvaluator, approxExpressionEvaluator)
 
 drawRobustPlot :: Size -> XYBounds -> Expression -> Array Approx -> String -> DrawCommand Unit
 drawRobustPlot canvasSize bounds expression domainSegments label = drawCommands
   where
-  expressionEvaluator = approxExpressionEvaluator expression
+  expressionEvaluator = evaluateWithX expression
 
   segmentEnclosures = plotEnclosures canvasSize bounds domainSegments expressionEvaluator
 
   drawCommands = drawPlot segmentEnclosures
 
-plotEnclosures :: Size -> XYBounds -> Array Approx -> ExpressionEvaluator Approx -> Array (Maybe Polygon)
+evaluateWithX :: Expression -> Approx -> Maybe (ValueAndDerivative2 Approx)
+evaluateWithX expression x = case precision x of
+  Finite p -> value
+    where
+    variableMap =
+      [ Tuple "x" { value: x, derivative: one, derivative2: zero }
+      , Tuple "e" { value: eA p, derivative: zero, derivative2: zero }
+      , Tuple "pi" { value: piA p, derivative: zero, derivative2: zero }
+      ]
+
+    value = case evaluateDerivative2 variableMap expression of
+      Left _ -> Nothing
+      Right v -> Just v
+  _ -> Nothing
+
+plotEnclosures :: Size -> XYBounds -> Array Approx -> (Approx -> Maybe (ValueAndDerivative2 Approx)) -> Array (Maybe Polygon)
 plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
   where
   rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
@@ -43,19 +62,19 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
   toRange lower upper = Tuple lower upper
 
   toCanvasEnclosure :: Approx -> Maybe Polygon
-  toCanvasEnclosure x = case evaluator.f x of
+  toCanvasEnclosure x = case evaluator x of
     Nothing -> Nothing
-    Just approxValue -> case evaluator.f xMidPoint of
+    Just approxValue -> case evaluator xMidPoint of
       Nothing -> Nothing
-      Just midApproxValue -> case evaluator.f' x of
+      Just midApproxValue -> case evaluator x of
         Nothing -> Nothing
         Just approxGradient -> Just polygon
           where
-          (Tuple yLower yUpper) = boundsA approxValue
+          (Tuple yLower yUpper) = boundsA approxValue.value
 
-          (Tuple yMidLower yMidUpper) = boundsA midApproxValue
+          (Tuple yMidLower yMidUpper) = boundsA midApproxValue.value
 
-          (Tuple yLowerGradient yUpperGradient) = boundsA approxGradient
+          (Tuple yLowerGradient yUpperGradient) = boundsA approxGradient.derivative
 
           a = { x: canvasXLower, y: toCanvasY $ yMidLower - ((enclosureWidth * yUpperGradient) / twoA) }
 
