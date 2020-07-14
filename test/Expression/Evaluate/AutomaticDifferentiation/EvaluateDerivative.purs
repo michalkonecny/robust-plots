@@ -1,4 +1,4 @@
-module Test.Expression.Evaluator.AutomaticDifferentiation.EvaluateDerivative
+module Test.Expression.Evaluate.AutomaticDifferentiation.EvaluateDerivative
   ( evaluateDerivativeTests
   ) where
 
@@ -7,7 +7,7 @@ import Prelude
 import Data.Either (Either(..))
 import Data.Tuple (Tuple(..))
 import Expression.Error (Expect)
-import Expression.Evaluator.AutomaticDifferentiator (evaluateDerivative)
+import Expression.Evaluate.AutomaticDifferentiator (evaluateDerivative)
 import Expression.Parser (parse)
 import Expression.Syntax (Expression)
 import Test.Unit (TestSuite, suite, test)
@@ -15,7 +15,7 @@ import Test.Unit.Assert (equal)
 
 evaluateDerivativeTests :: TestSuite
 evaluateDerivativeTests =
-  suite "Expression.Evaluator.AutomaticDifferentiation - evaluateDerivative" do
+  suite "Expression.Evaluate.AutomaticDifferentiation - evaluateDerivative" do
     test "ASSERT f(x)' = 0 WHEN f(x) = 1" do
       let
         -- given

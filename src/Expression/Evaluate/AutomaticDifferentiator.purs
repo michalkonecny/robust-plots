@@ -1,4 +1,4 @@
-module Expression.Evaluator.AutomaticDifferentiator where
+module Expression.Evaluate.AutomaticDifferentiator where
 
 import Prelude
 import Data.Array (head)
