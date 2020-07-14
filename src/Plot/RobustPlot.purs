@@ -1,6 +1,7 @@
 module Plot.RobustPlot where
 
 import Prelude
+
 import Data.Array (catMaybes)
 import Data.Maybe (Maybe(..))
 import Data.Number (isFinite)
@@ -8,10 +9,10 @@ import Data.Tuple (Tuple(..))
 import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
 import Expression.Syntax (Expression)
-import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, fromRationalPrec, toNumber)
+import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, finite, fromRationalPrec, toNumber)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
-import Types (Polygon, Size, XYBounds)
 import Plot.PlotEvaluator (ExpressionEvaluator, approxExpressionEvaluator)
+import Types (Polygon, Size, XYBounds)
 
 drawRobustPlot :: Size -> XYBounds -> Expression -> Array Approx -> String -> DrawCommand Unit
 drawRobustPlot canvasSize bounds expression domainSegments label = drawCommands
@@ -43,29 +44,36 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
   toRange lower upper = Tuple lower upper
 
   toCanvasEnclosure :: Approx -> Maybe Polygon
-  toCanvasEnclosure x = case evaluator.f x of
-    Nothing -> Nothing
-    Just approxValue -> case evaluator.f xMidPoint of
-      Nothing -> Nothing
-      Just midApproxValue -> case evaluator.f' x of
-        Nothing -> Nothing
-        Just approxGradient -> Just polygon
-          where
-          (Tuple yLower yUpper) = boundsA approxValue
+  toCanvasEnclosure x = case evaluator.f x, evaluator.f xMidPoint, evaluator.f' x of
+    _, Just midApproxValue, Just approxGradient | finite midApproxValue && finite approxGradient  -> Just polygon
+      where
+      (Tuple yMidLower yMidUpper) = boundsA midApproxValue
 
-          (Tuple yMidLower yMidUpper) = boundsA midApproxValue
+      (Tuple yLowerGradient yUpperGradient) = boundsA approxGradient
 
-          (Tuple yLowerGradient yUpperGradient) = boundsA approxGradient
+      a = { x: canvasXLower, y: toCanvasY $ yMidLower - ((enclosureWidth * yUpperGradient) / twoA) }
 
-          a = { x: canvasXLower, y: toCanvasY $ yMidLower - ((enclosureWidth * yUpperGradient) / twoA) }
+      b = { x: canvasXLower, y: toCanvasY $ yMidUpper - ((enclosureWidth * yLowerGradient) / twoA) }
 
-          b = { x: canvasXLower, y: toCanvasY $ yMidUpper - ((enclosureWidth * yLowerGradient) / twoA) }
+      c = { x: canvasXUpper, y: toCanvasY $ yMidUpper + ((enclosureWidth * yUpperGradient) / twoA) }
 
-          c = { x: canvasXUpper, y: toCanvasY $ yMidUpper + ((enclosureWidth * yUpperGradient) / twoA) }
+      d = { x: canvasXUpper, y: toCanvasY $ yMidLower + ((enclosureWidth * yLowerGradient) / twoA) }
 
-          d = { x: canvasXUpper, y: toCanvasY $ yMidLower + ((enclosureWidth * yLowerGradient) / twoA) }
+      polygon = [ a, b, c, d, a ]
+    Just approxValue, _, _ -> Just polygon
+      where
+      (Tuple yLower yUpper) = boundsA approxValue
 
-          polygon = [ a, b, c, d, a ]
+      a = { x: canvasXLower, y: toCanvasY yUpper }
+
+      b = { x: canvasXLower, y: toCanvasY yLower }
+
+      c = { x: canvasXUpper, y: toCanvasY yLower }
+
+      d = { x: canvasXUpper, y: toCanvasY yUpper }
+
+      polygon = [ a, b, c, d, a ]
+    _, _, _ -> Nothing
     where
     (Tuple xLower xUpper) = boundsNumber x
 
