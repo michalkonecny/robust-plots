@@ -134,7 +134,10 @@ powA x y = case logA x, toInt y of
 toInt :: Approx -> Maybe Int
 toInt x = case xL_ED of
   Finite xL_D
-    | xL_ED == xU_ED -> Dyadic.toInt xL_D
+    | xL_ED == xU_ED -> case Dyadic.toInt xL_D of
+      Just xInt
+        | Dyadic.fromInt xInt == xL_D -> Just xInt
+      _ -> Nothing
   _ -> Nothing
   where
   Tuple xL_ED xU_ED = bounds x
