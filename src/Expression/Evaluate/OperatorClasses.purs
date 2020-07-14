@@ -2,14 +2,15 @@ module Expression.Evaluate.OperatorClasses where
 
 import Prelude
 
+import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Data.Number (isNaN)
 import Expression.Error (Expect, evaluationError)
 import IntervalArith.Approx (Approx(..), fromRationalPrec, mBound)
-import IntervalArith.Approx.ExpLog (expA, logA)
+import IntervalArith.Approx.ExpLog (expA, logA, powA)
 import IntervalArith.Approx.SinCos (cosA, sinA, tanA)
 import IntervalArith.Approx.Sqrt (sqrtA)
-import IntervalArith.Misc (Rational, rationalToNumber)
+import IntervalArith.Misc (Rational, rationalToNumber, (^^))
 import Math as Math
 
 class HasRational a where
@@ -48,7 +49,14 @@ instance numberHasSqrt :: HasSqrt Number where
   sqrt = checkNumber "sqrt: parameter out of range" <<< Math.sqrt
 
 instance numberHasPower :: HasPower Number where
-  power a e = checkNumber "power: parameter out of range" $ Math.exp (e * (Math.log a))
+  power a e = 
+    checkNumber "power: parameter out of range" $ 
+    if e == Int.toNumber eInt then
+      a ^^ eInt
+    else
+      Math.exp (e * (Math.log a))
+    where
+    eInt = Int.round e
 
 instance numberHasSinCos :: HasSinCos Number where
   sin = Math.sin
@@ -72,7 +80,7 @@ instance approxHasRational :: HasRational Approx where
   fromRational sample = pure <<< fromRationalPrec (mBound sample)
 
 instance approxHasIsZero :: HasIsZero Approx where
-  isZero (Approx _ m _ _) = (m == zero)
+  isZero (Approx _ m e _) = (m == zero) && (e == zero)
   isZero _ = false
 
 instance approxHasSqrt :: HasSqrt Approx where
@@ -80,10 +88,7 @@ instance approxHasSqrt :: HasSqrt Approx where
 
 instance approxHasPower :: HasPower Approx where
   power a e = 
-     checkApprox "power: parameter out of range" $
-      case logA a of
-        Just loga -> pure $ exp (e * loga)
-        _ -> Nothing
+    checkApprox "power: parameter out of range" $ powA a e
 
 instance approxHasSinCos :: HasSinCos Approx where
   sin = sinA

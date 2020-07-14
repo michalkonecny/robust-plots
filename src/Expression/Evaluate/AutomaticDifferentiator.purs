@@ -124,6 +124,16 @@ evaluateDerivative2WithSample variableMap sample = evaluate
           }
       -- (g^f)' = g^(f-1) * ((f*g')+(g*f'*log(g)))
       -- source: https://www.wolframalpha.com/input/?i=(f%5E(g))%27
+      Power
+        | isZero v' && isZero v'' -> do
+        uPowV <- u `power` v
+        let
+          t = (v * u') / u
+        pure $ 
+          { value: uPowV
+          , derivative: uPowV * t
+          , derivative2: uPowV * (t ^ 2 + (v * u'') / u - v * u' ^ 2 / u ^ 2)
+          }
       Power -> do
         uPowV <- u `power` v
         logU <- log u
