@@ -99,7 +99,7 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
               }
 
           lowerBoundary =
-            map (\{ x, y } -> { x, y: (-y) })
+            map (\{ x: x_, y } -> { x: x_, y: (-y) })
               $ minHorizontalSlantedBoundary
                   { xL: canvasXLower
                   , xR: canvasXUpper
