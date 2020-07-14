@@ -196,43 +196,71 @@ evaluateDerivativeTests =
         -- then
         expectedResult = pure $ toValueAndDerivative 8103.083927575384 24309.25178272615
       equalExpect expectedResult result
+    test "ASSERT f(x)' = 2*(cos(2*x)) WHEN f(x) = sin(2*x)" do
+      let
+        -- given
+        rawExpression = "sin(2*x)"
 
--- test "ASSERT f(x)' = 2*(cos(2*x)) WHEN f(x) = sin(2*x)" do
---   let
---     -- given
---     rawExpression = "sin(2*x)"
---     -- when
---     result = fromExpect $ parseAndDifferentiate rawExpression
---     -- then
---     expectedResult = "2*(cos(2*x))"
---   equal expectedResult result
--- test "ASSERT f(x)' = -(2*(sin(2*x))) WHEN f(x) = cos(2*x)" do
---   let
---     -- given
---     rawExpression = "cos(2*x)"
---     -- when
---     result = fromExpect $ parseAndDifferentiate rawExpression
---     -- then
---     expectedResult = "-(2*(sin(2*x)))"
---   equal expectedResult result
--- test "ASSERT f(x)' = 2*(1+((tan(2*x))^2)) WHEN f(x) = tan(2*x)" do
---   let
---     -- given
---     rawExpression = "tan(2*x)"
---     -- when
---     result = fromExpect $ parseAndDifferentiate rawExpression
---     -- then
---     expectedResult = "2*(1+((tan(2*x))^2))"
---   equal expectedResult result
--- test "ASSERT f(x)' = 2/(2*x) WHEN f(x) = log(2*x)" do
---   let
---     -- given
---     rawExpression = "log(2*x)"
---     -- when
---     result = fromExpect $ parseAndDifferentiate rawExpression
---     -- then
---     expectedResult = "2/(2*x)"
---   equal expectedResult result
+        x = 2.0
+
+        -- when
+        result = do
+          expression <- parse rawExpression
+          valueAndDerivative <- evaluateDerivative [ Tuple "x" { value: x, derivative: 1.0 } ] expression
+          pure valueAndDerivative
+
+        -- then
+        expectedResult = pure $ toValueAndDerivative (-0.7568024953079282) (-1.3072872417272239)
+      equalExpect expectedResult result
+    test "ASSERT f(x)' = -(2*(sin(2*x))) WHEN f(x) = cos(2*x)" do
+      let
+        -- given
+        rawExpression = "cos(2*x)"
+
+        x = 2.0
+
+        -- when
+        result = do
+          expression <- parse rawExpression
+          valueAndDerivative <- evaluateDerivative [ Tuple "x" { value: x, derivative: 1.0 } ] expression
+          pure valueAndDerivative
+
+        -- then
+        expectedResult = pure $ toValueAndDerivative (-0.6536436208636119) (1.5136049906158564)
+      equalExpect expectedResult result
+    test "ASSERT f(x)' = 2*(1+((tan(2*x))^2)) WHEN f(x) = tan(2*x)" do
+      let
+        -- given
+        rawExpression = "tan(2*x)"
+
+        x = 2.0
+
+        -- when
+        result = do
+          expression <- parse rawExpression
+          valueAndDerivative <- evaluateDerivative [ Tuple "x" { value: x, derivative: 1.0 } ] expression
+          pure valueAndDerivative
+
+        -- then
+        expectedResult = pure $ toValueAndDerivative 1.1578212823495777 4.681100243723241
+      equalExpect expectedResult result
+    test "ASSERT f(x)' = 2/(2*x) WHEN f(x) = log(2*x)" do
+      let
+        -- given
+        rawExpression = "log(2*x)"
+
+        x = 2.0
+
+        -- when
+        result = do
+          expression <- parse rawExpression
+          valueAndDerivative <- evaluateDerivative [ Tuple "x" { value: x, derivative: 1.0 } ] expression
+          pure valueAndDerivative
+
+        -- then
+        expectedResult = pure $ toValueAndDerivative 1.3862943611198906 0.5
+      equalExpect expectedResult result
+
 fromExpect :: Expect (ValueAndDerivative Number) -> String
 fromExpect (Right value) = show value
 
