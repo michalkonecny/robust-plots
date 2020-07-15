@@ -74,7 +74,7 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
     -}
   toCanvasEnclosure x =
     let
-      xMidPointValue = map boundsA $ (_.derivative) <$> evaluator xMidPoint
+      xMidPointValue = map boundsA $ (_.value) <$> evaluator xMidPoint
 
       xGradGrad = map boundsA $ (_.derivative2) <$> evaluator x
 

@@ -8,7 +8,6 @@ import Prelude
 import Data.BigInt (abs)
 import Data.Foldable (elem)
 import Data.Maybe (Maybe(..))
-import Data.Ord (max, min)
 import Data.Tuple (Tuple(..))
 import IntervalArith.Approx (Approx(..), bounds, endToApprox, mBound)
 import IntervalArith.Dyadic (absD, (:^))
