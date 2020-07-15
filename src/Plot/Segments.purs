@@ -1,7 +1,6 @@
 module Plot.Segments where
 
 import Prelude
-
 import Data.Array (fromFoldable)
 import Data.List (List, singleton)
 import Data.Maybe (Maybe(..))
@@ -48,8 +47,21 @@ segmentDomain accuracyTarget evaluator l u = fromFoldable $ segementDomainF 0 l 
       a = (a1 + a2) / two
 
       h = if abs b > one then abs ((a * w * w) / b) else abs (a * w * w)
+
+      logMessage =
+        "a1 = "
+          <> show a1
+          <> "; a2 = "
+          <> show a2
+          <> "; h = "
+          <> show h
+          <> "; w = "
+          <> show w
+          <> "; accuracyTarget = "
+          <> show accuracyTarget
     in
-      if h > accuracyTarget then
+      if abs (a1 - a2) * w > 3.0 * accuracyTarget || h > accuracyTarget then
+        -- unsafeLog logMessage $
         bisect depth lower mid upper
       else
         singleton x

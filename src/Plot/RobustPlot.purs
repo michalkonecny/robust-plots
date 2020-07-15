@@ -12,7 +12,7 @@ import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, finite, fromRationalPrec, lowerA, toNumber, upperA)
 import IntervalArith.Approx.NumOrder ((!<=!), (!>=!))
 import IntervalArith.Misc (Rational, rationalToNumber, two)
-import Misc.Debug (unsafeSpy)
+-- import Misc.Debug (unsafeSpy)
 import Plot.PlotEvaluator (ExpressionEvaluator, approxExpressionEvaluator)
 import Types (Polygon, Size, XYBounds)
 
@@ -121,7 +121,7 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
                   , yUR: -(toCanvasY yLowerRight)
                   }
 
-          minHorizontalSlantedBoundary params = aux $ unsafeSpy "params" params
+          minHorizontalSlantedBoundary = aux
             where
             aux { xL, xR, yU, yUL, yUR }
               -- box wins all round, use horizontal line:
