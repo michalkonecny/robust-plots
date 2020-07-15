@@ -5,20 +5,24 @@ import Components.Common.ClassName (className)
 import Components.Common.Styles (style)
 import Data.Maybe (Maybe(..))
 import Effect.Class (class MonadEffect)
+import Halogen (PropName(..))
 import Halogen as H
+import Halogen.HTML (prop)
 import Halogen.HTML as HH
+import Halogen.HTML.Properties as HP
+import Halogen.HTML.Properties.ARIA as HA
 
 type ProgressBarSlot p
   = forall q. H.Slot q Void p
 
 type State
   = { isDone :: Boolean
-    , progress :: Int
+    , index :: Int
     , total :: Int
     }
 
 type Progress
-  = { progress :: Int
+  = { index :: Int
     , total :: Int
     }
 
@@ -40,8 +44,8 @@ progressBarComponent =
 
 initialState :: Progress -> State
 initialState input =
-  { isDone: false
-  , progress: input.progress
+  { isDone: input.index == input.total
+  , index: input.index
   , total: input.total
   }
 
@@ -51,17 +55,18 @@ render state =
     $ if state.isDone then
         []
       else
-        [ HH.div
-            [ className "progress" ]
-            [ HH.div
-                [ className "progress-bar", style $ "width: " <> percentString ]
-                [ HH.text percentString ]
+        [ HH.progress
+            [ className "progress"
+            , style "width: 100%"
+            , prop (PropName "value") percent
+            , HP.max 100.0
             ]
+            [ HH.text percentString ]
         ]
   where
-  percent = (state.progress * 100) / state.total
+  percent = (state.index * 100) / state.total
 
   percentString = (show percent) <> "%"
 
 handleAction :: forall m. MonadEffect m => Action -> H.HalogenM State Action () Void m Unit
-handleAction (Recieve input) = H.modify_ _ { progress = input.progress, total = input.total, isDone = input.progress == input.total }
+handleAction (Recieve input) = H.modify_ _ { index = input.index, total = input.total, isDone = input.index == input.total }

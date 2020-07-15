@@ -55,12 +55,14 @@ mainComponent =
         , size: defaultCanvasSize
         }
     , bounds: canvasSizeToBounds defaultCanvasSize
-    , plots:
-        [ newPlot 0
-        ]
+    , plots: [ newPlot 0 ]
     , clearPlot: pure unit
     , batchCount: 5
     , autoRobust: false
+    , progress:
+        { index: 0
+        , total: 0
+        }
     }
 
   render :: forall m. MonadAff m => MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
@@ -151,7 +153,7 @@ mainComponent =
                             [ className "card-body"
                             , HP.id_ "canvasContainer"
                             ]
-                            [ HH.slot _progressBar 1 progressBarComponent { progress: 5, total: 10 } absurd
+                            [ HH.slot _progressBar 1 progressBarComponent state.progress absurd
                             , HH.slot _canvas 1 (canvasComponent canvasController) state.input (Just <<< HandleCanvas)
                             ]
                         ]
@@ -162,7 +164,7 @@ mainComponent =
             [ className "page-footer font-small fixed-bottom" ]
             [ HH.footer
                 [ className "footer-copyright text-right py-3 pr-2" ]
-                [ HH.text "by Michal Konecny, Joshua Eddy; powered by"
+                [ HH.text "By Michal Konecny, Joshua Eddy; powered by"
                 , HH.a
                     [ HP.href "https://github.com/michalkonecny/cdar/tree/mBound"
                     , className "pl-1 pr-1"

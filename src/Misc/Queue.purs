@@ -31,6 +31,12 @@ peek (Queue queue) = L.head queue
 null :: forall a. Queue a -> Boolean
 null (Queue queue) = L.null queue
 
+-- | Retrieves the length of the queue
+-- |
+-- | Running time: `O(1)`
+length :: forall a. Queue a -> Int
+length (Queue queue) = L.length queue
+
 -- | Exposes the underlying `List`
 -- |
 -- | Running time: `O(1)`

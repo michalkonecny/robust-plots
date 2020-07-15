@@ -7,7 +7,7 @@ import Components.BoundsInput (BoundsInputSlot)
 import Components.Canvas (CanvasSlot, Input)
 import Components.ExpressionManager (ExpressionManagerSlot)
 import Components.ExpressionManager.Types (ExpressionPlot)
-import Components.ProgressBar (ProgressBarSlot)
+import Components.ProgressBar (ProgressBarSlot, Progress)
 import Draw.Commands (DrawCommand)
 import Types (XYBounds)
 
@@ -18,6 +18,7 @@ type State
     , clearPlot :: DrawCommand Unit
     , batchCount :: Int
     , autoRobust :: Boolean
+    , progress :: Progress
     }
 
 type ChildSlots

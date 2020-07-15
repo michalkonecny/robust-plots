@@ -14,7 +14,7 @@ import Effect.Aff (Aff)
 import IntervalArith.Misc (rationalToNumber)
 import Misc.Array (alterWhere)
 import Plot.Commands (roughPlot)
-import Plot.JobBatcher (Job, JobResult, addPlot, cancelAll, clearCancelled, hasJobs, initialJobQueue, isCancelled, runFirst, setRunning)
+import Plot.JobBatcher (Job, JobResult, addPlot, cancelAll, clearCancelled, hasJobs, initialJobQueue, isCancelled, runFirst, setRunning, countJobs)
 import Plot.Label (LabelledDrawCommand, drawRoughLabels, textHeight)
 import Plot.PlotController (computePlotAsync)
 import Types (Bounds, Id, Size, XYBounds, Position)
@@ -43,6 +43,9 @@ updateExpressionPlotCommands commands plot = plot { commands { robust = fold [ p
 
 alterPlot :: (ExpressionPlot -> ExpressionPlot) -> Id -> Array ExpressionPlot -> Array ExpressionPlot
 alterPlot alterF id = alterWhere (\p -> p.id == id) alterF
+
+countBatches :: Array ExpressionPlot -> Int
+countBatches = (foldl (+) 0) <<< map (\p -> countJobs p.queue)
 
 queueHasJobs :: ExpressionPlot -> Boolean
 queueHasJobs plot = hasJobs plot.queue

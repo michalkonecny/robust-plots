@@ -10,6 +10,7 @@ module Plot.JobBatcher
   , setRunning
   , isCancelled
   , clearCancelled
+  , countJobs
   ) where
 
 import Prelude
@@ -25,7 +26,7 @@ import Plot.Commands (PlotCommand(..))
 import Misc.Array (split)
 import Plot.PlotController (computePlotAsync)
 import Plot.PlotEvaluator (numberExpressionEvaluator)
-import Misc.Queue (Queue, empty, null, peek, push, tail, toList) as Q
+import Misc.Queue (Queue, empty, null, peek, push, tail, toList, length) as Q
 import Plot.Segments (segmentDomain)
 import Types (Id, Size, XYBounds, Bounds)
 
@@ -61,6 +62,12 @@ initialJobQueue =
 -- | Running time: `O(1)`
 hasJobs :: JobQueue -> Boolean
 hasJobs jobQueue = not $ Q.null jobQueue.queue
+
+-- | Counts the number of pending `Job`s in queue not including the running job.
+-- |
+-- | Running time: `O(1)`
+countJobs :: JobQueue -> Int
+countJobs jobQueue = Q.length jobQueue.queue
 
 -- | Empties the set of cancelled `Job`s. 
 -- |
