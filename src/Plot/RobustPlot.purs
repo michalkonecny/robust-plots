@@ -84,7 +84,6 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
           | otherwise -> map boundsA $ evaluator.f x
         _ -> map boundsA $ evaluator.f x
     in
-      -- TODO: computer yLower yUpper by endpoints if gradient is positive or negative
       case xValue, xMidPointValue, xGradient of
         Just (Tuple yLower yUpper), Just (Tuple yMidLower yMidUpper), Just (Tuple lowerGradient upperGradient)
           | isFinite lowerGradient && isFinite upperGradient ->

@@ -54,17 +54,6 @@ segmentDomain accuracyTarget evaluator l u = fromFoldable $ segementDomainF 0 l 
 
       h = if abs b > one then abs ((a * w * w) / b) else abs (a * w * w)
 
-      logMessage =
-        "a1 = "
-          <> show a1
-          <> "; a2 = "
-          <> show a2
-          <> "; h = "
-          <> show h
-          <> "; w = "
-          <> show w
-          <> "; accuracyTarget = "
-          <> show accuracyTarget
     in
       if abs (a1 - a2) * w > 3.0 * accuracyTarget || h > accuracyTarget then
         -- unsafeLog logMessage $
