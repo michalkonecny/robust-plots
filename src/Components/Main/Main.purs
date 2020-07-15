@@ -164,13 +164,20 @@ mainComponent =
             [ className "page-footer font-small fixed-bottom" ]
             [ HH.footer
                 [ className "footer-copyright text-right py-3 pr-2" ]
-                [ HH.text "By Michal Konecny, Joshua Eddy; powered by"
+                [ HH.text "By Michal Konecny, Joshua Eddy; source on"
+
+                , HH.a
+                    [ HP.href "https://github.com/michalkonecny/robust-plots"
+                    , className "pl-1"
+                    ]
+                    [ HH.text "GitHub" ]
+                , HH.text "; includes"
                 , HH.a
                     [ HP.href "https://github.com/michalkonecny/cdar/tree/mBound"
                     , className "pl-1 pr-1"
                     ]
                     [ HH.text "CDAR" ]
-                , HH.text "by Jens Blanck"
+                , HH.text "robust arithmetic by Jens Blanck"
                 ]
             ]
         ]
