@@ -12,8 +12,9 @@ import Plot.PlotEvaluator (ExpressionEvaluator)
 segmentDomain :: Number -> ExpressionEvaluator Number -> Rational -> Rational -> Array Approx
 segmentDomain accuracyTarget evaluator l u = fromFoldable $ segementDomainF 0 l u
   where
-  bisect :: Int -> Rational -> Rational -> Rational -> List Approx
-  bisect depth lower mid upper = (segementDomainF (depth + one) lower mid) <> (segementDomainF (depth + one) mid upper)
+  bisect { depth, lower, mid, upper } =
+    (segementDomainF (depth + one) lower mid)
+      <> (segementDomainF (depth + one) mid upper)
 
   three = one + two
 
@@ -32,15 +33,20 @@ segmentDomain accuracyTarget evaluator l u = fromFoldable $ segementDomainF 0 l 
 
     segments =
       if depth < 5 then
-        bisect depth lower mid upper
+        bisect { depth, lower, mid, upper }
       else
         if depth >= 10 then
           singleton x
         else
-          segmentBasedOnDerivative depth lower mid upper x (evaluator.f'' a1) (evaluator.f'' a2) (evaluator.f' $ rationalToNumber mid)
+          segmentBasedOnDerivative { depth, lower, mid, upper }
+            x
+            (evaluator.f (rationalToNumber lower))
+            (evaluator.f (rationalToNumber upper))
+            (evaluator.f'' a1)
+            (evaluator.f'' a2)
+            (evaluator.f' $ rationalToNumber mid)
 
-  segmentBasedOnDerivative :: Int -> Rational -> Rational -> Rational -> Approx -> Maybe Number -> Maybe Number -> Maybe Number -> List Approx
-  segmentBasedOnDerivative depth lower mid upper x (Just a1) (Just a2) (Just b) =
+  segmentBasedOnDerivative state@{ depth, lower, mid, upper } x _ _ (Just a1) (Just a2) (Just b) =
     let
       w = rationalToNumber $ mid - lower
 
@@ -62,8 +68,11 @@ segmentDomain accuracyTarget evaluator l u = fromFoldable $ segementDomainF 0 l 
     in
       if abs (a1 - a2) * w > 3.0 * accuracyTarget || h > accuracyTarget then
         -- unsafeLog logMessage $
-        bisect depth lower mid upper
+        bisect state
       else
         singleton x
 
-  segmentBasedOnDerivative _ _ _ _ x _ _ _ = singleton x
+  -- function not defined on either end, assume not defined on the whole segment:
+  segmentBasedOnDerivative state x Nothing Nothing Nothing Nothing Nothing = singleton x
+
+  segmentBasedOnDerivative state x _ _ _ _ _ = bisect state

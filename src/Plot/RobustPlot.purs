@@ -3,12 +3,12 @@ module Plot.RobustPlot where
 import Prelude
 import Data.Array (catMaybes, reverse, take)
 import Data.Maybe (Maybe(..))
-import Data.Number (isFinite)
+import Data.Number as Number
 import Data.Tuple (Tuple(..))
 import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
 import Expression.Syntax (Expression)
-import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, finite, fromRationalPrec, lowerA, toNumber, upperA)
+import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, isFinite, fromRationalPrec, lowerA, toNumber, upperA)
 import IntervalArith.Approx.NumOrder ((!<=!), (!>=!))
 import IntervalArith.Misc (Rational, rationalToNumber, two)
 -- import Misc.Debug (unsafeSpy)
@@ -87,7 +87,7 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
       -- TODO: computer yLower yUpper by endpoints if gradient is positive or negative
       case xValue, xMidPointValue, xGradient of
         Just (Tuple yLower yUpper), Just (Tuple yMidLower yMidUpper), Just (Tuple lowerGradient upperGradient)
-          | finite lowerGradient && finite upperGradient ->
+          | isFinite lowerGradient && isFinite upperGradient ->
             Just
               $ upperBoundary
               <> reverse lowerBoundary
@@ -173,7 +173,7 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
 
     canvasY = canvasHeight - (((y - yLowerBound) * canvasHeight) / rangeY)
 
-    safeCanvasY = if isFinite canvasY then canvasY else if canvasY < zero then canvasHeight + one else -one
+    safeCanvasY = if Number.isFinite canvasY then canvasY else if canvasY < zero then canvasHeight + one else -one
 
 drawPlot :: Array (Maybe Polygon) -> DrawCommand Unit
 drawPlot = (drawEnclosure true) <<< catMaybes
