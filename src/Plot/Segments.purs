@@ -4,6 +4,7 @@ import Prelude
 import Data.Array (fromFoldable)
 import Data.List (List, singleton)
 import Data.Maybe (Maybe(..))
+import Data.Number as Number
 import Data.Ord (abs)
 import IntervalArith.Approx (Approx, fromRationalBoundsPrec)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
@@ -40,28 +41,31 @@ segmentDomain accuracyTarget evaluator l u = fromFoldable $ segementDomainF 0 l 
         else
           segmentBasedOnDerivative { depth, lower, mid, upper }
             x
-            (evaluator.f (rationalToNumber lower))
-            (evaluator.f (rationalToNumber upper))
-            (evaluator.f'' a1)
-            (evaluator.f'' a2)
-            (evaluator.f' $ rationalToNumber mid)
+            (checkFinite (evaluator.f (rationalToNumber lower)))
+            (checkFinite (evaluator.f (rationalToNumber upper)))
+            (checkFinite (evaluator.f'' a1))
+            (checkFinite (evaluator.f'' a2))
+            (checkFinite (evaluator.f' $ rationalToNumber mid))
 
-  segmentBasedOnDerivative state@{ depth, lower, mid, upper } x _ _ (Just a1) (Just a2) (Just b) =
+  segmentBasedOnDerivative state@{ depth, lower, mid, upper } x (Just _) (Just _) (Just a1) (Just a2) (Just b) =
     let
       w = rationalToNumber $ mid - lower
 
       a = (a1 + a2) / two
 
       h = if abs b > one then abs ((a * w * w) / b) else abs (a * w * w)
-
     in
       if abs (a1 - a2) * w > 3.0 * accuracyTarget || h > accuracyTarget then
-        -- unsafeLog logMessage $
         bisect state
       else
         singleton x
 
   -- function not defined on either end, assume not defined on the whole segment:
-  segmentBasedOnDerivative state x Nothing Nothing Nothing Nothing Nothing = singleton x
+  segmentBasedOnDerivative state x Nothing Nothing _ _ _ = singleton x
 
   segmentBasedOnDerivative state x _ _ _ _ _ = bisect state
+
+checkFinite :: Maybe Number -> Maybe Number
+checkFinite ma@(Just a) = if Number.isFinite a then ma else Nothing
+
+checkFinite ma = ma
