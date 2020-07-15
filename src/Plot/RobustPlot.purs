@@ -10,37 +10,38 @@ import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
 import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative2, evaluateDerivative2)
 import Expression.Syntax (Expression)
-import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, fromRationalPrec, precision, toNumber)
+import Expression.VariableMap (VariableMap)
+import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, fromRationalPrec, toNumber)
 import IntervalArith.Approx.ExpLog (eA)
 import IntervalArith.Approx.Pi (piA)
-import IntervalArith.Extended (Extended(..))
 import IntervalArith.Misc (Rational, rationalToNumber, two)
--- import Misc.Debug (unsafeLog, unsafeSpy)
 import Types (Polygon, Size, XYBounds)
 
 drawRobustPlot :: Size -> XYBounds -> Expression -> Array Approx -> String -> DrawCommand Unit
 drawRobustPlot canvasSize bounds expression domainSegments label = drawCommands
   where
-  expressionEvaluator = evaluateWithX expression
+  precision = 50
+
+  expressionEvaluator = evaluateWithX (constantsWithPrecision precision) expression
 
   segmentEnclosures = plotEnclosures canvasSize bounds domainSegments expressionEvaluator
 
   drawCommands = drawPlot segmentEnclosures
 
-evaluateWithX :: Expression -> Approx -> Maybe (ValueAndDerivative2 Approx)
-evaluateWithX expression x = case precision x of
-  Finite p -> value
-    where
-    variableMap =
-      [ Tuple "x" { value: x, derivative: one, derivative2: zero }
-      , Tuple "e" { value: eA p, derivative: zero, derivative2: zero }
-      , Tuple "pi" { value: piA p, derivative: zero, derivative2: zero }
-      ]
+constantsWithPrecision :: Int -> VariableMap (ValueAndDerivative2 Approx)
+constantsWithPrecision p =
+  [ Tuple "e" { value: eA p, derivative: zero, derivative2: zero }
+  , Tuple "pi" { value: piA p, derivative: zero, derivative2: zero }
+  ]
 
-    value = case evaluateDerivative2 variableMap expression of
-      Left _ -> Nothing
-      Right v -> Just v
-  _ -> Nothing
+evaluateWithX :: VariableMap (ValueAndDerivative2 Approx) -> Expression -> Approx -> Maybe (ValueAndDerivative2 Approx)
+evaluateWithX constants expression x = value
+  where
+  variableMap = [ Tuple "x" { value: x, derivative: one, derivative2: zero } ] <> constants
+
+  value = case evaluateDerivative2 variableMap expression of
+    Left _ -> Nothing
+    Right v -> Just v
 
 plotEnclosures :: Size -> XYBounds -> Array Approx -> (Approx -> Maybe (ValueAndDerivative2 Approx)) -> Array (Maybe Polygon)
 plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
