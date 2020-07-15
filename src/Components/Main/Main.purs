@@ -154,6 +154,18 @@ mainComponent =
                     ]
                 ]
             ]
+        , HH.footer
+            [ className "page-footer font-small fixed-bottom" ]
+            [ HH.footer
+                [ className "footer-copyright text-right py-3" ]
+                [ HH.text "Michal Konecny, Joshua Eddy"
+                , HH.a
+                    [ HP.href "https://github.com/jensblanck/cdar"
+                    , className "pl-2 pr-2"
+                    ]
+                    [ HH.text "Powered by CDAR" ]
+                ]
+            ]
         ]
 
 toExpressionManagerInput :: State -> Input
