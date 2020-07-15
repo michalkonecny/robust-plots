@@ -11,6 +11,7 @@ import Components.ExpressionManager (Input, expressionManagerComponent)
 import Components.Main.Action (Action(..), handleAction)
 import Components.Main.Helper (isAllRobustPlotsComplete, newPlot)
 import Components.Main.Types (ChildSlots, Config, State)
+import Components.ProgressBar (progressBarComponent)
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT)
 import Data.Maybe (Maybe(..))
@@ -30,6 +31,8 @@ _expressionManager = SProxy :: SProxy "expressionManager"
 _boundsInput = SProxy :: SProxy "boundsInput"
 
 _batchInput = SProxy :: SProxy "batchInput"
+
+_progressBar = SProxy :: SProxy "progressBar"
 
 mainComponent :: forall query input output. H.Component HH.HTML query input output (ReaderT Config Aff)
 mainComponent =
@@ -148,7 +151,8 @@ mainComponent =
                             [ className "card-body"
                             , HP.id_ "canvasContainer"
                             ]
-                            [ HH.slot _canvas 1 (canvasComponent canvasController) state.input (Just <<< HandleCanvas)
+                            [ HH.slot _progressBar 1 progressBarComponent { progress: 5, total: 10 } absurd
+                            , HH.slot _canvas 1 (canvasComponent canvasController) state.input (Just <<< HandleCanvas)
                             ]
                         ]
                     ]
