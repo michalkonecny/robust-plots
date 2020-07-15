@@ -161,13 +161,14 @@ mainComponent =
         , HH.footer
             [ className "page-footer font-small fixed-bottom" ]
             [ HH.footer
-                [ className "footer-copyright text-right py-3" ]
-                [ HH.text "Michal Konecny, Joshua Eddy"
+                [ className "footer-copyright text-right py-3 pr-2" ]
+                [ HH.text "by Michal Konecny, Joshua Eddy; powered by"
                 , HH.a
-                    [ HP.href "https://github.com/jensblanck/cdar"
-                    , className "pl-2 pr-2"
+                    [ HP.href "https://github.com/michalkonecny/cdar/tree/mBound"
+                    , className "pl-1 pr-1"
                     ]
-                    [ HH.text "Powered by CDAR" ]
+                    [ HH.text "CDAR" ]
+                , HH.text "by Jens Blanck"
                 ]
             ]
         ]
