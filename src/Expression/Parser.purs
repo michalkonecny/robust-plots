@@ -1,6 +1,7 @@
 module Expression.Parser where
 
 import Prelude
+
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.BigInt (pow)
@@ -21,7 +22,7 @@ import Text.Parsing.Parser (Parser, parseErrorMessage, runParser, fail)
 import Text.Parsing.Parser.Combinators (lookAhead, notFollowedBy, many1Till)
 import Text.Parsing.Parser.Expr (OperatorTable, Assoc(..), Operator(..), buildExprParser)
 import Text.Parsing.Parser.Language (emptyDef)
-import Text.Parsing.Parser.String (char)
+import Text.Parsing.Parser.String (char, eof)
 import Text.Parsing.Parser.Token (TokenParser, digit, makeTokenParser)
 
 token :: TokenParser
@@ -113,10 +114,13 @@ table =
     ]
   ]
 
+expectAllParsed :: P Unit
+expectAllParsed = eof <|> fail "Probable cause: Missing operand"
+
 expressionParser :: P Expression
 expressionParser = fix (\p -> buildExprParser table (term p))
 
 parse :: String -> Expect Expression
-parse input = case runParser input expressionParser of
+parse input = case runParser input (expressionParser <* expectAllParsed) of
   Left error -> parseError $ parseErrorMessage error
   Right experssion -> pure $ experssion

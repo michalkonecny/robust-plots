@@ -12,8 +12,9 @@ import IntervalArith.Misc (Rational, rationalToNumber, two)
 segmentDomain :: Number -> (Number -> Maybe (ValueAndDerivative2 Number)) -> Rational -> Rational -> Array Approx
 segmentDomain accuracyTarget evaluator l u = fromFoldable $ segementDomainF 0 l u
   where
-  bisect :: Int -> Rational -> Rational -> Rational -> List Approx
-  bisect depth lower mid upper = (segementDomainF (depth + one) lower mid) <> (segementDomainF (depth + one) mid upper)
+  bisect { depth, lower, mid, upper } =
+    (segementDomainF (depth + one) lower mid)
+      <> (segementDomainF (depth + one) mid upper)
 
   three = one + two
 
@@ -32,15 +33,22 @@ segmentDomain accuracyTarget evaluator l u = fromFoldable $ segementDomainF 0 l 
 
     segments =
       if depth < 5 then
-        bisect depth lower mid upper
+        bisect { depth, lower, mid, upper }
       else
         if depth >= 10 then
           singleton x
         else
-          segmentBasedOnDerivative depth lower mid upper x (evaluator a1) (evaluator a2) (evaluator (rationalToNumber mid))
+          segmentBasedOnDerivative
+            { depth, lower, mid, upper }
+            x
+            (evaluator (rationalToNumber lower))
+            (evaluator (rationalToNumber upper))
+            (evaluator a1)
+            (evaluator a2)
+            (evaluator (rationalToNumber mid))
 
-  segmentBasedOnDerivative :: Int -> Rational -> Rational -> Rational -> Approx -> Maybe (ValueAndDerivative2 Number) -> Maybe (ValueAndDerivative2 Number) -> Maybe (ValueAndDerivative2 Number) -> List Approx
-  segmentBasedOnDerivative depth lower mid upper x (Just a1) (Just a2) (Just b) =
+  segmentBasedOnDerivative :: { depth :: Int, lower :: Rational, mid :: Rational, upper :: Rational } -> Approx -> Maybe (ValueAndDerivative2 Number) -> Maybe (ValueAndDerivative2 Number) -> Maybe (ValueAndDerivative2 Number) -> Maybe (ValueAndDerivative2 Number) -> Maybe (ValueAndDerivative2 Number) -> List Approx
+  segmentBasedOnDerivative state@{ depth, lower, mid, upper } x _ _ (Just a1) (Just a2) (Just b) =
     let
       w = rationalToNumber $ mid - lower
 
@@ -48,9 +56,12 @@ segmentDomain accuracyTarget evaluator l u = fromFoldable $ segementDomainF 0 l 
 
       h = if abs b.derivative > one then abs ((a * w * w) / b.derivative) else abs (a * w * w)
     in
-      if h > accuracyTarget then
-        bisect depth lower mid upper
+      if abs (a1.derivative2 - a2.derivative2) * w > 3.0 * accuracyTarget || h > accuracyTarget then
+        bisect state
       else
         singleton x
 
-  segmentBasedOnDerivative _ _ _ _ x _ _ _ = singleton x
+  -- function not defined on either end, assume not defined on the whole segment:
+  segmentBasedOnDerivative state x Nothing Nothing Nothing Nothing Nothing = singleton x
+
+  segmentBasedOnDerivative state x _ _ _ _ _ = bisect state

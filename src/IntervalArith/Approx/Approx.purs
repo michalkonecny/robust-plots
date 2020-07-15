@@ -277,10 +277,16 @@ significance (Approx _ m e _) = Finite $ (integerLog2 (abs m)) - (integerLog2 (e
 significance Bottom = NegInf
 
 -- |Returns 'True' if the approximation is exact, i.e., it's diameter is 0.
-exact :: Approx -> Boolean
-exact (Approx _ _ e _) = e == (big 0)
+isExact :: Approx -> Boolean
+isExact (Approx _ _ e _) = e == (big 0)
 
-exact Bottom = false
+isExact Bottom = false
+
+-- |Returns 'True' if the approximation is finite, i.e., it is not Bottom
+isFinite :: Approx -> Boolean
+isFinite (Approx _ _ e _) = true
+
+isFinite Bottom = false
 
 -- | Checks if the centre of an approximation is not 0.
 nonZeroCentredA :: Approx -> Boolean
