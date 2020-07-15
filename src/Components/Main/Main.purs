@@ -176,4 +176,9 @@ mainComponent =
         ]
 
 toExpressionManagerInput :: State -> Input
-toExpressionManagerInput state = { plots: state.plots, autoRobust: state.autoRobust, allRobustDraw: isAllRobustPlotsComplete state.plots }
+toExpressionManagerInput state =
+  { plots: state.plots
+  , autoRobust: state.autoRobust
+  , allRobustDraw: isAllRobustPlotsComplete state.plots
+  , inProgress: state.progress.index /= state.progress.total
+  }
