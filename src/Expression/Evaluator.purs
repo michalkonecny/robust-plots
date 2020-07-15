@@ -1,6 +1,7 @@
 module Expression.Evaluator where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
@@ -9,11 +10,12 @@ import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..
 import Expression.VariableMap (VariableMap, lookup)
 import IntervalArith.Approx (Approx, fromRationalPrec)
 import IntervalArith.Approx.ExpLog (eA, expA, logA, powA)
+import IntervalArith.Approx.NumOrder (absA, maxA, minA)
 import IntervalArith.Approx.Pi (piA)
 import IntervalArith.Approx.SinCos (cosA, sinA, tanA)
 import IntervalArith.Approx.Sqrt (sqrtA)
 import IntervalArith.Misc (rationalToNumber)
-import Math (cos, e, exp, log, pi, pow, sin, sqrt, tan)
+import Math (abs, cos, e, exp, log, pi, pow, sin, sqrt, tan)
 
 ----------------------------------------------------
 -- Evaluate Number
@@ -43,6 +45,10 @@ roughEvaluateBinaryOperation Divide = roughEvaluateArithmeticBinaryOperation div
 
 roughEvaluateBinaryOperation Power = roughEvaluateArithmeticBinaryOperation pow
 
+roughEvaluateBinaryOperation Min = roughEvaluateArithmeticBinaryOperation min
+
+roughEvaluateBinaryOperation Max = roughEvaluateArithmeticBinaryOperation max
+
 roughEvaluateArithmeticBinaryOperation :: (Number -> Number -> Number) -> VariableMap Number -> Expression -> Expression -> Expect Number
 roughEvaluateArithmeticBinaryOperation operation variableMap leftExpression rightExpression = case roughEvaluate variableMap leftExpression, roughEvaluate variableMap rightExpression of
   Right leftValue, Right rightValue -> pure $ operation leftValue rightValue
@@ -52,6 +58,8 @@ roughEvaluateArithmeticBinaryOperation operation variableMap leftExpression righ
 
 roughEvaluateUnaryOperation :: UnaryOperation -> VariableMap Number -> Expression -> Expect Number
 roughEvaluateUnaryOperation (Neg) = roughEvaluateNegate
+
+roughEvaluateUnaryOperation (Abs) = roughEvaluateFunction abs
 
 roughEvaluateUnaryOperation (Sqrt) = roughEvaluateFunction sqrt
 
@@ -105,6 +113,10 @@ evaluateBinaryOperation Divide = evaluateArithmeticBinaryOperation div
 
 evaluateBinaryOperation Power = evaluateArithmeticPartialBinaryOperation powA "^ (power operator): a parameter is out of range"
 
+evaluateBinaryOperation Min = evaluateArithmeticBinaryOperation minA
+
+evaluateBinaryOperation Max = evaluateArithmeticBinaryOperation maxA
+
 evaluateArithmeticBinaryOperation :: (Approx -> Approx -> Approx) -> VariableMap Approx -> Expression -> Expression -> Expect Approx
 evaluateArithmeticBinaryOperation operation variableMap leftExpression rightExpression = case evaluate variableMap leftExpression, evaluate variableMap rightExpression of
   Right leftValue, Right rightValue -> pure $ operation leftValue rightValue
@@ -124,6 +136,8 @@ evaluateArithmeticPartialBinaryOperation operation errorMessage variableMap left
 evaluateUnaryOperation :: UnaryOperation -> VariableMap Approx -> Expression -> Expect Approx
 evaluateUnaryOperation (Neg) = evaluateNegate
 
+evaluateUnaryOperation (Abs) = evaluateAbs
+
 evaluateUnaryOperation (Sqrt) = evaluateSqrt
 
 evaluateUnaryOperation (Exp) = evaluateExp
@@ -140,6 +154,11 @@ evaluateNegate :: VariableMap Approx -> Expression -> Expect Approx
 evaluateNegate variableMap expression = case evaluate variableMap expression of
   Left error -> throw error
   Right value -> pure $ -value
+
+evaluateAbs :: VariableMap Approx -> Expression -> Expect Approx
+evaluateAbs variableMap expression = case evaluate variableMap expression of
+  Left error -> throw error
+  Right value -> pure $ absA value
 
 evaluateSqrt :: VariableMap Approx -> Expression -> Expect Approx
 evaluateSqrt variableMap expression = case evaluate variableMap expression of

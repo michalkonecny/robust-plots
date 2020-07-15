@@ -1,11 +1,11 @@
 module Expression.Evaluate.AutomaticDifferentiator where
 
-import Prelude
+import Prelude hiding (min, max)
 import Data.Array (head)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Expression.Error (Expect, evaluationError, unknownValue)
-import Expression.Evaluate.OperatorClasses (class CanEvaluate, cos, exp, fromRational, isZero, log, power, sin, sqrt, tan)
+import Expression.Evaluate.OperatorClasses (class CanEvaluate, abs, branchBySign, cos, exp, fromRational, isZero, log, min, max, power, sin, sqrt, tan, union)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 import Expression.VariableMap (VariableMap, lookup)
 import IntervalArith.Misc (two, (^))
@@ -54,11 +54,32 @@ evaluateDerivativeWithSample variableMap sample = evaluate
         uPowVminus1 <- u `power` (v - one)
         logU <- log u
         pure { value: uPowV, derivative: uPowVminus1 * (v * u' + u * v' * logU) }
+      Min ->
+        pure
+          { value: min u v
+          , derivative:
+              branchBySign (u - v)
+                { positive: v', zero: union u' v', unknown: union u' v', negative: u' }
+          }
+      Max ->
+        pure
+          { value: max u v
+          , derivative:
+              branchBySign (v - u)
+                { positive: v', zero: union u' v', unknown: union u' v', negative: u' }
+          }
 
   evaluateUnary operation subExpression = do
     { value: u, derivative: u' } <- evaluate subExpression
     case operation of
       Neg -> pure { value: -u, derivative: -u' }
+      Abs ->
+        pure
+          { value: abs u
+          , derivative:
+              branchBySign u
+                { positive: u', zero: union u' (-u'), unknown: union u' (-u'), negative: -u' }
+          }
       Sqrt -> do
         sqrtU <- sqrt u
         pure { value: sqrtU, derivative: u' / (two * sqrtU) }
@@ -144,11 +165,41 @@ evaluateDerivative2WithSample variableMap sample = evaluate
           , derivative: uPowV * t
           , derivative2: uPowV * (t ^ 2 + (v * u'' + two * u' * v') / u - v * u' ^ 2 / u ^ 2 + logU * v'')
           }
+      Min ->
+        pure
+          { value: min u v
+          , derivative:
+              branchBySign (u - v)
+                { positive: v', zero: union u' v', unknown: union u' v', negative: u' }
+          , derivative2:
+              branchBySign (u - v)
+                { positive: v'', zero: union u'' v'', unknown: union u'' v'', negative: u'' }
+          }
+      Max ->
+        pure
+          { value: max u v
+          , derivative:
+              branchBySign (v - u)
+                { positive: v', zero: union u' v', unknown: union u' v', negative: u' }
+          , derivative2:
+              branchBySign (v - u)
+                { positive: v'', zero: union u'' v'', unknown: union u'' v'', negative: u'' }
+          }
 
   evaluateUnary operation subExpression = do
     { value: u, derivative: u', derivative2: u'' } <- evaluate subExpression
     case operation of
       Neg -> pure { value: -u, derivative: -u', derivative2: -u'' }
+      Abs ->
+        pure
+          { value: abs u
+          , derivative:
+              branchBySign u
+                { positive: u', zero: union u' (-u'), unknown: union u' (-u'), negative: -u' }
+          , derivative2:
+              branchBySign u
+                { positive: u'', zero: union u'' (-u''), unknown: union u'' (-u''), negative: -u'' }
+          }
       Sqrt -> do
         sqrtU <- sqrt u
         pure

@@ -8,7 +8,9 @@ import Prelude
 import Data.BigInt (abs)
 import Data.Foldable (elem)
 import Data.Maybe (Maybe(..))
-import IntervalArith.Approx (Approx(..))
+import Data.Ord (max, min)
+import Data.Tuple (Tuple(..))
+import IntervalArith.Approx (Approx(..), bounds, endToApprox, mBound)
 import IntervalArith.Dyadic (absD, (:^))
 
 compareA :: Approx -> Approx -> Maybe Ordering
@@ -89,3 +91,29 @@ absA (Approx mb m e s) = result
   m' = abs m
 
 absA Bottom = Bottom
+
+maxA :: Approx -> Approx -> Approx
+maxA Bottom b = Bottom
+
+maxA a Bottom = Bottom
+
+maxA a b = endToApprox mb (max aL bL) (max aU bU)
+  where
+  Tuple aL aU = bounds a
+
+  Tuple bL bU = bounds b
+
+  mb = max (mBound a) (mBound b)
+
+minA :: Approx -> Approx -> Approx
+minA Bottom b = Bottom
+
+minA a Bottom = Bottom
+
+minA a b = endToApprox mb (min aL bL) (min aU bU)
+  where
+  Tuple aL aU = bounds a
+
+  Tuple bL bU = bounds b
+
+  mb = max (mBound a) (mBound b)

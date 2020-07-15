@@ -109,6 +109,8 @@ trimSimpleNodes leftExpression rightExpresson Divide = trimDivideNodes leftExpre
 
 trimSimpleNodes leftExpression rightExpresson Power = trimPowerNodes leftExpression rightExpresson
 
+trimSimpleNodes leftExpression rightExpresson _ = Nothing
+
 trimConstantLeafNodes :: Expression -> Expression -> BinaryOperation -> Maybe Expression
 trimConstantLeafNodes simplifiedLeftExpression simplifiedRightExpression operation = case simplifiedLeftExpression, simplifiedRightExpression, operation of
   ExpressionLiteral leftValue, ExpressionLiteral rightValue, Plus -> Just $ ExpressionLiteral (leftValue + rightValue)
