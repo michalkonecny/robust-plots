@@ -178,7 +178,7 @@ evaluateDerivative2Tests =
           pure valueAndDerivative
 
         -- then
-        expectedResult = pure $ toValueAndDerivative 8103.083927575384 24309.25178272615 72927.75534817846
+        expectedResult = pure $ toValueAndDerivative 8103.083927575384 24309.25178272615 72927.75534817843
       equalExpect expectedResult result
     test "ASSERT f(x)' = 2*(cos(2*x)) WHEN f(x) = sin(2*x)" do
       let
