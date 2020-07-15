@@ -10,7 +10,6 @@ import Halogen as H
 import Halogen.HTML (prop)
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
-import Halogen.HTML.Properties.ARIA as HA
 
 type ProgressBarSlot p
   = forall q. H.Slot q Void p
