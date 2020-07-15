@@ -1,7 +1,6 @@
 module Plot.RobustPlot where
 
 import Prelude
-
 import Data.Array (catMaybes, reverse, take)
 import Data.Maybe (Maybe(..))
 import Data.Number (isFinite)
@@ -62,83 +61,81 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
       xGradient = case xGradGrad of
         Just (Tuple xGradGradLower xGradGradUpper)
           | xGradGradLower !>=! zero -> do
-              xGradLeft <- evaluator.f' xLA
-              xGradRight <- evaluator.f' xUA
-              Just (Tuple (lowerA xGradLeft) (upperA xGradRight))
+            xGradLeft <- evaluator.f' xLA
+            xGradRight <- evaluator.f' xUA
+            Just (Tuple (lowerA xGradLeft) (upperA xGradRight))
           | xGradGradUpper !<=! zero -> do
-              xGradLeft <- evaluator.f' xLA
-              xGradRight <- evaluator.f' xUA
-              Just (Tuple (lowerA xGradRight) (upperA xGradLeft))
+            xGradLeft <- evaluator.f' xLA
+            xGradRight <- evaluator.f' xUA
+            Just (Tuple (lowerA xGradRight) (upperA xGradLeft))
           | otherwise -> map boundsA $ evaluator.f' x
         _ -> map boundsA $ evaluator.f' x
 
       xValue = case xGradient of
         Just (Tuple xGradLower xGradUpper)
           | xGradLower !>=! zero -> do
-              xLeft <- evaluator.f xLA
-              xRight <- evaluator.f xUA
-              Just (Tuple (lowerA xLeft) (upperA xRight))
+            xLeft <- evaluator.f xLA
+            xRight <- evaluator.f xUA
+            Just (Tuple (lowerA xLeft) (upperA xRight))
           | xGradUpper !<=! zero -> do
-              xLeft <- evaluator.f xLA
-              xRight <- evaluator.f xUA
-              Just (Tuple (lowerA xRight) (upperA xLeft))
+            xLeft <- evaluator.f xLA
+            xRight <- evaluator.f xUA
+            Just (Tuple (lowerA xRight) (upperA xLeft))
           | otherwise -> map boundsA $ evaluator.f x
         _ -> map boundsA $ evaluator.f x
-
     in
       -- TODO: computer yLower yUpper by endpoints if gradient is positive or negative
       case xValue, xMidPointValue, xGradient of
-        Just (Tuple yLower yUpper), Just (Tuple yMidLower yMidUpper), Just (Tuple lowerGradient upperGradient) | finite lowerGradient && finite upperGradient ->
-          Just
-            $ upperBoundary
-            <> reverse lowerBoundary
-            <> take 1 upperBoundary
-          where
-          yUpperRight = yMidUpper + ((enclosureWidth * upperGradient) / twoA)
-
-          yUpperLeft = yMidUpper - ((enclosureWidth * lowerGradient) / twoA)
-
-          yLowerRight = yMidLower + ((enclosureWidth * lowerGradient) / twoA)
-
-          yLowerLeft = yMidLower - ((enclosureWidth * upperGradient) / twoA)
-
-          upperBoundary =
-            minHorizontalSlantedBoundary
-              { xL: canvasXLower
-              , xR: canvasXUpper
-              , yU: toCanvasY yUpper
-              , yUL: toCanvasY yUpperLeft
-              , yUR: toCanvasY yUpperRight
-              }
-
-          lowerBoundary =
-            map (\{ x: x_, y } -> { x: x_, y: (-y) })
-              $ minHorizontalSlantedBoundary
-                  { xL: canvasXLower
-                  , xR: canvasXUpper
-                  , yU: -(toCanvasY yLower)
-                  , yUL: -(toCanvasY yLowerLeft)
-                  , yUR: -(toCanvasY yLowerRight)
-                  }
-
-          minHorizontalSlantedBoundary = aux
+        Just (Tuple yLower yUpper), Just (Tuple yMidLower yMidUpper), Just (Tuple lowerGradient upperGradient)
+          | finite lowerGradient && finite upperGradient ->
+            Just
+              $ upperBoundary
+              <> reverse lowerBoundary
+              <> take 1 upperBoundary
             where
-            aux { xL, xR, yU, yUL, yUR }
-              -- box wins all round, use horizontal line:
-              -- (In canvas coordinates Y origin is at the top, increasing Y goes donwwards!)
-              | yU >= yUL && yU >= yUR 
-                = [ { x: xL, y: yU }, { x: xR, y: yU } ]
-              -- box loses all round, use slanted line:
-              | yU <= yUL && yU <= yUR 
-                = [ { x: xL, y: yUL }, { x: xR, y: yUR } ]
-              -- box loses on the right, intersect both:
-              | yU > yUL && yU <= yUR = [ { x: xL, y: yU }, { x: xI, y: yU }, { x: xR, y: yUR } ]
-                where
-                xI = xL + (yU - yUL) * (xR - xL) / (yUR - yUL)
-              -- box loses on the left, intersect both:
-              | otherwise = [ { x: xL, y: yUL }, { x: xI, y: yU }, { x: xR, y: yU } ]
-                where
-                xI = xL + (yU - yUL) * (xR - xL) / (yUR - yUL)
+            yUpperRight = yMidUpper + ((enclosureWidth * upperGradient) / twoA)
+
+            yUpperLeft = yMidUpper - ((enclosureWidth * lowerGradient) / twoA)
+
+            yLowerRight = yMidLower + ((enclosureWidth * lowerGradient) / twoA)
+
+            yLowerLeft = yMidLower - ((enclosureWidth * upperGradient) / twoA)
+
+            upperBoundary =
+              minHorizontalSlantedBoundary
+                { xL: canvasXLower
+                , xR: canvasXUpper
+                , yU: toCanvasY yUpper
+                , yUL: toCanvasY yUpperLeft
+                , yUR: toCanvasY yUpperRight
+                }
+
+            lowerBoundary =
+              map (\{ x: x_, y } -> { x: x_, y: (-y) })
+                $ minHorizontalSlantedBoundary
+                    { xL: canvasXLower
+                    , xR: canvasXUpper
+                    , yU: -(toCanvasY yLower)
+                    , yUL: -(toCanvasY yLowerLeft)
+                    , yUR: -(toCanvasY yLowerRight)
+                    }
+
+            minHorizontalSlantedBoundary = aux
+              where
+              aux { xL, xR, yU, yUL, yUR }
+                -- box wins all round, use horizontal line:
+                -- (In canvas coordinates Y origin is at the top, increasing Y goes donwwards!)
+                | yU >= yUL && yU >= yUR = [ { x: xL, y: yU }, { x: xR, y: yU } ]
+                -- box loses all round, use slanted line:
+                | yU <= yUL && yU <= yUR = [ { x: xL, y: yUL }, { x: xR, y: yUR } ]
+                -- box loses on the right, intersect both:
+                | yU > yUL && yU <= yUR = [ { x: xL, y: yU }, { x: xI, y: yU }, { x: xR, y: yUR } ]
+                  where
+                  xI = xL + (yU - yUL) * (xR - xL) / (yUR - yUL)
+                -- box loses on the left, intersect both:
+                | otherwise = [ { x: xL, y: yUL }, { x: xI, y: yU }, { x: xR, y: yU } ]
+                  where
+                  xI = xL + (yU - yUL) * (xR - xL) / (yUR - yUL)
         Just (Tuple yLower yUpper), _, _ -> Just polygon
           where
           a = { x: canvasXLower, y: toCanvasY yUpper }
