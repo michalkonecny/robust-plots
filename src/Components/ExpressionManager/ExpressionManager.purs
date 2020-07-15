@@ -1,7 +1,6 @@
 module Components.ExpressionManager where
 
 import Prelude
-
 import Components.Checkbox (CheckboxMessage(..), checkboxComponent)
 import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (appendClassNameIf, className, classNameIf)
@@ -15,6 +14,7 @@ import Effect.Class (class MonadEffect)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
+import Halogen.HTML.Properties.ARIA as HA
 
 _expressionInput = SProxy :: SProxy "expressionInput"
 
@@ -31,12 +31,14 @@ type State
     , editedName :: String
     , autoRobust :: Boolean
     , allRobustDraw :: Boolean
+    , inProgress :: Boolean
     }
 
 type Input
   = { plots :: Array ExpressionPlot
     , autoRobust :: Boolean
     , allRobustDraw :: Boolean
+    , inProgress :: Boolean
     }
 
 data ExpressionManagerMessage
@@ -75,7 +77,7 @@ expressionManagerComponent =
     }
 
 initialState :: Input -> State
-initialState { autoRobust, plots, allRobustDraw } =
+initialState { autoRobust, plots, allRobustDraw, inProgress } =
   { plots
   , selectedPlotId
   , editingSelected: false
@@ -83,6 +85,7 @@ initialState { autoRobust, plots, allRobustDraw } =
   , editedName: selectedPlotName plots selectedPlotId
   , autoRobust
   , allRobustDraw
+  , inProgress
   }
   where
   selectedPlotId = firstPlotId plots
@@ -113,12 +116,7 @@ render state =
                         , onClickActionEvent Clear
                         ]
                         [ HH.text "Clear plots" ]
-                    , HH.button
-                        [ className "btn btn-primary"
-                        , HP.disabled state.allRobustDraw
-                        , onClickActionEvent CalulateRobust
-                        ]
-                        [ HH.text "Render Robust Plots" ]
+                    , renderButton state.allRobustDraw state.inProgress
                     ]
                 , HH.div
                     [ className "pl-2" ]
@@ -130,7 +128,7 @@ render state =
 
 handleAction :: forall m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots ExpressionManagerMessage m Unit
 handleAction = case _ of
-  HandleMessage { autoRobust, plots, allRobustDraw } -> do
+  HandleMessage { autoRobust, plots, allRobustDraw, inProgress } -> do
     { selectedPlotId } <- H.get
     let
       newSelectedPlotId =
@@ -146,6 +144,7 @@ handleAction = case _ of
         , editedName = selectedPlotName plots newSelectedPlotId
         , autoRobust = autoRobust
         , allRobustDraw = allRobustDraw
+        , inProgress = inProgress
         }
   Clear -> H.raise ClearPlots
   Add -> do
@@ -165,6 +164,27 @@ handleAction = case _ of
   HandleExpressionInput message -> H.raise $ RaisedExpressionInputMessage message
   HandleAutoToggle (ToggleChanged isChecked) -> H.raise $ ToggleAuto isChecked
   CalulateRobust -> H.raise CalulateRobustPlots
+
+renderButton :: forall w. Boolean -> Boolean -> HH.HTML w Action
+renderButton disabled false =
+  HH.button
+    [ className "btn btn-primary"
+    , HP.disabled disabled
+    , onClickActionEvent CalulateRobust
+    ]
+    [ HH.text "Render Robust Plots" ]
+
+renderButton _ true =
+  HH.button
+    [ className "btn btn-primary"
+    , HP.disabled true
+    , onClickActionEvent CalulateRobust
+    ]
+    [ HH.text "Render Robust Plots "
+    , HH.span
+        [ className "spinner-border spinner-border-sm", HA.role "status", HA.hidden "true" ]
+        []
+    ]
 
 toTab :: forall w. State -> ExpressionPlot -> HH.HTML w Action
 toTab state plot =

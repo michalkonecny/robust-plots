@@ -7,8 +7,9 @@ import Components.Canvas (CanvasMessage(..), calculateNewCanvasSize)
 import Components.ExpressionInput (ExpressionInputMessage(..), Status(..))
 import Components.ExpressionManager (ExpressionManagerMessage(..))
 import Components.ExpressionManager.Types (DrawingStatus(..), ExpressionPlot)
-import Components.Main.Helper (alterPlot, anyPlotHasJobs, clearAddPlotCommands, clearAllCancelled, defaultPlotName, foldDrawCommands, fromPixelAccuracy, isCancelledInAnyPlot, newPlot, queueHasJobs, runFirstJob, setFirstRunningJob, updateExpressionPlotCommands)
+import Components.Main.Helper (alterPlot, anyPlotHasJobs, clearAddPlotCommands, clearAllCancelled, countBatches, defaultPlotName, foldDrawCommands, fromPixelAccuracy, isCancelledInAnyPlot, newPlot, queueHasJobs, runFirstJob, setFirstRunningJob, updateExpressionPlotCommands)
 import Components.Main.Types (ChildSlots, Config, State)
+import Components.ProgressBar (Progress)
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.Trans.Class (lift)
 import Control.Parallel (parSequence)
@@ -68,7 +69,7 @@ handleJobResult Nothing _ = pure unit
 
 handleJobResult (Just jobResult) newState =
   when (not (isCancelledInAnyPlot jobResult.job newState.plots)) do
-    H.modify_ (_ { plots = alterPlot updatePlot jobResult.job.batchId newState.plots })
+    H.modify_ (_ { plots = alterPlot updatePlot jobResult.job.batchId newState.plots, progress = updateProgress newState })
     handleAction DrawPlot
     handleAction ProcessNextJob
   where
@@ -110,7 +111,7 @@ processNextJobAction state = do
     newState <- H.get
     handleJobResult maybeJobResult newState
   else
-    H.modify_ (_ { plots = clearAllCancelled state.plots })
+    H.modify_ (_ { plots = clearAllCancelled state.plots, progress = updateProgress state })
 
 handleCanvasMessage :: forall output. State -> CanvasMessage -> HalogenMain output Unit
 handleCanvasMessage state (Dragged delta) = redrawWithoutRobustWithBounds state (panBoundsByVector state.input.size state.bounds delta)
@@ -122,7 +123,9 @@ handleCanvasMessage state (Scrolled isZoomedIn) = handleAction $ Zoom isZoomedIn
 handleExpressionPlotMessage :: forall output. State -> ExpressionManagerMessage -> HalogenMain output Unit
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpression id expression text)) = do
   newRoughCommands <- lift $ lift $ computePlotAsync state.input.size (roughPlot state.bounds expression text)
-  H.modify_ (_ { plots = alterPlot (updatePlot newRoughCommands) id state.plots })
+  let
+    plots = alterPlot (updatePlot newRoughCommands) id state.plots
+  H.modify_ (_ { plots = plots, progress = resetProgress state { plots = plots } })
   handleAction DrawPlot
   handleAction ProcessNextJob
   where
@@ -158,10 +161,12 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ChangedStatus i
   handleAction DrawPlot
 
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedAccuracy id accuracy)) = do
-  H.modify_ (_ { plots = alterPlot updatePlot id state.plots })
+  H.modify_ (_ { plots = plots, progress = resetProgress state { plots = plots } })
   handleAction DrawPlot
   handleAction ProcessNextJob
   where
+  plots = alterPlot updatePlot id state.plots
+
   toDomainAccuracy :: Number -> Number
   toDomainAccuracy = fromPixelAccuracy state.input.size state.bounds
 
@@ -206,7 +211,7 @@ redrawWithDelayAndBounds :: forall output. State -> XYBounds -> HalogenMain outp
 redrawWithDelayAndBounds state newBounds = do
   plots <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size newBounds state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
-  H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds })
+  H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds, progress = resetProgress state { plots = plots } })
   handleAction DrawPlot
   _ <- forkWithDelay 500.0 -- Subsiquent code is placed on the end of the JS event queue
   handleAction ProcessNextJob
@@ -215,7 +220,7 @@ redraw :: forall output. State -> HalogenMain output Unit
 redraw state = do
   plots <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size state.bounds state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
-  H.modify_ (_ { plots = plots, clearPlot = clearBounds })
+  H.modify_ (_ { plots = plots, clearPlot = clearBounds, progress = resetProgress state { plots = plots } })
   handleAction DrawPlot
   handleAction ProcessNextJob
 
@@ -223,7 +228,7 @@ redrawRough :: forall output. State -> HalogenMain output Unit
 redrawRough state = do
   plots <- mapPlots clearAddPlot state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
-  H.modify_ (_ { plots = plots, clearPlot = clearBounds })
+  H.modify_ (_ { plots = plots, clearPlot = clearBounds, progress = resetProgress state { plots = plots } })
   handleAction DrawPlot
   handleAction ProcessNextJob
   where
@@ -260,3 +265,19 @@ redrawWithoutRobustWithBounds state newBounds = do
 
 mapPlots :: forall output. (ExpressionPlot -> Aff ExpressionPlot) -> Array ExpressionPlot -> HalogenMain output (Array ExpressionPlot)
 mapPlots f = lift <<< lift <<< parSequence <<< (map f)
+
+resetProgress :: State -> Progress
+resetProgress state = { index, total }
+  where
+  index = 0
+
+  total = countBatches state.plots
+
+updateProgress :: State -> Progress
+updateProgress state = { index, total }
+  where
+  batchCount = countBatches state.plots
+
+  index = state.progress.total - batchCount
+
+  total = state.progress.total

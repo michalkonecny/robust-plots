@@ -11,6 +11,7 @@ import Components.ExpressionManager (Input, expressionManagerComponent)
 import Components.Main.Action (Action(..), handleAction)
 import Components.Main.Helper (isAllRobustPlotsComplete, newPlot)
 import Components.Main.Types (ChildSlots, Config, State)
+import Components.ProgressBar (progressBarComponent)
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT)
 import Data.Maybe (Maybe(..))
@@ -30,6 +31,8 @@ _expressionManager = SProxy :: SProxy "expressionManager"
 _boundsInput = SProxy :: SProxy "boundsInput"
 
 _batchInput = SProxy :: SProxy "batchInput"
+
+_progressBar = SProxy :: SProxy "progressBar"
 
 mainComponent :: forall query input output. H.Component HH.HTML query input output (ReaderT Config Aff)
 mainComponent =
@@ -52,12 +55,14 @@ mainComponent =
         , size: defaultCanvasSize
         }
     , bounds: canvasSizeToBounds defaultCanvasSize
-    , plots:
-        [ newPlot 0
-        ]
+    , plots: [ newPlot 0 ]
     , clearPlot: pure unit
     , batchCount: 5
     , autoRobust: false
+    , progress:
+        { index: 0
+        , total: 0
+        }
     }
 
   render :: forall m. MonadAff m => MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
@@ -148,13 +153,39 @@ mainComponent =
                             [ className "card-body"
                             , HP.id_ "canvasContainer"
                             ]
-                            [ HH.slot _canvas 1 (canvasComponent canvasController) state.input (Just <<< HandleCanvas)
+                            [ HH.slot _progressBar 1 progressBarComponent state.progress absurd
+                            , HH.slot _canvas 1 (canvasComponent canvasController) state.input (Just <<< HandleCanvas)
                             ]
                         ]
                     ]
                 ]
             ]
+        , HH.footer
+            [ className "page-footer font-small fixed-bottom" ]
+            [ HH.footer
+                [ className "footer-copyright text-right py-3 pr-2" ]
+                [ HH.text "By Michal Konecny, Joshua Eddy; source on"
+
+                , HH.a
+                    [ HP.href "https://github.com/michalkonecny/robust-plots"
+                    , className "pl-1"
+                    ]
+                    [ HH.text "GitHub" ]
+                , HH.text "; includes"
+                , HH.a
+                    [ HP.href "https://github.com/michalkonecny/cdar/tree/mBound"
+                    , className "pl-1 pr-1"
+                    ]
+                    [ HH.text "CDAR" ]
+                , HH.text "robust arithmetic by Jens Blanck"
+                ]
+            ]
         ]
 
 toExpressionManagerInput :: State -> Input
-toExpressionManagerInput state = { plots: state.plots, autoRobust: state.autoRobust, allRobustDraw: isAllRobustPlotsComplete state.plots }
+toExpressionManagerInput state =
+  { plots: state.plots
+  , autoRobust: state.autoRobust
+  , allRobustDraw: isAllRobustPlotsComplete state.plots
+  , inProgress: state.progress.index /= state.progress.total
+  }
