@@ -83,14 +83,10 @@ plotPoints canvasSize bounds f = points
   toDomainX canvasX = ((canvasX * rangeX) / numberOfPoints) + xLower
 
   toChangeInGradient :: Number -> Maybe Number
-  toChangeInGradient x = case f x of
-    Nothing -> Nothing
-    Just y -> Just y.derivative2
+  toChangeInGradient x = f x <#> (_.derivative2)
 
   toCanvasPoint :: Number -> Maybe Position
-  toCanvasPoint x = case f x of
-    Just y -> Just { x: toCanvasX x, y: toCanvasY y.value }
-    Nothing -> Nothing
+  toCanvasPoint x = f x <#> (\y -> { x: toCanvasX x, y: toCanvasY y.value })
 
 drawPlot :: Array (Maybe Position) -> DrawCommand Unit
 drawPlot points = for_ lines drawLine
