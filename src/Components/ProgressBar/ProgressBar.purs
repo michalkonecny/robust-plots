@@ -60,12 +60,10 @@ render state =
             , prop (PropName "value") percent
             , HP.max 100.0
             ]
-            [ HH.text percentString ]
+            []
         ]
   where
   percent = (state.index * 100) / state.total
-
-  percentString = (show percent) <> "%"
 
 handleAction :: forall m. MonadEffect m => Action -> H.HalogenM State Action () Void m Unit
 handleAction (Recieve input) = H.modify_ _ { index = input.index, total = input.total, isDone = input.index == input.total }
