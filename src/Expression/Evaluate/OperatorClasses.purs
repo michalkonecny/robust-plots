@@ -5,7 +5,6 @@ import Prelude
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Data.Number (isNaN)
-import Data.Ord (signum)
 import Data.Ord as Ord
 import Expression.Error (Expect, evaluationError)
 import IntervalArith.Approx (Approx(..), fromRationalPrec, mBound, unionA)
@@ -58,6 +57,9 @@ branchBySign a branches =
       | s < 0 -> branches.negative
     _ -> branches.unknown
 
+isZero :: forall a. HasSign a => a -> Boolean
+isZero a = sign a == (Just 0)
+
 -- | Composite class that defines all the instances a type must have to be evaluated and derived.
 class (Field a, HasRational a, HasAbs a, HasMinMax a, HasUnion a, HasSqrt a, HasPower a, HasSinCos a, HasExpLog a, HasSign a) <= CanEvaluate a
 
@@ -103,7 +105,12 @@ checkNumber message n
   | otherwise = pure n
 
 instance numberHasSign :: HasSign Number where
-  sign = Just <<< signum <<< Int.round
+  sign x
+    | isNaN x = Nothing
+    | x < 0.0 = Just (-1)
+    | x > 0.0 = Just (1)
+    | x == 0.0 = Just 0
+    | otherwise = Nothing
 
 instance numberCanEvaluate :: CanEvaluate Number
 
@@ -151,8 +158,5 @@ instance approxHasSign :: HasSign Approx where
       | otherwise = Nothing
     isZero_ (Approx _ m e _) = (m == zero) && (e == zero)
     isZero_ _ = false
-
-isZero :: forall a. HasSign a => a -> Boolean
-isZero a = sign a == (Just 0)
 
 instance approxCanEvaluate :: CanEvaluate Approx
