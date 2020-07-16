@@ -1,7 +1,6 @@
 module Components.Common.Action where
 
 import Prelude
-
 import Data.Maybe (Maybe(..))
 import Halogen.HTML (IProp)
 import Halogen.HTML.Events as HE
@@ -14,10 +13,10 @@ import Web.UIEvent.MouseEvent (MouseEvent)
 toActionEvent :: forall action event. action -> event -> Maybe action
 toActionEvent action = const $ Just action
 
--- | A helper function to map the specified `const` action to an `onValueChange` event handler 
--- | function for a Halogen element.
-toValueChangeActionEvent :: forall action. (String -> action) -> String -> Maybe action
-toValueChangeActionEvent action value = Just $ action value
+-- | A helper function to map the specified `const` action to an event handler 
+-- | function that take some event data for a Halogen element.
+toActionEventWithData :: forall action eventData. (eventData -> action) -> eventData -> Maybe action
+toActionEventWithData action value = Just $ action value
 
 -- | A helper function to map the specified `const` action to an `onChecked` event handler function 
 -- | for a Halogen element. This helper function will ignore the event when the element is unchecked. 
@@ -34,9 +33,9 @@ onClickActionEvent action = HE.onClick $ toActionEvent action
 onFocusOutActionEvent :: forall action r. action -> IProp ( onFocusOut :: FocusEvent | r ) action
 onFocusOutActionEvent action = HE.onFocusOut $ toActionEvent action
 
--- | Wrapper for the `onValueChange` event handler that will map the event to the specified `const` action.
+-- | Wrapper for the `onValueChange` event handler that will map the event to the specified action.
 onValueChangeActionEvent :: forall action r. (String -> action) -> IProp ( onChange :: Event, value :: String | r ) action
-onValueChangeActionEvent action = HE.onValueChange $ toValueChangeActionEvent action
+onValueChangeActionEvent action = HE.onValueChange $ toActionEventWithData action
 
 -- | Wrapper for the `onChecked` event handler that will map the event to the specified `const` action. This 
 -- | event handler will ignore the event when the element is unchecked.
@@ -46,3 +45,7 @@ onCheckedActionEvent action = HE.onChecked $ toCheckedEvent action
 -- | Wrapper for the `onKeyUp` event handler that will map the event to the specified `const` action if the key pressed is `Enter`.
 onEnterPressActionEvent :: forall action r. action -> IProp ( onKeyUp :: KeyboardEvent | r ) action
 onEnterPressActionEvent action = HE.onKeyUp $ \event -> if code event == "Enter" then Just action else Nothing
+
+-- | Wrapper for the `onSelectedIndexChange` event handler that will map the event to the specified action.
+onSelectedIndexChangeActionEvent :: forall action r. (Int -> action) -> IProp ( onChange :: Event, selectedIndex :: Int | r ) action
+onSelectedIndexChangeActionEvent action = HE.onSelectedIndexChange $ toActionEventWithData action

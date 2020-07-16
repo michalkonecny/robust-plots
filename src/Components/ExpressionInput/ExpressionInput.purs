@@ -1,13 +1,13 @@
 module Components.ExpressionInput where
 
 import Prelude
-
 import Components.Common.Action (onCheckedActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (className)
 import Components.ExpressionInput.Controller (ExpressionInputController)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Effect.Class (class MonadEffect)
+import Expression.Error (Expect)
 import Expression.Syntax (Expression)
 import Halogen as H
 import Halogen.HTML as HH
@@ -160,14 +160,12 @@ handleAction :: forall m. MonadEffect m => ExpressionInputController -> Action -
 handleAction controller = case _ of
   UpdateExpression -> do
     { expressionInput, id, input } <- H.get
-    case controller.parse expressionInput of
-      Left parseError -> H.modify_ _ { error = Just $ show parseError }
-      Right expression -> case controller.checkExpression expression of
-        Left evaluationError -> H.modify_ _ { error = Just $ show evaluationError }
-        Right _ -> do
-          H.modify_ _ { error = Nothing }
-          when (expressionInput /= input.expressionText) do
-            H.raise (ParsedExpression id (controller.clean expression) expressionInput)
+    case parseAndCheckExpression controller expressionInput of
+      Left error -> H.modify_ _ { error = Just $ show error }
+      Right expression -> do
+        H.modify_ _ { error = Nothing }
+        when (expressionInput /= input.expressionText) do
+          H.raise (ParsedExpression id (controller.clean expression) expressionInput)
   UpdateAccuracy -> do
     { accuracyInput, id, input } <- H.get
     case controller.checkAccuracy accuracyInput of
@@ -182,3 +180,10 @@ handleAction controller = case _ of
   Status status -> do
     { id } <- H.get
     H.raise (ChangedStatus id status)
+
+parseAndCheckExpression :: ExpressionInputController -> String -> Expect Expression
+parseAndCheckExpression controller expressionInput = case controller.parse expressionInput of
+  Left parseError -> Left parseError
+  Right expression -> case controller.checkExpression expression of
+    Left evaluationError -> Left evaluationError
+    Right _ -> Right expression
