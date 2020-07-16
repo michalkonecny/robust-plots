@@ -141,7 +141,7 @@ evaluateDerivative2WithSample variableMap sample = evaluate
         pure
           { value: u / v
           , derivative: (u' * v - u * v') / (v ^ 2)
-          , derivative2: (u'' * v ^ 2 - v * (two * u' * v' + u * v'') + two * u * v' ^ 2) / (v ^ 3)
+          , derivative2: u'' / v - (two * u' * v' + u * v'')/(v^2) + two * u * v' ^ 2 / (v ^ 3)
           }
       -- (g^f)' = g^(f-1) * ((f*g')+(g*f'*log(g)))
       -- source: https://www.wolframalpha.com/input/?i=(f%5E(g))%27

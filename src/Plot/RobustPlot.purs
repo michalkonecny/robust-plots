@@ -1,8 +1,9 @@
 module Plot.RobustPlot where
 
 import Prelude
+
+import Data.Array (catMaybes, length, reverse, take)
 import Data.Either (Either(..))
-import Data.Array (catMaybes, reverse, take)
 import Data.Maybe (Maybe(..))
 import Data.Number as Number
 import Data.Tuple (Tuple(..))
@@ -13,9 +14,10 @@ import Expression.Syntax (Expression)
 import Expression.VariableMap (VariableMap)
 import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, isFinite, fromRationalPrec, lowerA, toNumber, upperA)
 import IntervalArith.Approx.ExpLog (eA)
-import IntervalArith.Approx.Pi (piA)
 import IntervalArith.Approx.NumOrder ((!<=!), (!>=!))
+import IntervalArith.Approx.Pi (piA)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
+import Misc.Debug (unsafeLog, unsafeSpy)
 import Types (Polygon, Size, XYBounds)
 
 drawRobustPlot :: Size -> XYBounds -> Expression -> Array Approx -> String -> DrawCommand Unit
@@ -45,8 +47,12 @@ evaluateWithX constants expression x = value
     Right v -> Just v
 
 plotEnclosures :: Size -> XYBounds -> Array Approx -> (Approx -> Maybe (ValueAndDerivative2 Approx)) -> Array (Maybe Polygon)
-plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
+plotEnclosures canvasSize bounds domainSegments_ evaluator = segmentEnclosures
   where
+  domainSegments =
+    unsafeLog ("plotEnclosures: length domainSegments = " <> show (length domainSegments_))
+      $ domainSegments_
+
   rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
   rangeX = rationalToNumber $ bounds.xBounds.upper - bounds.xBounds.lower
@@ -72,8 +78,24 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
       - if f'(x) cannot be computed, use a box with f(x)
       - if f'(x) is available, use it to compute parallelogram and intersect it with the f(x) box
     -}
-  toCanvasEnclosure x =
+  toCanvasEnclosure x_ =
     let
+      x = unsafeLog ("toCanvasEnclosure: boundsNumber x = " <> show (boundsNumber x_)) x_
+
+      (Tuple xLower xUpper) = boundsNumber x
+
+      (Tuple xLA xUA) = boundsA x
+
+      xMidPoint = centreA x
+
+      enclosureWidth = xUA - xLA
+
+      twoA = fromRationalPrec 50 two
+
+      canvasXLower = toCanvasX xLower
+
+      canvasXUpper = toCanvasX xUpper
+
       fx = evaluator x
 
       fxLA = evaluator xLA
@@ -112,7 +134,7 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
           | otherwise -> map boundsA $ (_.value) <$> fx
         _ -> map boundsA $ (_.value) <$> fx
     in
-      case xValue, xMidPointValue, xGradient of
+      case (unsafeSpy "xValue" xValue), xMidPointValue, (unsafeSpy "xGradient" xGradient) of
         Just (Tuple yLower yUpper), Just (Tuple yMidLower yMidUpper), Just (Tuple lowerGradient upperGradient)
           | isFinite lowerGradient && isFinite upperGradient ->
             Just
@@ -132,9 +154,9 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
               minHorizontalSlantedBoundary
                 { xL: canvasXLower
                 , xR: canvasXUpper
-                , yU: toCanvasY yUpper
-                , yUL: toCanvasY yUpperLeft
-                , yUR: toCanvasY yUpperRight
+                , yU: toCanvasY { y: yUpper, roundDown: false }
+                , yUL: toCanvasY { y: yUpperLeft, roundDown: false }
+                , yUR: toCanvasY { y: yUpperRight, roundDown: false }
                 }
 
             lowerBoundary =
@@ -142,9 +164,9 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
                 $ minHorizontalSlantedBoundary
                     { xL: canvasXLower
                     , xR: canvasXUpper
-                    , yU: -(toCanvasY yLower)
-                    , yUL: -(toCanvasY yLowerLeft)
-                    , yUR: -(toCanvasY yLowerRight)
+                    , yU: -(toCanvasY {y : yLower, roundDown: true })
+                    , yUL: -(toCanvasY { y: yLowerLeft, roundDown: true })
+                    , yUR: -(toCanvasY { y: yLowerRight, roundDown: true })
                     }
 
             minHorizontalSlantedBoundary = aux
@@ -163,44 +185,30 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
                 | otherwise = [ { x: xL, y: yUL }, { x: xI, y: yU }, { x: xR, y: yU } ]
                   where
                   xI = xL + (yU - yUL) * (xR - xL) / (yUR - yUL)
-        Just (Tuple yLower yUpper), _, _ -> Just polygon
+        Just (Tuple yLower yUpper), _, _ -> Just (unsafeSpy "box" polygon)
           where
-          a = { x: canvasXLower, y: toCanvasY yUpper }
+          a = { x: canvasXLower, y: toCanvasY { y: yUpper, roundDown: false } }
 
-          b = { x: canvasXLower, y: toCanvasY yLower }
+          b = { x: canvasXLower, y: toCanvasY { y: yLower, roundDown: true } }
 
-          c = { x: canvasXUpper, y: toCanvasY yLower }
+          c = { x: canvasXUpper, y: toCanvasY { y: yLower, roundDown: true } }
 
-          d = { x: canvasXUpper, y: toCanvasY yUpper }
+          d = { x: canvasXUpper, y: toCanvasY { y: yUpper, roundDown: false } }
 
           polygon = [ a, b, c, d, a ]
         _, _, _ -> Nothing
-    where
-    (Tuple xLower xUpper) = boundsNumber x
-
-    (Tuple xLA xUA) = boundsA x
-
-    xMidPoint = centreA x
-
-    enclosureWidth = xUA - xLA
-
-    twoA = fromRationalPrec 50 two
-
-    canvasXLower = toCanvasX xLower
-
-    canvasXUpper = toCanvasX xUpper
 
   toCanvasX :: Number -> Number
   toCanvasX x = ((x - xLowerBound) * canvasWidth) / rangeX
 
-  toCanvasY :: Approx -> Number
-  toCanvasY yApprox = safeCanvasY
+  -- toCanvasY :: Approx -> Number
+  toCanvasY { y: yApprox, roundDown } = safeCanvasY
     where
     y = toNumber yApprox
 
     canvasY = canvasHeight - (((y - yLowerBound) * canvasHeight) / rangeY)
 
-    safeCanvasY = if Number.isFinite canvasY then canvasY else if canvasY < zero then canvasHeight + one else -one
+    safeCanvasY = if Number.isFinite canvasY then canvasY else if roundDown then canvasHeight + one else -one
 
 drawPlot :: Array (Maybe Polygon) -> DrawCommand Unit
 drawPlot = (drawEnclosure true) <<< catMaybes
