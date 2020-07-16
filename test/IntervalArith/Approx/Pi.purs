@@ -4,6 +4,7 @@ module Test.IntervalArith.Approx.Pi
 
 import Prelude
 
+import FFI.Timer (performanceTestFinishInMS)
 import IntervalArith.Approx (consistent)
 import IntervalArith.Approx.Pi (piA)
 import IntervalArith.Approx.ShowA (showA)
@@ -17,16 +18,17 @@ approxTests_piA :: TestSuite
 approxTests_piA =
   suite "IntervalArith.Approx - pi" do
     test "SHOULD HOLD piA 200 = 3.14159265358979323846264338327950288419716939937510582097494~" do
-      let
-        -- given
-        input1 = piA 200
+      performanceTestFinishInMS 0.2 do
+        let
+          -- given
+          input1 = piA 200
 
-        -- when
-        result = showA input1
+          -- when
+          result = showA input1
 
-        -- then
-        expected = "3.14159265358979323846264338327950288419716939937510582097494~"
-      equal result expected
+          -- then
+          expected = "3.14159265358979323846264338327950288419716939937510582097494~"
+        equal result expected
     test "SHOULD HOLD piA p1 ~ piA p2 FOR ALL precisions p1, p2"
       $ quickCheck \p1Pre p2Pre ->
           let
