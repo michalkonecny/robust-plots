@@ -14,7 +14,7 @@ import Expression.Syntax (Expression)
 import Expression.VariableMap (VariableMap)
 import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, isFinite, fromRationalPrec, lowerA, toNumber, upperA)
 import IntervalArith.Approx.ExpLog (eA)
-import IntervalArith.Approx.NumOrder ((!<=!), (!>=!))
+import IntervalArith.Approx.NumOrder (absA, maxA, (!<=!), (!>=!))
 import IntervalArith.Approx.Pi (piA)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
 import Types (Polygon, Size, XYBounds)
@@ -103,7 +103,17 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
             xGradLeft <- (_.derivative) <$> evaluator xLA
             xGradRight <- (_.derivative) <$> evaluator xUA
             Just (Tuple (lowerA xGradRight) (upperA xGradLeft))
-          | otherwise -> map boundsA $ (_.derivative) <$> evaluator x
+          | otherwise -> 
+              case boundsA <$> (evaluator xMidPoint <#> (_.derivative)) of
+                Just (Tuple xGradientMidPointLower xGradientMidPointUpper) 
+                  | isFinite xGradientMidPointLower && isFinite xGradientMidPointUpper ->
+                    let 
+                      xGradientVariation = upperA $ ((absA xGradGradLower) `maxA` (absA xGradGradUpper)) * enclosureWidth / twoA
+                      xGradientUpper = xGradientMidPointUpper + xGradientVariation
+                      xGradientLower = xGradientMidPointLower - xGradientVariation
+                    in
+                    Just (Tuple xGradientLower xGradientUpper)
+                _ -> map boundsA $ (_.derivative) <$> evaluator x
         _ -> map boundsA $ (_.derivative) <$> evaluator x
 
       xValue = case xGradient of
