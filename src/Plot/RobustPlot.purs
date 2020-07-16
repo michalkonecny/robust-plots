@@ -2,7 +2,7 @@ module Plot.RobustPlot where
 
 import Prelude
 
-import Data.Array (catMaybes, length, reverse, take)
+import Data.Array (catMaybes, reverse, take)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Number as Number
@@ -17,7 +17,6 @@ import IntervalArith.Approx.ExpLog (eA)
 import IntervalArith.Approx.NumOrder ((!<=!), (!>=!))
 import IntervalArith.Approx.Pi (piA)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
-import Misc.Debug (unsafeLog, unsafeSpy)
 import Types (Polygon, Size, XYBounds)
 
 drawRobustPlot :: Size -> XYBounds -> Expression -> Array Approx -> String -> DrawCommand Unit
@@ -47,12 +46,8 @@ evaluateWithX constants expression x = value
     Right v -> Just v
 
 plotEnclosures :: Size -> XYBounds -> Array Approx -> (Approx -> Maybe (ValueAndDerivative2 Approx)) -> Array (Maybe Polygon)
-plotEnclosures canvasSize bounds domainSegments_ evaluator = segmentEnclosures
+plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
   where
-  domainSegments =
-    unsafeLog ("plotEnclosures: length domainSegments = " <> show (length domainSegments_))
-      $ domainSegments_
-
   rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
   rangeX = rationalToNumber $ bounds.xBounds.upper - bounds.xBounds.lower
@@ -78,10 +73,8 @@ plotEnclosures canvasSize bounds domainSegments_ evaluator = segmentEnclosures
       - if f'(x) cannot be computed, use a box with f(x)
       - if f'(x) is available, use it to compute parallelogram and intersect it with the f(x) box
     -}
-  toCanvasEnclosure x_ =
+  toCanvasEnclosure x =
     let
-      x = unsafeLog ("toCanvasEnclosure: boundsNumber x = " <> show (boundsNumber x_)) x_
-
       (Tuple xLower xUpper) = boundsNumber x
 
       (Tuple xLA xUA) = boundsA x
@@ -96,45 +89,37 @@ plotEnclosures canvasSize bounds domainSegments_ evaluator = segmentEnclosures
 
       canvasXUpper = toCanvasX xUpper
 
-      fx = evaluator x
+      xMidPointValue = boundsA <$> (evaluator xMidPoint <#> (_.value))
 
-      fxLA = evaluator xLA
-
-      fxUA = evaluator xUA
-
-      fxMidPoint = evaluator xMidPoint
-
-      xMidPointValue = boundsA <$> (fxMidPoint <#> (_.value))
-
-      xGradGrad = boundsA <$> (fx <#> (_.derivative2))
+      xGradGrad = boundsA <$> (evaluator x <#> (_.derivative2))
 
       xGradient = case xGradGrad of
         Just (Tuple xGradGradLower xGradGradUpper)
           | xGradGradLower !>=! zero -> do
-            xGradLeft <- (_.derivative) <$> fxLA
-            xGradRight <- (_.derivative) <$> fxUA
+            xGradLeft <- (_.derivative) <$> evaluator xLA
+            xGradRight <- (_.derivative) <$> evaluator xUA
             Just (Tuple (lowerA xGradLeft) (upperA xGradRight))
           | xGradGradUpper !<=! zero -> do
-            xGradLeft <- (_.derivative) <$> fxLA
-            xGradRight <- (_.derivative) <$> fxUA
+            xGradLeft <- (_.derivative) <$> evaluator xLA
+            xGradRight <- (_.derivative) <$> evaluator xUA
             Just (Tuple (lowerA xGradRight) (upperA xGradLeft))
-          | otherwise -> map boundsA $ (_.derivative) <$> fx
-        _ -> map boundsA $ (_.derivative) <$> fx
+          | otherwise -> map boundsA $ (_.derivative) <$> evaluator x
+        _ -> map boundsA $ (_.derivative) <$> evaluator x
 
       xValue = case xGradient of
         Just (Tuple xGradLower xGradUpper)
           | xGradLower !>=! zero -> do
-            xLeft <- (_.value) <$> fxLA
-            xRight <- (_.value) <$> fxUA
+            xLeft <- (_.value) <$> evaluator xLA
+            xRight <- (_.value) <$> evaluator xUA
             Just (Tuple (lowerA xLeft) (upperA xRight))
           | xGradUpper !<=! zero -> do
-            xLeft <- (_.value) <$> fxLA
-            xRight <- (_.value) <$> fxUA
+            xLeft <- (_.value) <$> evaluator xLA
+            xRight <- (_.value) <$> evaluator xUA
             Just (Tuple (lowerA xRight) (upperA xLeft))
-          | otherwise -> map boundsA $ (_.value) <$> fx
-        _ -> map boundsA $ (_.value) <$> fx
+          | otherwise -> map boundsA $ (_.value) <$> evaluator x
+        _ -> map boundsA $ (_.value) <$> evaluator x
     in
-      case (unsafeSpy "xValue" xValue), xMidPointValue, (unsafeSpy "xGradient" xGradient) of
+      case xValue, xMidPointValue, xGradient of
         Just (Tuple yLower yUpper), Just (Tuple yMidLower yMidUpper), Just (Tuple lowerGradient upperGradient)
           | isFinite lowerGradient && isFinite upperGradient ->
             Just
@@ -185,7 +170,7 @@ plotEnclosures canvasSize bounds domainSegments_ evaluator = segmentEnclosures
                 | otherwise = [ { x: xL, y: yUL }, { x: xI, y: yU }, { x: xR, y: yU } ]
                   where
                   xI = xL + (yU - yUL) * (xR - xL) / (yUR - yUL)
-        Just (Tuple yLower yUpper), _, _ -> Just (unsafeSpy "box" polygon)
+        Just (Tuple yLower yUpper), _, _ -> Just polygon
           where
           a = { x: canvasXLower, y: toCanvasY { y: yUpper, roundDown: false } }
 
