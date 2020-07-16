@@ -4,7 +4,7 @@ import Prelude
 import Components.Checkbox (CheckboxMessage(..), checkboxComponent)
 import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onSelectedIndexChangeActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (appendClassNameIf, className, classNameIf)
-import Components.Common.Properties (style)
+import Components.Common.Styles (style)
 import Components.ExpressionInput (ExpressionInputMessage(..), expressionInputComponent, parseAndCheckExpression)
 import Components.ExpressionInput.Controller (expressionInputController)
 import Components.ExpressionManager.Types (ExpressionPlot, ChildSlots)
