@@ -1,7 +1,6 @@
 module Plot.RobustPlot where
 
 import Prelude
-
 import Data.Array (catMaybes, reverse, take)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
@@ -103,17 +102,18 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
             xGradLeft <- (_.derivative) <$> evaluator xLA
             xGradRight <- (_.derivative) <$> evaluator xUA
             Just (Tuple (lowerA xGradRight) (upperA xGradLeft))
-          | otherwise -> 
-              case boundsA <$> (evaluator xMidPoint <#> (_.derivative)) of
-                Just (Tuple xGradientMidPointLower xGradientMidPointUpper) 
-                  | isFinite xGradientMidPointLower && isFinite xGradientMidPointUpper ->
-                    let 
-                      xGradientVariation = upperA $ ((absA xGradGradLower) `maxA` (absA xGradGradUpper)) * enclosureWidth / twoA
-                      xGradientUpper = xGradientMidPointUpper + xGradientVariation
-                      xGradientLower = xGradientMidPointLower - xGradientVariation
-                    in
-                    Just (Tuple xGradientLower xGradientUpper)
-                _ -> map boundsA $ (_.derivative) <$> evaluator x
+          | otherwise -> case boundsA <$> (evaluator xMidPoint <#> (_.derivative)) of
+            Just (Tuple xGradientMidPointLower xGradientMidPointUpper)
+              | isFinite xGradientMidPointLower && isFinite xGradientMidPointUpper ->
+                let
+                  xGradientVariation = upperA $ ((absA xGradGradLower) `maxA` (absA xGradGradUpper)) * enclosureWidth / twoA
+
+                  xGradientUpper = xGradientMidPointUpper + xGradientVariation
+
+                  xGradientLower = xGradientMidPointLower - xGradientVariation
+                in
+                  Just (Tuple xGradientLower xGradientUpper)
+            _ -> map boundsA $ (_.derivative) <$> evaluator x
         _ -> map boundsA $ (_.derivative) <$> evaluator x
 
       xValue = case xGradient of
@@ -159,7 +159,7 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
                 $ minHorizontalSlantedBoundary
                     { xL: canvasXLower
                     , xR: canvasXUpper
-                    , yU: -(toCanvasY {y : yLower, roundDown: true })
+                    , yU: -(toCanvasY { y: yLower, roundDown: true })
                     , yUL: -(toCanvasY { y: yLowerLeft, roundDown: true })
                     , yUR: -(toCanvasY { y: yLowerRight, roundDown: true })
                     }
