@@ -74,35 +74,43 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
     -}
   toCanvasEnclosure x =
     let
-      xMidPointValue = map boundsA $ (_.value) <$> evaluator xMidPoint
+      fx = evaluator x
 
-      xGradGrad = map boundsA $ (_.derivative2) <$> evaluator x
+      fxLA = evaluator xLA
+
+      fxUA = evaluator xUA
+
+      fxMidPoint = evaluator xMidPoint
+
+      xMidPointValue = map boundsA $ (_.value) <$> fxMidPoint
+
+      xGradGrad = map boundsA $ (_.derivative2) <$> fx
 
       xGradient = case xGradGrad of
         Just (Tuple xGradGradLower xGradGradUpper)
           | xGradGradLower !>=! zero -> do
-            xGradLeft <- (_.derivative) <$> evaluator xLA
-            xGradRight <- (_.derivative) <$> evaluator xUA
+            xGradLeft <- (_.derivative) <$> fxLA
+            xGradRight <- (_.derivative) <$> fxUA
             Just (Tuple (lowerA xGradLeft) (upperA xGradRight))
           | xGradGradUpper !<=! zero -> do
-            xGradLeft <- (_.derivative) <$> evaluator xLA
-            xGradRight <- (_.derivative) <$> evaluator xUA
+            xGradLeft <- (_.derivative) <$> fxLA
+            xGradRight <- (_.derivative) <$> fxUA
             Just (Tuple (lowerA xGradRight) (upperA xGradLeft))
-          | otherwise -> map boundsA $ (_.derivative) <$> evaluator x
-        _ -> map boundsA $ (_.derivative) <$> evaluator x
+          | otherwise -> map boundsA $ (_.derivative) <$> fx
+        _ -> map boundsA $ (_.derivative) <$> fx
 
       xValue = case xGradient of
         Just (Tuple xGradLower xGradUpper)
           | xGradLower !>=! zero -> do
-            xLeft <- (_.value) <$> evaluator xLA
-            xRight <- (_.value) <$> evaluator xUA
+            xLeft <- (_.value) <$> fxLA
+            xRight <- (_.value) <$> fxUA
             Just (Tuple (lowerA xLeft) (upperA xRight))
           | xGradUpper !<=! zero -> do
-            xLeft <- (_.value) <$> evaluator xLA
-            xRight <- (_.value) <$> evaluator xUA
+            xLeft <- (_.value) <$> fxLA
+            xRight <- (_.value) <$> fxUA
             Just (Tuple (lowerA xRight) (upperA xLeft))
-          | otherwise -> map boundsA $ (_.value) <$> evaluator x
-        _ -> map boundsA $ (_.value) <$> evaluator x
+          | otherwise -> map boundsA $ (_.value) <$> fx
+        _ -> map boundsA $ (_.value) <$> fx
     in
       case xValue, xMidPointValue, xGradient of
         Just (Tuple yLower yUpper), Just (Tuple yMidLower yMidUpper), Just (Tuple lowerGradient upperGradient)
