@@ -1,9 +1,11 @@
 module Components.ExpressionManager where
 
 import Prelude
+
 import Components.Checkbox (CheckboxMessage(..), checkboxComponent)
 import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onSelectedIndexChangeActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (appendClassNameIf, className, classNameIf)
+import Components.Common.Properties (style)
 import Components.ExpressionInput (ExpressionInputMessage(..), expressionInputComponent, parseAndCheckExpression)
 import Components.ExpressionInput.Controller (expressionInputController)
 import Components.ExpressionManager.Types (ExpressionPlot, ChildSlots)
@@ -99,23 +101,7 @@ render state =
         [ className "card" ]
         [ HH.div
             [ className "card-header" ]
-            [ HH.div
-                [ className "input-group mb-3" ]
-                [ HH.div
-                    [ className "input-group-prepend" ]
-                    [ HH.span
-                        [ className "input-group-text" ]
-                        [ HH.text "Add example:" ]
-                    ]
-                , HH.select
-                    [ HP.id_ "batchCount"
-                    , className "form-control"
-                    , HP.selectedIndex 0
-                    , onSelectedIndexChangeActionEvent SelectedExample
-                    ]
-                    exampleFunctionOptions
-                ]
-            , HH.ul
+            [ HH.ul
                 [ className "nav nav-tabs card-header-tabs" ]
                 ((map (toTab state) state.plots) <> [ addPlotTab ])
             ]
@@ -210,10 +196,12 @@ overwriteWithExample id example = case parseAndCheckExpression expressionInputCo
 examples :: Array String
 examples =
   [ "x*sin(1/(x^2))"
+  , "sin(100*x)"
+  , "(1+x^2)^(sin(10*x))-1"
   ]
 
 exampleFunctionOptions :: forall w. Array (HH.HTML w Action)
-exampleFunctionOptions = map toOption $ [ "" ] <> examples
+exampleFunctionOptions = [ HH.option [ HP.disabled true, HP.selected true ] [ HH.text "Add example function from below" ] ] <> map toOption examples
   where
   toOption :: String -> HH.HTML w Action
   toOption text = HH.option_ [ HH.text text ]
@@ -265,10 +253,17 @@ addPlotTab =
         [ HH.div
             [ className "form-inline" ]
             [ HH.button
-                [ className "btn-success btn-sm"
+                [ className "btn btn-success btn-sm"
                 , onClickActionEvent Add
                 ]
                 [ HH.text "+" ]
+            , HH.select
+                [ className "form-control form-control-sm"
+                , style "max-width: 20px"
+                , HP.selectedIndex 0
+                , onSelectedIndexChangeActionEvent SelectedExample
+                ]
+                exampleFunctionOptions
             ]
         ]
     ]
@@ -296,7 +291,7 @@ maybeEditButton state plotId =
   if state.selectedPlotId == plotId && not state.editingSelected then
     Just
       $ HH.button
-          [ className "btn-primary btn-sm"
+          [ className "btn btn-primary btn-sm"
           , onClickActionEvent Edit
           ]
           [ HH.text "🖉" ]
@@ -308,7 +303,7 @@ maybeDeleteButton state plotId =
   if 1 < length state.plots then
     Just
       $ HH.button
-          [ className "btn-danger btn-sm"
+          [ className "btn btn-danger btn-sm"
           , onClickActionEvent $ Delete plotId
           ]
           [ HH.text "✕" ]
