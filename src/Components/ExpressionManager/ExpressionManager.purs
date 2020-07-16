@@ -1,6 +1,7 @@
 module Components.ExpressionManager where
 
 import Prelude
+
 import Components.Checkbox (CheckboxMessage(..), checkboxComponent)
 import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (appendClassNameIf, className, classNameIf)
@@ -11,8 +12,11 @@ import Data.Array (catMaybes, find, head, length)
 import Data.Maybe (Maybe(..), fromMaybe, isJust)
 import Data.Symbol (SProxy(..))
 import Effect.Class (class MonadEffect)
+import Halogen (PropName(..))
 import Halogen as H
+import Halogen.HTML (prop)
 import Halogen.HTML as HH
+import Halogen.HTML.Properties (ButtonType(..))
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA as HA
 
@@ -97,7 +101,24 @@ render state =
         [ className "card" ]
         [ HH.div
             [ className "card-header" ]
-            [ HH.ul
+            [ HH.div
+                [ className "input-group mb-3" ]
+                [ HH.div
+                    [ className "input-group-prepend" ]
+                    [ HH.span
+                        [ className "input-group-text" ]
+                        [ HH.text "Add example:" ]
+                    ]
+                , HH.select
+                    [ HP.id_ "batchCount"
+                    , className "form-control"
+                    , HP.selectedIndex 0
+                    ]
+                    [ HH.option_ [ HH.text "" ]
+                    , HH.option_ [ HH.text "x*sin(1/(x^2))" ]
+                    ]
+                ]
+            , HH.ul
                 [ className "nav nav-tabs card-header-tabs" ]
                 ((map (toTab state) state.plots) <> [ addPlotTab ])
             ]
