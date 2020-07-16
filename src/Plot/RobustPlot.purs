@@ -82,9 +82,9 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
 
       fxMidPoint = evaluator xMidPoint
 
-      xMidPointValue = map boundsA $ (_.value) <$> fxMidPoint
+      xMidPointValue = boundsA <$> (fxMidPoint <#> (_.value))
 
-      xGradGrad = map boundsA $ (_.derivative2) <$> fx
+      xGradGrad = boundsA <$> (fx <#> (_.derivative2))
 
       xGradient = case xGradGrad of
         Just (Tuple xGradGradLower xGradGradUpper)
