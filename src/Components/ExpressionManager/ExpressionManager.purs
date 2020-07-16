@@ -1,22 +1,19 @@
 module Components.ExpressionManager where
 
 import Prelude
-
 import Components.Checkbox (CheckboxMessage(..), checkboxComponent)
-import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
+import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onSelectedIndexChangeActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (appendClassNameIf, className, classNameIf)
-import Components.ExpressionInput (ExpressionInputMessage, expressionInputComponent)
+import Components.ExpressionInput (ExpressionInputMessage(..), expressionInputComponent, parseAndCheckExpression)
 import Components.ExpressionInput.Controller (expressionInputController)
 import Components.ExpressionManager.Types (ExpressionPlot, ChildSlots)
-import Data.Array (catMaybes, find, head, length)
+import Data.Array (catMaybes, find, head, length, (!!))
+import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), fromMaybe, isJust)
 import Data.Symbol (SProxy(..))
 import Effect.Class (class MonadEffect)
-import Halogen (PropName(..))
 import Halogen as H
-import Halogen.HTML (prop)
 import Halogen.HTML as HH
-import Halogen.HTML.Properties (ButtonType(..))
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA as HA
 
@@ -66,6 +63,7 @@ data Action
   | HandleExpressionInput ExpressionInputMessage
   | HandleAutoToggle CheckboxMessage
   | CalulateRobust
+  | SelectedExample Int
 
 expressionManagerComponent :: forall query m. MonadEffect m => H.Component HH.HTML query Input ExpressionManagerMessage m
 expressionManagerComponent =
@@ -113,10 +111,9 @@ render state =
                     [ HP.id_ "batchCount"
                     , className "form-control"
                     , HP.selectedIndex 0
+                    , onSelectedIndexChangeActionEvent SelectedExample
                     ]
-                    [ HH.option_ [ HH.text "" ]
-                    , HH.option_ [ HH.text "x*sin(1/(x^2))" ]
-                    ]
+                    exampleFunctionOptions
                 ]
             , HH.ul
                 [ className "nav nav-tabs card-header-tabs" ]
@@ -185,6 +182,41 @@ handleAction = case _ of
   HandleExpressionInput message -> H.raise $ RaisedExpressionInputMessage message
   HandleAutoToggle (ToggleChanged isChecked) -> H.raise $ ToggleAuto isChecked
   CalulateRobust -> H.raise CalulateRobustPlots
+  SelectedExample index -> handleAddExample index
+
+handleAddExample :: forall m. MonadEffect m => Int -> H.HalogenM State Action ChildSlots ExpressionManagerMessage m Unit
+handleAddExample index = do
+  when (index /= 0) do
+    { selectedPlotId, plots } <- H.get
+    case examples !! (index - 1), plots !! selectedPlotId of
+      Nothing, _ -> pure unit
+      Just example, Nothing -> do
+        { nextPlotId } <- H.get
+        handleAction Add
+        overwriteWithExample nextPlotId example
+      Just example, Just selected -> do
+        if selected.expressionText == "" then do
+          overwriteWithExample selected.id example
+        else do
+          { nextPlotId } <- H.get
+          handleAction Add
+          overwriteWithExample nextPlotId example
+
+overwriteWithExample :: forall m. MonadEffect m => Int -> String -> H.HalogenM State Action ChildSlots ExpressionManagerMessage m Unit
+overwriteWithExample id example = case parseAndCheckExpression expressionInputController example of
+  Left _ -> pure unit
+  Right expression -> H.raise $ RaisedExpressionInputMessage $ ParsedExpression id (expressionInputController.clean expression) example
+
+examples :: Array String
+examples =
+  [ "x*sin(1/(x^2))"
+  ]
+
+exampleFunctionOptions :: forall w. Array (HH.HTML w Action)
+exampleFunctionOptions = map toOption $ [ "" ] <> examples
+  where
+  toOption :: String -> HH.HTML w Action
+  toOption text = HH.option_ [ HH.text text ]
 
 renderButton :: forall w. Boolean -> Boolean -> HH.HTML w Action
 renderButton disabled false =
