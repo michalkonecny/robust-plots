@@ -5,18 +5,19 @@
 module IntervalArith.Approx.ExpLog where
 
 import Prelude
+import Data.Boolean (otherwise)
 import Data.Int as Int
 import Data.List.Lazy as L
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Effect.Exception.Unsafe (unsafeThrow)
-import IntervalArith.Approx (Approx(..), Precision, approxAutoMB, approxMB, boundErrorTerm, boundErrorTermMB, bounds, fromInt, fromIntegerMB, lowerA, recipA, setMB, sqrA, unionA, upperA)
-import IntervalArith.Approx.NumOrder ((!<!))
+import IntervalArith.Approx (Approx(..), Precision, approxAutoMB, approxMB, boundErrorTerm, boundErrorTermMB, bounds, endToApprox, fromInt, fromIntegerMB, increasingFunctionViaBounds, isExact, lowerA, mBound, recipA, setMB, sqrA, unionA, upperA)
+import IntervalArith.Approx.NumOrder (absA, (!<!), (!<=!), (!>=!))
 import IntervalArith.Approx.Taylor (taylorA)
 import IntervalArith.Dyadic (atanhD, divD', ln2D, (:^))
 import IntervalArith.Dyadic as Dyadic
 import IntervalArith.Extended (Extended(..))
-import IntervalArith.Misc (big, integerLog2, multiplicativePowerRecip, scale)
+import IntervalArith.Misc (big, integerLog2, multiplicativePowerRecip, scale, (^^))
 import Math (sqrt)
 import Misc.LazyList ((!!))
 import Misc.LazyList.NumberSequences (factorials)
@@ -127,9 +128,19 @@ log2A p = let (m :^ s) = ln2D (-p) in approxAutoMB m one s
 
 powA :: Approx -> Approx -> Maybe Approx
 powA x y = case logA x, toInt y of
-  _, Just yInt -> Just $ multiplicativePowerRecip x yInt
+  _, Just yInt -> Just $ powAInt x yInt
   Just logX, _ -> Just $ expA (y * logX)
   _, _ -> Nothing
+
+powAInt :: Approx -> Int -> Approx
+powAInt x i
+  | isExact x = x ^^ i
+  | i == 0 = setMB (mBound x) one
+  | i > 0 && Int.odd i = increasingFunctionViaBounds (_ ^^ i) x
+  | i > 0 && x !>=! zero = increasingFunctionViaBounds (_ ^^ i) x
+  | i > 0 && x !<=! zero = increasingFunctionViaBounds (_ ^^ i) (-x)
+  | i > 0 = ((upperA (absA x)) ^^ i) `unionA` zero
+  | otherwise = recipA $ powAInt x (-i)
 
 toInt :: Approx -> Maybe Int
 toInt x = case xL_ED of
