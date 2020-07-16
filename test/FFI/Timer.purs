@@ -1,12 +1,18 @@
 module FFI.Timer where
 
 import Prelude
-
 import Effect (Effect)
-import Effect.Aff (Aff, launchAff_)
-import Test.Unit (failure, success)
+import Effect.Aff (Aff)
+import Effect.Class (liftEffect)
+import Test.Unit (failure)
 
-foreign import runPerformanceWith :: (String -> Aff Unit) -> Aff Unit -> Number -> Effect Unit -> Aff Unit
+foreign import processTime :: Effect Number
+
+foreign import processTimeElapsedSince :: Number -> Effect Number
 
 runPerformance :: Number -> Aff Unit -> Aff Unit
-runPerformance time = runPerformanceWith failure success time <<< launchAff_
+runPerformance time job = do
+  start <- liftEffect processTime
+  job
+  e <- liftEffect $ processTimeElapsedSince start
+  when (e > time) $ failure $ "expected completion in " <> (show time) <> "ms, actually completed in " <> (show e) <> "ms"
