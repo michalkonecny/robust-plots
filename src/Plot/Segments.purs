@@ -11,31 +11,51 @@ import IntervalArith.Approx (Approx, fromRationalBoundsPrec)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
 
 segmentDomain :: Number -> (Number -> Maybe (ValueAndDerivative2 Number)) -> Rational -> Rational -> Array Approx
-segmentDomain accuracyTarget evaluator l u = fromFoldable $ segmentDomainF { depth: 0, xL: l, xU: u }
+segmentDomain accuracyTarget evaluator l u =
+  fromFoldable
+    $ segmentDomainF
+        { depth: 0
+        , xL: l
+        , evaluatorXL: evaluator (rationalToNumber l)
+        , xU: u
+        , evaluatorXU: evaluator (rationalToNumber u)
+        }
   where
-  bisect { depth, xL, xM, xU } =
-    segmentDomainF { depth: depth + one, xL, xU: xM }
-      <> segmentDomainF { depth: depth + one, xL: xM, xU }
+  bisect { depth, xL, evaluatorXL, xM, evaluatorXM, xU, evaluatorXU } =
+    segmentDomainF
+      { depth: depth + one
+      , xL
+      , evaluatorXL
+      , xU: xM
+      , evaluatorXU: evaluatorXM
+      }
+      <> segmentDomainF
+          { depth: depth + one
+          , xL: xM
+          , evaluatorXL: evaluatorXM
+          , xU
+          , evaluatorXU
+          }
 
-  segmentDomainF { depth, xL, xU } = segments
+  segmentDomainF { depth, xL, evaluatorXL, xU, evaluatorXU } = segments
     where
     x = fromRationalBoundsPrec 50 xL xU
 
     xM = (xL + xU) / two
 
-    evaluatorXL = evaluator (rationalToNumber xL)
+    evaluatorXM = evaluator (rationalToNumber xM)
 
-    evaluatorXU = evaluator (rationalToNumber xU)
+    state = { depth, xL, evaluatorXL, xM, evaluatorXM, xU, evaluatorXU }
 
     segments =
       if depth < 5 then
-        bisect { depth, xL, xM, xU }
+        bisect state
       else
         if depth >= 10 then
           singleton x
         else
           segmentBasedOnDerivative
-            { depth, xL, xM, xU }
+            state
             x
             { fxL: checkFinite $ evaluatorXL <#> (_.value)
             , fxU: checkFinite $ evaluatorXU <#> (_.value)
@@ -45,7 +65,13 @@ segmentDomain accuracyTarget evaluator l u = fromFoldable $ segmentDomainF { dep
             , f''xU: checkFinite $ evaluatorXU <#> (_.derivative2)
             }
 
-  segmentBasedOnDerivative state@{ depth, xL, xM, xU } x { fxL: Just _, fxU: Just _, f'xL: Just b1, f'xU: Just b2, f''xL: Just a1, f''xU: Just a2 } =
+  segmentBasedOnDerivative state@{ xL, xM } x { fxL: Just _
+  , fxU: Just _
+  , f'xL: Just b1
+  , f'xU: Just b2
+  , f''xL: Just a1
+  , f''xU: Just a2
+  } =
     let
       w = rationalToNumber $ xM - xL
 
