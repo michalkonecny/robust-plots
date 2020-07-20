@@ -7,9 +7,9 @@ import Data.Either (Either(..))
 import Data.Int (toNumber)
 import Data.Tuple (Tuple(..))
 import Expression.Error (Expect, throw)
-import Expression.VariableMap (VariableMap)
-import Expression.Evaluator (roughEvaluate)
+import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative, evaluateDerivativeWithSample)
 import Expression.Parser (parse)
+import Expression.VariableMap (VariableMap)
 import Test.QuickCheck ((===))
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
@@ -310,7 +310,7 @@ roughEvaluateTests =
         -- given
         x = 5.0
 
-        variables = [ (Tuple "x" x) ]
+        variables = [ (Tuple "x" { value: x, derivative: zero }) ]
 
         rawExpression = "x"
 
@@ -325,7 +325,7 @@ roughEvaluateTests =
         -- given
         x = 2.0
 
-        variables = [ (Tuple "x" x) ]
+        variables = [ (Tuple "x" { value: x, derivative: zero }) ]
 
         rawExpression = "2.0*x"
 
@@ -340,7 +340,7 @@ roughEvaluateTests =
         -- given
         x = 2.0
 
-        variables = [ (Tuple "x" x) ]
+        variables = [ (Tuple "x" { value: x, derivative: zero }) ]
 
         rawExpression = "2.0*x"
 
@@ -355,7 +355,7 @@ roughEvaluateTests =
         -- given
         x = 0.0
 
-        variables = [ (Tuple "x" x) ]
+        variables = [ (Tuple "x" { value: x, derivative: zero }) ]
 
         rawExpression = "1 / (1 + (100 * (x ^ 2)))"
 
@@ -370,7 +370,7 @@ roughEvaluateTests =
         -- given
         x = 0.1
 
-        variables = [ (Tuple "x" x) ]
+        variables = [ (Tuple "x" { value: x, derivative: zero }) ]
 
         rawExpression = "1 / (1 + (100 * (x ^ 2)))"
 
@@ -385,7 +385,7 @@ roughEvaluateTests =
         -- given
         x = 0.0
 
-        variables = [ (Tuple "x" x) ]
+        variables = [ (Tuple "x" { value: x, derivative: zero }) ]
 
         rawExpression = "1-(x/6)*(1-(x/20))"
 
@@ -408,7 +408,7 @@ roughEvaluateTests =
         -- then
         expectedResult = "Unknown value: x"
       equal expectedResult result
-    test "SHOULD throw error 'Unknown value: a | Unknown value: b' WHEN f(x) = a + b AND a is undefined AND b in undefined" do
+    test "SHOULD throw error 'Unknown value: a' WHEN f(x) = a + b AND a is undefined AND b in undefined" do
       let
         -- given
         variables = []
@@ -419,16 +419,16 @@ roughEvaluateTests =
         result = fromExpect $ parseAndEvaluate variables rawExpression
 
         -- then
-        expectedResult = "Unknown value: a | Unknown value: b"
+        expectedResult = "Unknown value: a"
       equal expectedResult result
 
-parseAndEvaluate :: VariableMap Number -> String -> Expect Number
+parseAndEvaluate :: VariableMap (ValueAndDerivative Number) -> String -> Expect Number
 parseAndEvaluate variables rawExpression = result
   where
   expressionOrParseError = parse rawExpression
 
   valueOrEvaluationError = case expressionOrParseError of
-    Right expression -> roughEvaluate variables expression
+    Right expression -> evaluateDerivativeWithSample variables zero expression <#> (_.value)
     Left error -> throw error
 
   result = valueOrEvaluationError

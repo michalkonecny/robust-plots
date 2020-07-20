@@ -3,11 +3,12 @@ module Test.Expression.SubExpression.JoinCommonSubExpressions
   ) where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Data.Int (toNumber)
 import Data.Tuple (Tuple(..))
 import Expression.Error (Expect, throw)
-import Expression.Evaluator (roughEvaluate)
+import Expression.Evaluate.AutomaticDifferentiator (evaluateDerivative)
 import Expression.Parser (parse)
 import Expression.SubExpression (joinCommonSubExpressions)
 import Expression.Syntax (Expression)
@@ -100,12 +101,14 @@ joinCommonSubExpressionsTests =
       $ \(n :: Int) -> do
           let
             -- given
-            variables = [ Tuple "x" (toNumber n) ]
+            variables = [ Tuple "x" ({ value: toNumber n, derivative: 1.0 } ) ]
 
             rawExpression = "sin((x+x)+(x+x))+(x+x)+sin((x+x)+(x+x))"
+
+            eval e = evaluateDerivative variables e <#> (_.value)
           case parse rawExpression of
             Left error -> Failed $ show error
-            Right expression -> case roughEvaluate variables (joinCommonSubExpressions expression), roughEvaluate variables expression of
+            Right expression -> case  eval (joinCommonSubExpressions expression), eval expression of
               Right joinedValue, Right value -> assertEquals joinedValue value
               Right _, Left error -> Failed $ show error
               Left error, Right _ -> Failed $ show error
