@@ -2,16 +2,16 @@ module Plot.RobustPlot where
 
 import Prelude
 import Data.Array (catMaybes, reverse, take)
+import Data.Bifunctor (bimap)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Number as Number
 import Data.Tuple (Tuple(..))
 import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
-import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative2, evaluateDerivative2)
+import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative, ValueAndDerivative2, evaluateDerivative, evaluateDerivative2)
 import Expression.Syntax (Expression)
-import Expression.VariableMap (VariableMap)
-import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, isFinite, fromRationalPrec, lowerA, toNumber, upperA)
+import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, fromRationalPrec, isFinite, lowerA, toNumber, upperA)
 import IntervalArith.Approx.ExpLog (eA)
 import IntervalArith.Approx.NumOrder (absA, maxA, (!<=!), (!>=!))
 import IntervalArith.Approx.Pi (piA)
@@ -23,29 +23,48 @@ drawRobustPlot canvasSize bounds expression domainSegments label = drawCommands
   where
   precision = 50
 
-  expressionEvaluator = evaluateWithX (constantsWithPrecision precision) expression
+  expressionEvaluator = evaluateWithX (constantsWithPrecision precision)
 
-  segmentEnclosures = plotEnclosures canvasSize bounds domainSegments expressionEvaluator
+  expressionEvaluator2 = evaluateWithX2 (constantsWithPrecision2 precision)
+
+  segmentEnclosures = plotEnclosures canvasSize bounds domainSegments expressionEvaluator expressionEvaluator2
 
   drawCommands = drawPlot segmentEnclosures
 
-constantsWithPrecision :: Int -> VariableMap (ValueAndDerivative2 Approx)
-constantsWithPrecision p =
-  [ Tuple "e" { value: eA p, derivative: zero, derivative2: zero }
-  , Tuple "pi" { value: piA p, derivative: zero, derivative2: zero }
-  ]
+  constantsWithPrecision p =
+    [ Tuple "e" { value: eA p, derivative: zero }
+    , Tuple "pi" { value: piA p, derivative: zero }
+    ]
 
-evaluateWithX :: VariableMap (ValueAndDerivative2 Approx) -> Expression -> Approx -> Maybe (ValueAndDerivative2 Approx)
-evaluateWithX constants expression x = value
-  where
-  variableMap = [ Tuple "x" { value: x, derivative: one, derivative2: zero } ] <> constants
+  constantsWithPrecision2 p =
+    [ Tuple "e" { value: eA p, derivative: zero, derivative2: zero }
+    , Tuple "pi" { value: piA p, derivative: zero, derivative2: zero }
+    ]
 
-  value = case evaluateDerivative2 variableMap expression of
-    Left _ -> Nothing
-    Right v -> Just v
+  evaluateWithX constants x = value
+    where
+    variableMap = [ Tuple "x" { value: x, derivative: one } ] <> constants
 
-plotEnclosures :: Size -> XYBounds -> Array Approx -> (Approx -> Maybe (ValueAndDerivative2 Approx)) -> Array (Maybe Polygon)
-plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
+    value = case evaluateDerivative variableMap expression of
+      Left _ -> Nothing
+      Right v -> Just v
+
+  evaluateWithX2 constants x = value
+    where
+    variableMap = [ Tuple "x" { value: x, derivative: one, derivative2: zero } ] <> constants
+
+    value = case evaluateDerivative2 variableMap expression of
+      Left _ -> Nothing
+      Right v -> Just v
+
+plotEnclosures ::
+  Size ->
+  XYBounds ->
+  Array Approx ->
+  (Approx -> Maybe (ValueAndDerivative Approx)) ->
+  (Approx -> Maybe (ValueAndDerivative2 Approx)) ->
+  Array (Maybe Polygon)
+plotEnclosures canvasSize bounds domainSegments evaluator evaluator2 = segmentEnclosures
   where
   rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
@@ -74,7 +93,7 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
     -}
   toCanvasEnclosure x =
     let
-      (Tuple xLower xUpper) = boundsNumber x
+      (Tuple canvasXLower canvasXUpper) = bimap toCanvasX toCanvasX $ boundsNumber x
 
       (Tuple xLA xUA) = boundsA x
 
@@ -84,13 +103,11 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
 
       twoA = fromRationalPrec 50 two
 
-      canvasXLower = toCanvasX xLower
-
-      canvasXUpper = toCanvasX xUpper
+      evaluatorX = evaluator2 x
 
       xMidPointValue = boundsA <$> (evaluator xMidPoint <#> (_.value))
 
-      xGradGrad = boundsA <$> (evaluator x <#> (_.derivative2))
+      xGradGrad = boundsA <$> (evaluatorX <#> (_.derivative2))
 
       xGradient = case xGradGrad of
         Just (Tuple xGradGradLower xGradGradUpper)
@@ -113,8 +130,8 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
                   xGradientLower = xGradientMidPointLower - xGradientVariation
                 in
                   Just (Tuple xGradientLower xGradientUpper)
-            _ -> map boundsA $ (_.derivative) <$> evaluator x
-        _ -> map boundsA $ (_.derivative) <$> evaluator x
+            _ -> map boundsA $ (_.derivative) <$> evaluatorX
+        _ -> map boundsA $ (_.derivative) <$> evaluatorX
 
       xValue = case xGradient of
         Just (Tuple xGradLower xGradUpper)
@@ -126,8 +143,8 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
             xLeft <- (_.value) <$> evaluator xLA
             xRight <- (_.value) <$> evaluator xUA
             Just (Tuple (lowerA xRight) (upperA xLeft))
-          | otherwise -> map boundsA $ (_.value) <$> evaluator x
-        _ -> map boundsA $ (_.value) <$> evaluator x
+          | otherwise -> map boundsA $ (_.value) <$> evaluatorX
+        _ -> map boundsA $ (_.value) <$> evaluatorX
     in
       case xValue, xMidPointValue, xGradient of
         Just (Tuple yLower yUpper), Just (Tuple yMidLower yMidUpper), Just (Tuple lowerGradient upperGradient)
