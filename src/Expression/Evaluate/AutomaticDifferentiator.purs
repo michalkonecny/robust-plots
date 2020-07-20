@@ -1,11 +1,12 @@
 module Expression.Evaluate.AutomaticDifferentiator where
 
-import Prelude hiding (min, max)
+import Prelude hiding (min,max)
+
 import Data.Array (head)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Expression.Error (Expect, evaluationError, unknownValue)
-import Expression.Evaluate.OperatorClasses (class CanEvaluate, abs, branchBySign, cos, exp, fromRational, isZero, log, min, max, power, sin, sqrt, tan, union)
+import Expression.Evaluate.OperatorClasses (class CanEvaluate, abs, branchBySign, cos, eWithSample, exp, fromRationalWithSample, isZero, log, max, min, piWithSample, power, sin, sqrt, tan, union)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 import Expression.VariableMap (VariableMap, lookup)
 import IntervalArith.Misc (two, (^))
@@ -23,8 +24,10 @@ evaluateDerivativeWithSample variableMap sample = evaluate
   where
   evaluate = case _ of
     ExpressionLiteral valueR -> do
-      value <- fromRational sample valueR
+      value <- fromRationalWithSample sample valueR
       pure { value, derivative: zero }
+    ExpressionVariable "pi" -> pure { value: piWithSample sample, derivative: zero }
+    ExpressionVariable "e" -> pure { value: eWithSample sample, derivative: zero }
     ExpressionVariable name -> case lookup variableMap name of
       Just valueAndDerivative -> pure valueAndDerivative
       _ -> unknownValue name
@@ -114,8 +117,10 @@ evaluateDerivative2WithSample variableMap sample = evaluate
   where
   evaluate = case _ of
     ExpressionLiteral valueR -> do
-      value <- fromRational sample valueR
+      value <- fromRationalWithSample sample valueR
       pure { value, derivative: zero, derivative2: zero }
+    ExpressionVariable "pi" -> pure { value: piWithSample sample, derivative: zero, derivative2: zero }
+    ExpressionVariable "e" -> pure { value: eWithSample sample, derivative: zero, derivative2: zero }
     ExpressionVariable name -> case lookup variableMap name of
       Just valueAndDerivative2 -> pure valueAndDerivative2
       _ -> unknownValue name

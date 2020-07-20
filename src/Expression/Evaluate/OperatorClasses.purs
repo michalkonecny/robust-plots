@@ -1,22 +1,27 @@
 module Expression.Evaluate.OperatorClasses where
 
 import Prelude
-
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Data.Number (isNaN)
 import Data.Ord as Ord
 import Expression.Error (Expect, evaluationError)
 import IntervalArith.Approx (Approx(..), fromRationalPrec, mBound, unionA)
-import IntervalArith.Approx.ExpLog (expA, logA, powA)
+import IntervalArith.Approx.ExpLog (eA, expA, logA, powA)
 import IntervalArith.Approx.NumOrder (absA, maxA, minA, (!<!))
+import IntervalArith.Approx.Pi (piA)
 import IntervalArith.Approx.SinCos (cosA, sinA, tanA)
 import IntervalArith.Approx.Sqrt (sqrtA)
 import IntervalArith.Misc (Rational, rationalToNumber, (^^))
+import Math (e, pi)
 import Math as Math
 
-class HasRational a where
-  fromRational :: a -> Rational -> Expect a
+class HasConstants a where
+  piWithSample :: a -> a
+  eWithSample :: a -> a
+
+class HasRationals a where
+  fromRationalWithSample :: a -> Rational -> Expect a
 
 class HasAbs a where
   abs :: a -> a
@@ -46,26 +51,30 @@ class HasExpLog a where
 class HasSign a where
   sign :: a -> Maybe Int
 
-type SignBranches a = { positive :: a, zero :: a, negative :: a, unknown :: a }
+type SignBranches a
+  = { positive :: a, zero :: a, negative :: a, unknown :: a }
 
 branchBySign :: forall a. HasSign a => a -> SignBranches a -> a
-branchBySign a branches =
-  case sign a of
-    Just s 
-      | s > 0 -> branches.positive
-      | s == 0 -> branches.zero
-      | s < 0 -> branches.negative
-    _ -> branches.unknown
+branchBySign a branches = case sign a of
+  Just s
+    | s > 0 -> branches.positive
+    | s == 0 -> branches.zero
+    | s < 0 -> branches.negative
+  _ -> branches.unknown
 
 isZero :: forall a. HasSign a => a -> Boolean
 isZero a = sign a == (Just 0)
 
 -- | Composite class that defines all the instances a type must have to be evaluated and derived.
-class (Field a, HasRational a, HasAbs a, HasMinMax a, HasUnion a, HasSqrt a, HasPower a, HasSinCos a, HasExpLog a, HasSign a) <= CanEvaluate a
+class (Field a, HasConstants a, HasRationals a, HasAbs a, HasMinMax a, HasUnion a, HasSqrt a, HasPower a, HasSinCos a, HasExpLog a, HasSign a) <= CanEvaluate a
 
 -- Number instances:
-instance numberHasRational :: HasRational Number where
-  fromRational _sample = checkNumber "illegal literal" <<< rationalToNumber
+instance numberHasConstants :: HasConstants Number where
+  piWithSample _sample = pi
+  eWithSample _sample = e
+
+instance numberHasRationals :: HasRationals Number where
+  fromRationalWithSample _sample = checkNumber "illegal literal" <<< rationalToNumber
 
 instance numberHasAbs :: HasAbs Number where
   abs = Ord.abs
@@ -75,7 +84,7 @@ instance numberHasMinMax :: HasMinMax Number where
   max = Ord.max
 
 instance numberHasUnion :: HasUnion Number where
-  union a b = (a+b)/2.0
+  union a b = (a + b) / 2.0
 
 instance numberHasSqrt :: HasSqrt Number where
   sqrt = checkNumber "sqrt: parameter out of range" <<< Math.sqrt
@@ -115,8 +124,12 @@ instance numberHasSign :: HasSign Number where
 instance numberCanEvaluate :: CanEvaluate Number
 
 -- Approx instances:
-instance approxHasRational :: HasRational Approx where
-  fromRational sample = pure <<< fromRationalPrec (mBound sample)
+instance approxHasConstants :: HasConstants Approx where
+  piWithSample sample = piA (mBound sample)
+  eWithSample sample = eA (mBound sample)
+
+instance approxHasRationals :: HasRationals Approx where
+  fromRationalWithSample sample = pure <<< fromRationalPrec (mBound sample)
 
 instance approxHasAbs :: HasAbs Approx where
   abs = absA
@@ -156,7 +169,9 @@ instance approxHasSign :: HasSign Approx where
       | zero !<! a = Just 1
       | isZero_ a = Just 0
       | otherwise = Nothing
+
     isZero_ (Approx _ m e _) = (m == zero) && (e == zero)
+
     isZero_ _ = false
 
 instance approxCanEvaluate :: CanEvaluate Approx

@@ -12,46 +12,28 @@ import Draw.Commands (DrawCommand)
 import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative, ValueAndDerivative2, evaluateDerivative, evaluateDerivative2)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, fromRationalPrec, isFinite, lowerA, toNumber, upperA)
-import IntervalArith.Approx.ExpLog (eA)
 import IntervalArith.Approx.NumOrder (absA, maxA, (!<=!), (!>=!))
-import IntervalArith.Approx.Pi (piA)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
 import Types (Polygon, Size, XYBounds)
 
 drawRobustPlot :: Size -> XYBounds -> Expression -> Array Approx -> String -> DrawCommand Unit
 drawRobustPlot canvasSize bounds expression domainSegments label = drawCommands
   where
-  precision = 50
-
-  expressionEvaluator = evaluateWithX (constantsWithPrecision precision)
-
-  expressionEvaluator2 = evaluateWithX2 (constantsWithPrecision2 precision)
-
-  segmentEnclosures = plotEnclosures canvasSize bounds domainSegments expressionEvaluator expressionEvaluator2
+  segmentEnclosures = plotEnclosures canvasSize bounds domainSegments evaluateWithX evaluateWithX2
 
   drawCommands = drawPlot segmentEnclosures
 
-  constantsWithPrecision p =
-    [ Tuple "e" { value: eA p, derivative: zero }
-    , Tuple "pi" { value: piA p, derivative: zero }
-    ]
-
-  constantsWithPrecision2 p =
-    [ Tuple "e" { value: eA p, derivative: zero, derivative2: zero }
-    , Tuple "pi" { value: piA p, derivative: zero, derivative2: zero }
-    ]
-
-  evaluateWithX constants x = value
+  evaluateWithX x = value
     where
-    variableMap = [ Tuple "x" { value: x, derivative: one } ] <> constants
+    variableMap = [ Tuple "x" { value: x, derivative: one } ]
 
     value = case evaluateDerivative variableMap expression of
       Left _ -> Nothing
       Right v -> Just v
 
-  evaluateWithX2 constants x = value
+  evaluateWithX2 x = value
     where
-    variableMap = [ Tuple "x" { value: x, derivative: one, derivative2: zero } ] <> constants
+    variableMap = [ Tuple "x" { value: x, derivative: one, derivative2: zero } ]
 
     value = case evaluateDerivative2 variableMap expression of
       Left _ -> Nothing
