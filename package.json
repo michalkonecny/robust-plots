@@ -16,12 +16,14 @@
     "build": "npm run build-purescript && parcel build index.html",
     "start": "npm run build-purescript && parcel index.html",
     "build-purescript": "spago build",
-    "test": "spago test --main Test.Main"
+    "test": "spago test --main Test.Main",
+    "benchmark": "spago build && (echo *| node benchmark/Run.js)"
   },
   "dependencies": {
     "big-integer": "^1.6.48",
     "decimal.js": "7.1.1",
-    "purty": "^6.2.0"
+    "purty": "^6.2.0",
+    "benchmark": "^2.1.0"
   },
   "devDependencies": {
     "parcel": "^2.0.0-nightly.328",
