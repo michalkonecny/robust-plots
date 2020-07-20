@@ -17,8 +17,6 @@ segmentDomain accuracyTarget evaluator l u = fromFoldable $ segementDomainF 0 l 
     (segementDomainF (depth + one) lower mid)
       <> (segementDomainF (depth + one) mid upper)
 
-  three = one + two
-
   segementDomainF :: Int -> Rational -> Rational -> List Approx
   segementDomainF depth lower upper = segments
     where
@@ -26,15 +24,9 @@ segmentDomain accuracyTarget evaluator l u = fromFoldable $ segementDomainF 0 l 
 
     mid = (lower + upper) / two
 
-    width = upper - lower
-
     xL = rationalToNumber lower
 
     xU = rationalToNumber upper
-
-    xL3 = rationalToNumber $ lower + (width / three)
-
-    xU3 = rationalToNumber $ lower + ((width * two) / three)
 
     segments =
       if depth < 5 then
@@ -50,17 +42,19 @@ segmentDomain accuracyTarget evaluator l u = fromFoldable $ segementDomainF 0 l 
             , fxU: checkFinite $ evaluator xU <#> (_.value)
             , f'xL: (checkFinite $ evaluator xL <#> (_.derivative))
             , f'xU: (checkFinite $ evaluator xU <#> (_.derivative))
-            , f''xL3: (checkFinite $ evaluator xL3 <#> (_.derivative2))
-            , f''xU3: (checkFinite $ evaluator xU3 <#> (_.derivative2))
+            , f''xL: (checkFinite $ evaluator xL <#> (_.derivative2))
+            , f''xU: (checkFinite $ evaluator xU <#> (_.derivative2))
             }
 
-  segmentBasedOnDerivative state@{ depth, lower, mid, upper } x { fxL: Just _, fxU: Just _, f'xL: Just b1, f'xU: Just b2, f''xL3: Just a1, f''xU3: Just a2 } =
+  segmentBasedOnDerivative state@{ depth, lower, mid, upper } x { fxL: Just _, fxU: Just _, f'xL: Just b1, f'xU: Just b2, f''xL: Just a1, f''xU: Just a2 } =
     let
       w = rationalToNumber $ mid - lower
 
-      bUnstable = abs (b1 - b2) * w > accuracyTarget
+      w2 = w * two
 
-      aUnstable = abs (a1 - a2) * w > 3.0 * accuracyTarget
+      bUnstable = abs (b1 - b2) * w2 > accuracyTarget
+
+      aUnstable = abs (a1 - a2) * w2 > accuracyTarget
     in
       if bUnstable || aUnstable then
         bisect state
