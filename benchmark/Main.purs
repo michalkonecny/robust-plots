@@ -1,16 +1,18 @@
 module Benchmark.Main where
 
 import Prelude
-import Effect (Effect)
+
+import Benchmark.Plotter (benchPlot)
+import Benchotron.Core (Benchmark, benchFn, mkBenchmark)
+import Benchotron.UI.Console (runSuite)
 import Data.Array ((..))
 import Data.Foldable (foldMap, foldr)
 import Data.Monoid.Additive (Additive(..))
 import Data.Monoid.Multiplicative (Multiplicative(..))
 import Data.Newtype (ala)
+import Effect (Effect)
 import Test.QuickCheck.Arbitrary (arbitrary)
 import Test.QuickCheck.Gen (vectorOf)
-import Benchotron.Core (Benchmark, benchFn, mkBenchmark)
-import Benchotron.UI.Console (runSuite)
 
 benchSum :: Benchmark
 benchSum =
@@ -43,4 +45,4 @@ benchProduct =
     }
 
 main :: Effect Unit
-main = runSuite [ benchSum, benchProduct ]
+main = runSuite [ benchPlot ]
