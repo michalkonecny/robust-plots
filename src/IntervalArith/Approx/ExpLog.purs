@@ -103,23 +103,26 @@ logA x@(Approx _ m e _)
 logInternal :: Approx -> Approx
 logInternal Bottom = unsafeThrow "LogInternal: impossible"
 
-logInternal (Approx mb m e s) =
-  let
-    t' = (-mb) - 10 - max 0 (integerLog2 m + s) -- (5 + size of argument) guard digits
+logInternal (Approx mb m e s)
+  | e == zero =
+    let
+      t' = (-mb) - 10 - max 0 (integerLog2 m + s) -- (5 + size of argument) guard digits
 
-    r = s + integerLog2 ((big 3) * m) - 1
+      r = s + integerLog2 ((big 3) * m) - 1
 
-    x = scale (m :^ s) (-r) -- 2/3 <= x' <= 4/3
+      x = scale (m :^ s) (-r) -- 2/3 <= x' <= 4/3
 
-    y = divD' t' (x - one) (x + one) -- so |y| <= 1/5
+      y = divD' t' (x - one) (x + one) -- so |y| <= 1/5
 
-    (n :^ s') = flip scale 1 $ atanhD t' y
+      (n :^ s') = flip scale 1 $ atanhD t' y
 
-    (e' :^ s'') = divD' t' (e :^ (s - r)) x -- Estimate error term.
+      (e' :^ s'') = divD' t' (e :^ (s - r)) x -- Estimate error term.
 
-    res = approxMB mb n (scale (e' + one) (s'' - s')) s'
-  in
-    boundErrorTerm $ res + fromInt r * log2A (-t')
+      res = approxMB mb n (scale (e' + one) (s'' - s')) s'
+    in
+      boundErrorTerm $ res + fromInt r * log2A (-t')
+
+logInternal a = increasingFunctionViaBounds logInternal a
 
 -- | Compute approximations of ln 2. Lifted from computation on dyadic numbers.
 log2A :: Precision -> Approx
@@ -132,6 +135,8 @@ powA x y = case logA x, toInt y of
   _, _ -> Nothing
 
 powAInt :: Approx -> Int -> Approx
+powAInt Bottom _ = Bottom
+
 powAInt x i
   | isExact x = x ^^ i
   | i == 0 = setMB (mBound x) one
