@@ -2,7 +2,7 @@ module Plot.Segments where
 
 import Prelude
 import Data.Array (fromFoldable)
-import Data.List (List, singleton)
+import Data.List (singleton)
 import Data.Maybe (Maybe(..))
 import Data.Number as Number
 import Data.Ord (abs)
@@ -11,44 +11,43 @@ import IntervalArith.Approx (Approx, fromRationalBoundsPrec)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
 
 segmentDomain :: Number -> (Number -> Maybe (ValueAndDerivative2 Number)) -> Rational -> Rational -> Array Approx
-segmentDomain accuracyTarget evaluator l u = fromFoldable $ segementDomainF 0 l u
+segmentDomain accuracyTarget evaluator l u = fromFoldable $ segmentDomainF { depth: 0, xL: l, xU: u }
   where
-  bisect { depth, lower, mid, upper } =
-    (segementDomainF (depth + one) lower mid)
-      <> (segementDomainF (depth + one) mid upper)
+  bisect { depth, xL, xM, xU } =
+    segmentDomainF { depth: depth + one, xL, xU: xM }
+      <> segmentDomainF { depth: depth + one, xL: xM, xU }
 
-  segementDomainF :: Int -> Rational -> Rational -> List Approx
-  segementDomainF depth lower upper = segments
+  segmentDomainF { depth, xL, xU } = segments
     where
-    x = fromRationalBoundsPrec 50 lower upper
+    x = fromRationalBoundsPrec 50 xL xU
 
-    mid = (lower + upper) / two
+    xM = (xL + xU) / two
 
-    xL = rationalToNumber lower
+    evaluatorXL = evaluator (rationalToNumber xL)
 
-    xU = rationalToNumber upper
+    evaluatorXU = evaluator (rationalToNumber xU)
 
     segments =
       if depth < 5 then
-        bisect { depth, lower, mid, upper }
+        bisect { depth, xL, xM, xU }
       else
         if depth >= 10 then
           singleton x
         else
           segmentBasedOnDerivative
-            { depth, lower, mid, upper }
+            { depth, xL, xM, xU }
             x
-            { fxL: checkFinite $ evaluator xL <#> (_.value)
-            , fxU: checkFinite $ evaluator xU <#> (_.value)
-            , f'xL: (checkFinite $ evaluator xL <#> (_.derivative))
-            , f'xU: (checkFinite $ evaluator xU <#> (_.derivative))
-            , f''xL: (checkFinite $ evaluator xL <#> (_.derivative2))
-            , f''xU: (checkFinite $ evaluator xU <#> (_.derivative2))
+            { fxL: checkFinite $ evaluatorXL <#> (_.value)
+            , fxU: checkFinite $ evaluatorXU <#> (_.value)
+            , f'xL: checkFinite $ evaluatorXL <#> (_.derivative)
+            , f'xU: checkFinite $ evaluatorXU <#> (_.derivative)
+            , f''xL: checkFinite $ evaluatorXL <#> (_.derivative2)
+            , f''xU: checkFinite $ evaluatorXU <#> (_.derivative2)
             }
 
-  segmentBasedOnDerivative state@{ depth, lower, mid, upper } x { fxL: Just _, fxU: Just _, f'xL: Just b1, f'xU: Just b2, f''xL: Just a1, f''xU: Just a2 } =
+  segmentBasedOnDerivative state@{ depth, xL, xM, xU } x { fxL: Just _, fxU: Just _, f'xL: Just b1, f'xU: Just b2, f''xL: Just a1, f''xU: Just a2 } =
     let
-      w = rationalToNumber $ mid - lower
+      w = rationalToNumber $ xM - xL
 
       w2 = w * two
 
