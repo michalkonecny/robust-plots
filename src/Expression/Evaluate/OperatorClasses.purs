@@ -6,7 +6,7 @@ import Data.Maybe (Maybe(..))
 import Data.Number (isNaN)
 import Data.Ord as Ord
 import Expression.Error (Expect, evaluationError)
-import IntervalArith.Approx (Approx(..), fromRationalPrec, mBound, unionA)
+import IntervalArith.Approx (Approx(..), fromRationalPrec, unionA)
 import IntervalArith.Approx.ExpLog (eA, expA, logA, powA)
 import IntervalArith.Approx.NumOrder (absA, maxA, minA, (!<!))
 import IntervalArith.Approx.Pi (piA)
@@ -125,11 +125,16 @@ instance numberCanEvaluate :: CanEvaluate Number
 
 -- Approx instances:
 instance approxHasConstants :: HasConstants Approx where
-  piWithSample sample = piA (mBound sample)
-  eWithSample sample = eA (mBound sample)
+  piWithSample sample = piA (getPrec sample)
+  eWithSample sample = eA (getPrec sample)
+
+getPrec :: Approx -> Int
+getPrec Bottom = 50
+
+getPrec (Approx mb _ _ _) = mb
 
 instance approxHasRationals :: HasRationals Approx where
-  fromRationalWithSample sample = pure <<< fromRationalPrec (mBound sample)
+  fromRationalWithSample sample = pure <<< fromRationalPrec (getPrec sample)
 
 instance approxHasAbs :: HasAbs Approx where
   abs = absA
