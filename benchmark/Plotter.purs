@@ -20,7 +20,7 @@ benchPlot :: Benchmark
 benchPlot =
   mkBenchmark
     { slug: "plot"
-    , title: "Plotting the sample expression"
+    , title: "Plotting the '" <> defaultExpression <> "' expression"
     , sizes: (1 .. 5)
     , sizeInterpretation: "Upper bound of accuracy range with 0.1 interval"
     , inputsPerSize: 1
