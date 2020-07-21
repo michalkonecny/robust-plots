@@ -211,19 +211,31 @@ fork = forkWithDelay 0.0
 
 redrawWithDelayAndBounds :: forall output. State -> XYBounds -> HalogenMain output Unit
 redrawWithDelayAndBounds state newBounds = do
-  plots <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size newBounds state.plots
-  clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
-  H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds })
-  resetProgress state { plots = plots }
+  if state.autoRobust then do
+    clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
+    H.modify_ (_ { clearPlot = clearBounds, inProgress = true, bounds = newBounds })
+    handleAction DrawPlot
+    fork
+    plots <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size newBounds state.plots
+    H.modify_ (_ { plots = plots })
+    resetProgress state { plots = plots }
+  else do
+    clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
+    plots <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size newBounds state.plots
+    H.modify_ (_ { clearPlot = clearBounds, inProgress = true, bounds = newBounds, plots = plots })
+    resetProgress state { plots = plots }
   handleAction DrawPlot
   forkWithDelay 500.0 -- Subsiquent code is placed on the end of the JS event queue
   handleAction ProcessNextJob
 
 redraw :: forall output. State -> HalogenMain output Unit
 redraw state = do
-  plots <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size state.bounds state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
-  H.modify_ (_ { plots = plots, clearPlot = clearBounds })
+  H.modify_ (_ { clearPlot = clearBounds, inProgress = true })
+  handleAction DrawPlot
+  fork
+  plots <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size state.bounds state.plots
+  H.modify_ (_ { plots = plots })
   resetProgress state { plots = plots }
   handleAction DrawPlot
   handleAction ProcessNextJob
