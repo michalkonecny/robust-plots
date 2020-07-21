@@ -2,66 +2,106 @@ module Plot.Segments where
 
 import Prelude
 import Data.Array (fromFoldable)
-import Data.List (List, singleton)
+import Data.List (singleton)
 import Data.Maybe (Maybe(..))
+import Data.Number as Number
 import Data.Ord (abs)
+import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative2)
 import IntervalArith.Approx (Approx, fromRationalBoundsPrec)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
-import Plot.PlotEvaluator (ExpressionEvaluator)
 
-segmentDomain :: Number -> ExpressionEvaluator Number -> Rational -> Rational -> Array Approx
-segmentDomain accuracyTarget evaluator l u = fromFoldable $ segementDomainF 0 l u
+segmentDomain :: Number -> (Number -> Maybe (ValueAndDerivative2 Number)) -> Rational -> Rational -> Array Approx
+segmentDomain accuracyTarget evaluator l u =
+  fromFoldable
+    $ segmentDomainF
+        { depth: 0
+        , xL: l
+        , evaluatorXL: evaluator (rationalToNumber l)
+        , xU: u
+        , evaluatorXU: evaluator (rationalToNumber u)
+        }
   where
-  bisect { depth, lower, mid, upper } =
-    (segementDomainF (depth + one) lower mid)
-      <> (segementDomainF (depth + one) mid upper)
+  bisect { depth, xL, evaluatorXL, xM, evaluatorXM, xU, evaluatorXU } =
+    segmentDomainF
+      { depth: depth + one
+      , xL
+      , evaluatorXL
+      , xU: xM
+      , evaluatorXU: evaluatorXM
+      }
+      <> segmentDomainF
+          { depth: depth + one
+          , xL: xM
+          , evaluatorXL: evaluatorXM
+          , xU
+          , evaluatorXU
+          }
 
-  three = one + two
-
-  segementDomainF :: Int -> Rational -> Rational -> List Approx
-  segementDomainF depth lower upper = segments
+  segmentDomainF { depth, xL, evaluatorXL, xU, evaluatorXU } = segments
     where
-    x = fromRationalBoundsPrec 50 lower upper
+    x = fromRationalBoundsPrec 50 xL xU
 
-    mid = (lower + upper) / two
+    xM = (xL + xU) / two
 
-    range = upper - lower
+    evaluatorXM = evaluator (rationalToNumber xM)
 
-    a1 = rationalToNumber $ lower + (range / three)
-
-    a2 = rationalToNumber $ lower + ((range * two) / three)
+    state = { depth, xL, evaluatorXL, xM, evaluatorXM, xU, evaluatorXU }
 
     segments =
       if depth < 5 then
-        bisect { depth, lower, mid, upper }
+        bisect state
       else
         if depth >= 10 then
           singleton x
         else
-          segmentBasedOnDerivative { depth, lower, mid, upper }
+          segmentBasedOnDerivative
+            state
             x
-            (evaluator.f (rationalToNumber lower))
-            (evaluator.f (rationalToNumber upper))
-            (evaluator.f'' a1)
-            (evaluator.f'' a2)
-            (evaluator.f' $ rationalToNumber mid)
+            { fxL: checkFinite $ evaluatorXL <#> (_.value)
+            , fxU: checkFinite $ evaluatorXU <#> (_.value)
+            , f'xL: checkFinite $ evaluatorXL <#> (_.derivative)
+            , f'xU: checkFinite $ evaluatorXU <#> (_.derivative)
+            , f''xL: checkFinite $ evaluatorXL <#> (_.derivative2)
+            , f''xU: checkFinite $ evaluatorXU <#> (_.derivative2)
+            }
 
-  segmentBasedOnDerivative state@{ depth, lower, mid, upper } x _ _ (Just a1) (Just a2) (Just b) =
+  segmentBasedOnDerivative state@{ xL, xM } x { fxL: Just _
+  , fxU: Just _
+  , f'xL: Just b1
+  , f'xU: Just b2
+  , f''xL: Just a1
+  , f''xU: Just a2
+  } =
     let
-      w = rationalToNumber $ mid - lower
+      w = rationalToNumber $ xM - xL
 
-      a = (a1 + a2) / two
+      w2 = w * two
 
-      h = if abs b > one then abs ((a * w * w) / b) else abs (a * w * w)
+      bUnstable = abs (b1 - b2) * w2 > accuracyTarget
 
+      aUnstable = abs (a1 - a2) * w2 > accuracyTarget
     in
-      if abs (a1 - a2) * w > 3.0 * accuracyTarget || h > accuracyTarget then
-        -- unsafeLog logMessage $
+      if bUnstable || aUnstable then
         bisect state
       else
-        singleton x
+        let
+          b = (b1 + b2) / two
+
+          a = (a1 + a2) / two
+
+          h = if abs b > one then abs ((a * w * w) / b) else abs (a * w * w)
+        in
+          if h > accuracyTarget then
+            bisect state
+          else
+            singleton x
 
   -- function not defined on either end, assume not defined on the whole segment:
-  segmentBasedOnDerivative state x Nothing Nothing Nothing Nothing Nothing = singleton x
+  segmentBasedOnDerivative state x { fxL: Nothing, fxU: Nothing } = singleton x
 
-  segmentBasedOnDerivative state x _ _ _ _ _ = bisect state
+  segmentBasedOnDerivative state x _ = bisect state
+
+checkFinite :: Maybe Number -> Maybe Number
+checkFinite ma@(Just a) = if Number.isFinite a then ma else Nothing
+
+checkFinite ma = ma

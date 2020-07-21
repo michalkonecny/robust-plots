@@ -196,6 +196,7 @@ examples :: Array String
 examples =
   [ "x*sin(1/(x^2))"
   , "sin(100*x)"
+  , "min(sin(7*x),cos(7*x))"
   , "(1+x^2)^(sin(10*x))-1"
   ]
 

@@ -2,30 +2,51 @@ module Plot.RobustPlot where
 
 import Prelude
 import Data.Array (catMaybes, reverse, take)
+import Data.Bifunctor (bimap)
+import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Number as Number
 import Data.Tuple (Tuple(..))
 import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
+import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative, ValueAndDerivative2, evaluateDerivative, evaluateDerivative2)
 import Expression.Syntax (Expression)
-import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, isFinite, fromRationalPrec, lowerA, toNumber, upperA)
-import IntervalArith.Approx.NumOrder ((!<=!), (!>=!))
+import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, fromRationalPrec, isFinite, lowerA, toNumber, upperA)
+import IntervalArith.Approx.NumOrder (absA, maxA, (!<=!), (!>=!))
 import IntervalArith.Misc (Rational, rationalToNumber, two)
--- import Misc.Debug (unsafeSpy)
-import Plot.PlotEvaluator (ExpressionEvaluator, approxExpressionEvaluator)
 import Types (Polygon, Size, XYBounds)
 
 drawRobustPlot :: Size -> XYBounds -> Expression -> Array Approx -> String -> DrawCommand Unit
 drawRobustPlot canvasSize bounds expression domainSegments label = drawCommands
   where
-  expressionEvaluator = approxExpressionEvaluator expression
-
-  segmentEnclosures = plotEnclosures canvasSize bounds domainSegments expressionEvaluator
+  segmentEnclosures = plotEnclosures canvasSize bounds domainSegments evaluateWithX evaluateWithX2
 
   drawCommands = drawPlot segmentEnclosures
 
-plotEnclosures :: Size -> XYBounds -> Array Approx -> ExpressionEvaluator Approx -> Array (Maybe Polygon)
-plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
+  evaluateWithX x = value
+    where
+    variableMap = [ Tuple "x" { value: x, derivative: one } ]
+
+    value = case evaluateDerivative variableMap expression of
+      Left _ -> Nothing
+      Right v -> Just v
+
+  evaluateWithX2 x = value
+    where
+    variableMap = [ Tuple "x" { value: x, derivative: one, derivative2: zero } ]
+
+    value = case evaluateDerivative2 variableMap expression of
+      Left _ -> Nothing
+      Right v -> Just v
+
+plotEnclosures ::
+  Size ->
+  XYBounds ->
+  Array Approx ->
+  (Approx -> Maybe (ValueAndDerivative Approx)) ->
+  (Approx -> Maybe (ValueAndDerivative2 Approx)) ->
+  Array (Maybe Polygon)
+plotEnclosures canvasSize bounds domainSegments evaluator evaluator2 = segmentEnclosures
   where
   rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
@@ -54,35 +75,58 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
     -}
   toCanvasEnclosure x =
     let
-      xMidPointValue = map boundsA $ evaluator.f xMidPoint
+      (Tuple canvasXLower canvasXUpper) = bimap toCanvasX toCanvasX $ boundsNumber x
 
-      xGradGrad = map boundsA $ evaluator.f'' x
+      (Tuple xLA xUA) = boundsA x
+
+      xMidPoint = centreA x
+
+      enclosureWidth = xUA - xLA
+
+      twoA = fromRationalPrec 50 two
+
+      evaluatorX = evaluator2 x
+
+      xMidPointValue = boundsA <$> (_.value) <$> evaluator xMidPoint
+
+      xGradGrad = boundsA <$> (_.derivative2) <$> evaluatorX
 
       xGradient = case xGradGrad of
         Just (Tuple xGradGradLower xGradGradUpper)
           | xGradGradLower !>=! zero -> do
-            xGradLeft <- evaluator.f' xLA
-            xGradRight <- evaluator.f' xUA
+            xGradLeft <- (_.derivative) <$> evaluator xLA
+            xGradRight <- (_.derivative) <$> evaluator xUA
             Just (Tuple (lowerA xGradLeft) (upperA xGradRight))
           | xGradGradUpper !<=! zero -> do
-            xGradLeft <- evaluator.f' xLA
-            xGradRight <- evaluator.f' xUA
+            xGradLeft <- (_.derivative) <$> evaluator xLA
+            xGradRight <- (_.derivative) <$> evaluator xUA
             Just (Tuple (lowerA xGradRight) (upperA xGradLeft))
-          | otherwise -> map boundsA $ evaluator.f' x
-        _ -> map boundsA $ evaluator.f' x
+          | otherwise -> case boundsA <$> (_.derivative) <$> evaluator xMidPoint of
+            Just (Tuple xGradientMidPointLower xGradientMidPointUpper)
+              | isFinite xGradientMidPointLower && isFinite xGradientMidPointUpper ->
+                let
+                  xGradientVariation = upperA $ ((absA xGradGradLower) `maxA` (absA xGradGradUpper)) * enclosureWidth / twoA
+
+                  xGradientUpper = xGradientMidPointUpper + xGradientVariation
+
+                  xGradientLower = xGradientMidPointLower - xGradientVariation
+                in
+                  Just (Tuple xGradientLower xGradientUpper)
+            _ -> map boundsA $ (_.derivative) <$> evaluatorX
+        _ -> map boundsA $ (_.derivative) <$> evaluatorX
 
       xValue = case xGradient of
         Just (Tuple xGradLower xGradUpper)
           | xGradLower !>=! zero -> do
-            xLeft <- evaluator.f xLA
-            xRight <- evaluator.f xUA
+            xLeft <- (_.value) <$> evaluator xLA
+            xRight <- (_.value) <$> evaluator xUA
             Just (Tuple (lowerA xLeft) (upperA xRight))
           | xGradUpper !<=! zero -> do
-            xLeft <- evaluator.f xLA
-            xRight <- evaluator.f xUA
+            xLeft <- (_.value) <$> evaluator xLA
+            xRight <- (_.value) <$> evaluator xUA
             Just (Tuple (lowerA xRight) (upperA xLeft))
-          | otherwise -> map boundsA $ evaluator.f x
-        _ -> map boundsA $ evaluator.f x
+          | otherwise -> map boundsA $ (_.value) <$> evaluatorX
+        _ -> map boundsA $ (_.value) <$> evaluatorX
     in
       case xValue, xMidPointValue, xGradient of
         Just (Tuple yLower yUpper), Just (Tuple yMidLower yMidUpper), Just (Tuple lowerGradient upperGradient)
@@ -104,9 +148,9 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
               minHorizontalSlantedBoundary
                 { xL: canvasXLower
                 , xR: canvasXUpper
-                , yU: toCanvasY yUpper
-                , yUL: toCanvasY yUpperLeft
-                , yUR: toCanvasY yUpperRight
+                , yU: toCanvasY { y: yUpper, roundDown: false }
+                , yUL: toCanvasY { y: yUpperLeft, roundDown: false }
+                , yUR: toCanvasY { y: yUpperRight, roundDown: false }
                 }
 
             lowerBoundary =
@@ -114,9 +158,9 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
                 $ minHorizontalSlantedBoundary
                     { xL: canvasXLower
                     , xR: canvasXUpper
-                    , yU: -(toCanvasY yLower)
-                    , yUL: -(toCanvasY yLowerLeft)
-                    , yUR: -(toCanvasY yLowerRight)
+                    , yU: -(toCanvasY { y: yLower, roundDown: true })
+                    , yUL: -(toCanvasY { y: yLowerLeft, roundDown: true })
+                    , yUR: -(toCanvasY { y: yLowerRight, roundDown: true })
                     }
 
             minHorizontalSlantedBoundary = aux
@@ -137,42 +181,27 @@ plotEnclosures canvasSize bounds domainSegments evaluator = segmentEnclosures
                   xI = xL + (yU - yUL) * (xR - xL) / (yUR - yUL)
         Just (Tuple yLower yUpper), _, _ -> Just polygon
           where
-          a = { x: canvasXLower, y: toCanvasY yUpper }
+          a = { x: canvasXLower, y: toCanvasY { y: yUpper, roundDown: false } }
 
-          b = { x: canvasXLower, y: toCanvasY yLower }
+          b = { x: canvasXLower, y: toCanvasY { y: yLower, roundDown: true } }
 
-          c = { x: canvasXUpper, y: toCanvasY yLower }
+          c = { x: canvasXUpper, y: toCanvasY { y: yLower, roundDown: true } }
 
-          d = { x: canvasXUpper, y: toCanvasY yUpper }
+          d = { x: canvasXUpper, y: toCanvasY { y: yUpper, roundDown: false } }
 
           polygon = [ a, b, c, d, a ]
         _, _, _ -> Nothing
-    where
-    (Tuple xLower xUpper) = boundsNumber x
-
-    (Tuple xLA xUA) = boundsA x
-
-    xMidPoint = centreA x
-
-    enclosureWidth = xUA - xLA
-
-    twoA = fromRationalPrec 50 two
-
-    canvasXLower = toCanvasX xLower
-
-    canvasXUpper = toCanvasX xUpper
 
   toCanvasX :: Number -> Number
   toCanvasX x = ((x - xLowerBound) * canvasWidth) / rangeX
 
-  toCanvasY :: Approx -> Number
-  toCanvasY yApprox = safeCanvasY
+  toCanvasY { y: yApprox, roundDown } = safeCanvasY
     where
     y = toNumber yApprox
 
     canvasY = canvasHeight - (((y - yLowerBound) * canvasHeight) / rangeY)
 
-    safeCanvasY = if Number.isFinite canvasY then canvasY else if canvasY < zero then canvasHeight + one else -one
+    safeCanvasY = if Number.isFinite canvasY then canvasY else if roundDown then canvasHeight + one else -one
 
 drawPlot :: Array (Maybe Polygon) -> DrawCommand Unit
 drawPlot = (drawEnclosure true) <<< catMaybes
