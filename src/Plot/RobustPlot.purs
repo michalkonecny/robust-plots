@@ -1,7 +1,6 @@
 module Plot.RobustPlot where
 
 import Prelude
-
 import Data.Array (catMaybes, concat, reverse, take)
 import Data.Bifunctor (bimap)
 import Data.Either (Either(..))
@@ -128,7 +127,7 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
             xGradLeft <- (_.derivative) <$> evaluator xLA
             xGradRight <- (_.derivative) <$> evaluator xUA
             Just (Tuple (lowerA xGradRight) (upperA xGradLeft))
-          | otherwise -> case boundsA <$> (_.derivative) <$> evaluator xMidPoint of
+          | isFinite xGradGradLower && isFinite xGradGradUpper -> case boundsA <$> (_.derivative) <$> evaluator xMidPoint of
             Just (Tuple xGradientMidPointLower xGradientMidPointUpper)
               | isFinite xGradientMidPointLower && isFinite xGradientMidPointUpper ->
                 let
