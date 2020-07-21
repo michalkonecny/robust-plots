@@ -11,6 +11,7 @@ import IntervalArith.Misc (Rational, rationalToNumber)
 
 data UnaryOperation
   = Neg
+  | Abs
   | Sqrt
   | Exp
   | Log
@@ -24,6 +25,7 @@ derive instance unaryOperationOrd :: Ord UnaryOperation
 
 instance unaryOperationShow :: Show UnaryOperation where
   show Neg = "-"
+  show Abs = "abs"
   show Sqrt = "sqrt"
   show Exp = "e^"
   show Log = "log"
@@ -37,6 +39,8 @@ data BinaryOperation
   | Times
   | Divide
   | Power
+  | Min
+  | Max
 
 derive instance binaryOperationEq :: Eq BinaryOperation
 
@@ -48,6 +52,15 @@ instance binaryOperationShow :: Show BinaryOperation where
   show Times = "*"
   show Divide = "/"
   show Power = "^"
+  show Min = " min "
+  show Max = " max "
+
+isInfix :: BinaryOperation -> Boolean
+isInfix Min = false
+
+isInfix Max = false
+
+isInfix _ = true
 
 type VariableName
   = String
@@ -67,8 +80,25 @@ instance expressionShow :: Show Expression where
   show (ExpressionVariable name) = name
   show (ExpressionLiteral value) = showLiteral value
   show (ExpressionUnary unaryOperation expression) = showUnaryExpression unaryOperation expression
-  show (ExpressionBinary binaryOperation leftExpression rightExpression) = (showNestedBinaryExpression leftExpression) <> (show binaryOperation) <> (showNestedBinaryExpression rightExpression)
-  show (ExpressionLet name expression parentExpression) = "let " <> name <> " = " <> (show expression) <> " in " <> (show parentExpression)
+  show (ExpressionBinary binaryOperation leftExpression rightExpression)
+    | isInfix binaryOperation =
+      (showNestedBinaryExpression leftExpression)
+        <> (show binaryOperation)
+        <> (showNestedBinaryExpression rightExpression)
+  show (ExpressionBinary binaryOperation leftExpression rightExpression) =
+        (show binaryOperation)
+        <> "("
+        <> (showNestedBinaryExpression leftExpression)
+        <> ","
+        <> (showNestedBinaryExpression rightExpression)
+        <> ")"
+  show (ExpressionLet name expression parentExpression) =
+    "let "
+      <> name
+      <> " = "
+      <> (show expression)
+      <> " in "
+      <> (show parentExpression)
 
 showLiteral :: Rational -> String
 showLiteral value =

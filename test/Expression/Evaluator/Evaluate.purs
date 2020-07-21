@@ -7,10 +7,10 @@ import Data.Either (Either(..))
 import Data.Ratio ((%))
 import Data.Tuple (Tuple(..))
 import Expression.Error (Expect, throw)
-import Expression.Evaluator (evaluate)
+import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative, evaluateDerivativeWithSample)
 import Expression.Parser (parse)
 import Expression.VariableMap (VariableMap)
-import IntervalArith.Approx (Approx(..), consistent, fromRationalPrec, recipA)
+import IntervalArith.Approx (Approx(..), consistent, fromRationalPrec, recipA, setMB)
 import IntervalArith.Approx.ExpLog (eA)
 import IntervalArith.Misc (big)
 import Test.Expression.Helper (expectValue)
@@ -359,9 +359,9 @@ evaluateTests =
     test "ASSERT f(x) = 5.0 WHEN f(x) = x AND x = 5.0" do
       let
         -- given
-        x = 5.0
+        x = ratioHelp 5 1
 
-        variables = [ (Tuple "x" (ratioHelp 5 1)) ]
+        variables = [ (Tuple "x" { value: x, derivative: zero }) ]
 
         rawExpression = "x"
 
@@ -376,9 +376,9 @@ evaluateTests =
     test "ASSERT f(x) = 4.0 WHEN f(x) = 2.0*x AND x = 2.0" do
       let
         -- given
-        x = 2.0
+        x = ratioHelp 2 1
 
-        variables = [ (Tuple "x" (ratioHelp 2 1)) ]
+        variables = [ (Tuple "x" { value: x, derivative: zero }) ]
 
         rawExpression = "2.0*x"
 
@@ -393,9 +393,9 @@ evaluateTests =
     test "ASSERT f(x) = 4.0 WHEN f(x) = 2*x AND x = 2.0" do
       let
         -- given
-        x = 2.0
+        x = ratioHelp 2 1
 
-        variables = [ (Tuple "x" (ratioHelp 2 1)) ]
+        variables = [ (Tuple "x" { value: x, derivative: zero }) ]
 
         rawExpression = "2.0*x"
 
@@ -410,9 +410,9 @@ evaluateTests =
     test "ASSERT f(x) = 1.0 WHEN f(x) = 1 / (1 + (100 * (x ^ 2))) AND x = 0.0" do
       let
         -- given
-        x = 0.0
+        x = ratioHelp 0 1
 
-        variables = [ (Tuple "x" (ratioHelp 0 1)) ]
+        variables = [ (Tuple "x" { value: x, derivative: zero }) ]
 
         rawExpression = "1 / (1 + (100 * (x ^ 2)))"
 
@@ -427,9 +427,9 @@ evaluateTests =
     test "ASSERT f(x) = 0.5 WHEN f(x) = 1 / (1 + (100 * (x ^ 2))) AND x = 0.1" do
       let
         -- given
-        x = 0.1
+        x = ratioHelp 1 10
 
-        variables = [ (Tuple "x" (ratioHelp 1 10)) ]
+        variables = [ (Tuple "x" { value: x, derivative: zero }) ]
 
         rawExpression = "1 / (1 + (100 * (x ^ 2)))"
 
@@ -441,7 +441,7 @@ evaluateTests =
       expectValue result
         $ \value ->
             equal true $ consistent value expectedResult
-    test "SHOULD throw error 'Unknown value: a | Unknown value: b' WHEN f(x) = a + b AND a is undefined AND b in undefined" do
+    test "SHOULD throw error 'Unknown value: a' WHEN f(x) = a + b AND a is undefined AND b in undefined" do
       let
         -- given
         rawExpression = "a + b"
@@ -450,16 +450,16 @@ evaluateTests =
         result = fromExpect $ parseAndEvaluate [] rawExpression
 
         -- then
-        expectedResult = "Unknown value: a | Unknown value: b"
+        expectedResult = "Unknown value: a"
       equal expectedResult result
 
-parseAndEvaluate :: VariableMap Approx -> String -> Expect Approx
+parseAndEvaluate :: VariableMap (ValueAndDerivative Approx) -> String -> Expect Approx
 parseAndEvaluate variableMap rawExpression = result
   where
   expressionOrParseError = parse rawExpression
 
   valueOrEvaluationError = case expressionOrParseError of
-    Right expression -> evaluate variableMap expression
+    Right expression -> evaluateDerivativeWithSample variableMap (setMB 50 zero) expression <#> (_.value)
     Left error -> throw error
 
   result = valueOrEvaluationError

@@ -1,7 +1,6 @@
 module Expression.Parser where
 
 import Prelude
-
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.BigInt (pow)
@@ -9,7 +8,7 @@ import Data.Char.Unicode (digitToInt)
 import Data.Either (Either(..))
 import Data.Foldable (foldl)
 import Data.Identity (Identity)
-import Data.List (List, mapWithIndex)
+import Data.List (List(..), (:), mapWithIndex)
 import Data.Maybe (Maybe(..))
 import Data.Ord (abs)
 import Data.Ratio ((%))
@@ -19,7 +18,7 @@ import Expression.Error (Expect, parseError)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 import IntervalArith.Misc (Rational, Integer, big, toRational)
 import Text.Parsing.Parser (Parser, parseErrorMessage, runParser, fail)
-import Text.Parsing.Parser.Combinators (lookAhead, notFollowedBy, many1Till)
+import Text.Parsing.Parser.Combinators (lookAhead, many1Till, notFollowedBy, sepBy1)
 import Text.Parsing.Parser.Expr (OperatorTable, Assoc(..), Operator(..), buildExprParser)
 import Text.Parsing.Parser.Language (emptyDef)
 import Text.Parsing.Parser.String (char, eof)
@@ -48,7 +47,7 @@ sign = (char '-' $> negate) <|> (char '+' $> identity) <|> pure identity
 
 literal :: P Rational
 literal = do
-  addSign <- sign 
+  addSign <- sign
   integer <- token.integer
   let
     rationalInteger = toRational $ abs integer
@@ -81,25 +80,36 @@ foldIntoRational base decimalPlaces = foldl folder base $ mapWithIndex Tuple dec
     where
     newDenominator = pow (big 10) (big (index + one))
 
-variableOrUnaryFunctionCall :: P Expression -> P Expression
-variableOrUnaryFunctionCall p = do
+variableOrFunctionCall :: P Expression -> P Expression
+variableOrFunctionCall p = do
   idString <- identifier
   (lookAhead (char '(') *> functionCall idString) <|> (pure (ExpressionVariable idString))
   where
   functionCall :: String -> P Expression
   functionCall idString = do
-    expr <- brackets p
+    exprs <- brackets $ sepBy1 p (char ',')
     case idString of
-      "sin" -> pure $ ExpressionUnary Sine expr
-      "cos" -> pure $ ExpressionUnary Cosine expr
-      "tan" -> pure $ ExpressionUnary Tan expr
-      "exp" -> pure $ ExpressionUnary Exp expr
-      "log" -> pure $ ExpressionUnary Log expr
-      "sqrt" -> pure $ ExpressionUnary Sqrt expr
+      "sin" -> expressionUnary Sine exprs
+      "cos" -> expressionUnary Cosine exprs
+      "tan" -> expressionUnary Tan exprs
+      "exp" -> expressionUnary Exp exprs
+      "log" -> expressionUnary Log exprs
+      "sqrt" -> expressionUnary Sqrt exprs
+      "abs" -> expressionUnary Abs exprs
+      "min" -> expressionBinary Min exprs
+      "max" -> expressionBinary Max exprs
       _ -> fail ("Unknown function: " <> idString)
 
+  expressionUnary op (expr : Nil) = pure $ ExpressionUnary op expr
+
+  expressionUnary op _ = fail $ (show op) <> " should have exactly one parameter"
+
+  expressionBinary op (expr1 : expr2 : Nil) = pure $ ExpressionBinary op expr1 expr2
+
+  expressionBinary op _ = fail $ (show op) <> " should have exactly two parameters"
+
 term :: P Expression -> P Expression
-term p = literalExpression <|> brackets p <|> variableOrUnaryFunctionCall p
+term p = literalExpression <|> brackets p <|> variableOrFunctionCall p
 
 table :: OperatorTable Identity String Expression
 table =

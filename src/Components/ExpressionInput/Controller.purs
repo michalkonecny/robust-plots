@@ -6,7 +6,7 @@ import Data.Maybe (Maybe(..))
 import Data.Number (fromString)
 import Data.Tuple (Tuple(..))
 import Expression.Error (Expect)
-import Expression.Evaluator (roughEvaluate)
+import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative, evaluateDerivative)
 import Expression.Parser (parse)
 import Expression.Simplifier (simplify)
 import Expression.SubExpression (joinCommonSubExpressions)
@@ -15,15 +15,15 @@ import Expression.Syntax (Expression)
 type ExpressionInputController
   = { parse :: String -> Expect Expression
     , clean :: Expression -> Expression
-    , checkExpression :: Expression -> Expect Number
+    , checkExpression :: Expression -> Expect (ValueAndDerivative Number)
     , checkAccuracy :: String -> Either Number String
     }
 
 expressionInputController :: ExpressionInputController
 expressionInputController = { parse, clean: simplify >>> joinCommonSubExpressions, checkExpression, checkAccuracy }
 
-checkExpression :: Expression -> Expect Number
-checkExpression expression = roughEvaluate [ Tuple "x" 0.0 ] expression
+checkExpression :: Expression -> Expect (ValueAndDerivative Number)
+checkExpression expression = evaluateDerivative [ Tuple "x" { value: 0.0, derivative: 1.0 } ] expression
 
 checkAccuracy :: String -> Either Number String
 checkAccuracy accuracyString = case fromString accuracyString of

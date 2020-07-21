@@ -10,13 +10,13 @@ import Data.List.Lazy as L
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Effect.Exception.Unsafe (unsafeThrow)
-import IntervalArith.Approx (Approx(..), Precision, approxAutoMB, approxMB, boundErrorTerm, boundErrorTermMB, bounds, fromInt, fromIntegerMB, lowerA, recipA, setMB, sqrA, unionA, upperA)
-import IntervalArith.Approx.NumOrder ((!<!))
+import IntervalArith.Approx (Approx(..), Precision, approxAutoMB, approxMB, boundErrorTerm, boundErrorTermMB, bounds, fromInt, fromIntegerMB, increasingFunctionViaBounds, isExact, lowerA, mBound, recipA, setMB, sqrA, unionA, upperA)
+import IntervalArith.Approx.NumOrder (absA, (!<!), (!<=!), (!>=!))
 import IntervalArith.Approx.Taylor (taylorA)
 import IntervalArith.Dyadic (atanhD, divD', ln2D, (:^))
 import IntervalArith.Dyadic as Dyadic
 import IntervalArith.Extended (Extended(..))
-import IntervalArith.Misc (big, integerLog2, multiplicativePowerRecip, scale)
+import IntervalArith.Misc (big, integerLog2, scale, (^^))
 import Math (sqrt)
 import Misc.LazyList ((!!))
 import Misc.LazyList.NumberSequences (factorials)
@@ -103,23 +103,26 @@ logA x@(Approx _ m e _)
 logInternal :: Approx -> Approx
 logInternal Bottom = unsafeThrow "LogInternal: impossible"
 
-logInternal (Approx mb m e s) =
-  let
-    t' = (-mb) - 10 - max 0 (integerLog2 m + s) -- (5 + size of argument) guard digits
+logInternal (Approx mb m e s)
+  | e == zero =
+    let
+      t' = (-mb) - 10 - max 0 (integerLog2 m + s) -- (5 + size of argument) guard digits
 
-    r = s + integerLog2 ((big 3) * m) - 1
+      r = s + integerLog2 ((big 3) * m) - 1
 
-    x = scale (m :^ s) (-r) -- 2/3 <= x' <= 4/3
+      x = scale (m :^ s) (-r) -- 2/3 <= x' <= 4/3
 
-    y = divD' t' (x - one) (x + one) -- so |y| <= 1/5
+      y = divD' t' (x - one) (x + one) -- so |y| <= 1/5
 
-    (n :^ s') = flip scale 1 $ atanhD t' y
+      (n :^ s') = flip scale 1 $ atanhD t' y
 
-    (e' :^ s'') = divD' t' (e :^ (s - r)) x -- Estimate error term.
+      (e' :^ s'') = divD' t' (e :^ (s - r)) x -- Estimate error term.
 
-    res = approxMB mb n (scale (e' + one) (s'' - s')) s'
-  in
-    boundErrorTerm $ res + fromInt r * log2A (-t')
+      res = approxMB mb n (scale (e' + one) (s'' - s')) s'
+    in
+      boundErrorTerm $ res + fromInt r * log2A (-t')
+
+logInternal a = increasingFunctionViaBounds logInternal a
 
 -- | Compute approximations of ln 2. Lifted from computation on dyadic numbers.
 log2A :: Precision -> Approx
@@ -127,14 +130,29 @@ log2A p = let (m :^ s) = ln2D (-p) in approxAutoMB m one s
 
 powA :: Approx -> Approx -> Maybe Approx
 powA x y = case logA x, toInt y of
-  _, Just yInt -> Just $ multiplicativePowerRecip x yInt
+  _, Just yInt -> Just $ powAInt x yInt
   Just logX, _ -> Just $ expA (y * logX)
   _, _ -> Nothing
+
+powAInt :: Approx -> Int -> Approx
+powAInt Bottom _ = Bottom
+
+powAInt x i
+  | isExact x = x ^^ i
+  | i == 0 = setMB (mBound x) one
+  | i > 0 && Int.odd i = increasingFunctionViaBounds (_ ^^ i) x
+  | i > 0 && x !>=! zero = increasingFunctionViaBounds (_ ^^ i) x
+  | i > 0 && x !<=! zero = increasingFunctionViaBounds (_ ^^ i) (-x)
+  | i > 0 = ((upperA (absA x)) ^^ i) `unionA` zero
+  | otherwise = recipA $ powAInt x (-i)
 
 toInt :: Approx -> Maybe Int
 toInt x = case xL_ED of
   Finite xL_D
-    | xL_ED == xU_ED -> Dyadic.toInt xL_D
+    | xL_ED == xU_ED -> case Dyadic.toInt xL_D of
+      Just xInt
+        | Dyadic.fromInt xInt == xL_D -> Just xInt
+      _ -> Nothing
   _ -> Nothing
   where
   Tuple xL_ED xU_ED = bounds x

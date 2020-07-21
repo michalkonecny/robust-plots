@@ -5,11 +5,12 @@
 module IntervalArith.Approx.SinCos where
 
 import Prelude
+
 import Data.Int as Int
 import Data.List.Lazy as L
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import IntervalArith.Approx (Approx(..), boundErrorTerm, fromInt, fromInteger, fromIntegerMB, lowerA, modA, recipA, setMB, sqrA, unionA, upperA)
+import IntervalArith.Approx (Approx(..), boundErrorTerm, fromInt, fromInteger, fromIntegerMB, isExact, lowerA, modA, recipA, setMB, sqrA, unionA, upperA)
 import IntervalArith.Approx.NumOrder (absA, (!<=!))
 import IntervalArith.Approx.Pi (piA)
 import IntervalArith.Approx.Taylor (taylorA)
@@ -63,12 +64,12 @@ sinTaylorRed2A a@(Approx mb m _ s) =
 sinTaylorA :: Approx -> Approx
 sinTaylorA Bottom = Approx 64 zero one 0 -- [-1,1]
 
-sinTaylorA a@(Approx mb _ e _) = result
+sinTaylorA a@(Approx mb _ _ _) = result
   where
   (Tuple aRed (Tuple maRedL maRedR)) = sinTaylorRed1A a
 
   result
-    | e == zero = sinTaylorRed2A aRed
+    | isExact aRed = sinTaylorRed2A aRed
     | otherwise = sL `unionA` sR -- aRed is in the interval [-π/2,π/2] where sine is monotone
 
   sL = case maRedL of
@@ -91,3 +92,4 @@ cosA x@(Approx mb _ _ _) = sinA ((Approx 1 one zero (-1)) * piA (mb + 2) - x)
 
 tanA :: Approx -> Approx
 tanA x = (sinA x) / (cosA x)
+
