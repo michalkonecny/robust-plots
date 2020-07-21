@@ -5,7 +5,6 @@
 module IntervalArith.Approx.Sqrt where
 
 import Prelude
-
 import Data.BigInt as BigInt
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
@@ -30,9 +29,9 @@ sqrtA Bottom = Just Bottom
 
 sqrtA x@(Approx mb m e _)
   | m < -e = Nothing -- definitely negative
-  | m < e = map (unionA zero) $ sqrtA (upperA x) -- possibly negative, be optimistic
+  | m <= e = map (unionA zero) $ sqrtA (upperA x) -- possibly negative, be optimistic
   | m == zero && e == zero = Just x
-  | e > zero && e /= m = increasingPartialFunctionViaBounds sqrtA x
+  | e > zero = increasingPartialFunctionViaBounds sqrtA x
   | otherwise = result -- e == zero || e == m
     where
     k = 2 * mb + 2
