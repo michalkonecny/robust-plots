@@ -87,9 +87,9 @@ plotEnclosures canvasSize bounds domainSegments evaluator evaluator2 = segmentEn
 
       evaluatorX = evaluator2 x
 
-      xMidPointValue = boundsA <$> (evaluator xMidPoint <#> (_.value))
+      xMidPointValue = boundsA <$> (_.value) <$> evaluator xMidPoint
 
-      xGradGrad = boundsA <$> (evaluatorX <#> (_.derivative2))
+      xGradGrad = boundsA <$> (_.derivative2) <$> evaluatorX
 
       xGradient = case xGradGrad of
         Just (Tuple xGradGradLower xGradGradUpper)
@@ -101,7 +101,7 @@ plotEnclosures canvasSize bounds domainSegments evaluator evaluator2 = segmentEn
             xGradLeft <- (_.derivative) <$> evaluator xLA
             xGradRight <- (_.derivative) <$> evaluator xUA
             Just (Tuple (lowerA xGradRight) (upperA xGradLeft))
-          | otherwise -> case boundsA <$> (evaluator xMidPoint <#> (_.derivative)) of
+          | otherwise -> case boundsA <$> (_.derivative) <$> evaluator xMidPoint of
             Just (Tuple xGradientMidPointLower xGradientMidPointUpper)
               | isFinite xGradientMidPointLower && isFinite xGradientMidPointUpper ->
                 let
@@ -195,7 +195,6 @@ plotEnclosures canvasSize bounds domainSegments evaluator evaluator2 = segmentEn
   toCanvasX :: Number -> Number
   toCanvasX x = ((x - xLowerBound) * canvasWidth) / rangeX
 
-  -- toCanvasY :: Approx -> Number
   toCanvasY { y: yApprox, roundDown } = safeCanvasY
     where
     y = toNumber yApprox
