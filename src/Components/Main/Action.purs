@@ -1,6 +1,7 @@
 module Components.Main.Action where
 
 import Prelude
+
 import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..), canvasSizeToBounds)
 import Components.Canvas (CanvasMessage(..), calculateNewCanvasSize)
@@ -179,9 +180,11 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedAccuracy 
       , accuracy = accuracy
       }
     where
-    status = if plot.status == Robust && isJust plot.expression then RobustInProgress else DrawnRough
+    startRobust = plot.status == Robust && (plot.commands.status == DrawnRobust || plot.commands.status == RobustInProgress)
 
-    queue = case plot.expression, plot.status == Robust of
+    status = if startRobust && isJust plot.expression then RobustInProgress else DrawnRough
+
+    queue = case plot.expression, startRobust of
       Just expression, true -> addPlot (toDomainAccuracy accuracy) state.batchCount (cancelAll plot.queue) state.bounds expression plot.expressionText plot.id
       _, _ -> cancelAll plot.queue
 
