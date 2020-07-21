@@ -14,18 +14,18 @@ module Plot.JobBatcher
   ) where
 
 import Prelude
-
 import Data.Array (elem, foldl, foldr)
 import Data.Foldable (class Foldable)
 import Data.Maybe (Maybe(..))
 import Data.Set (Set, empty, insert) as S
+import Data.Tuple (Tuple)
 import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx)
 import Misc.Array (split)
 import Misc.Queue (Queue, empty, null, peek, push, tail, toList, length) as Q
-import Plot.Commands (PlotCommand(..))
+import Plot.Commands (PlotCommand(..), Depth)
 import Plot.PlotController (computePlotAsync)
 import Plot.RoughPlot (evaluateWithX)
 import Plot.Segments (segmentDomain)
@@ -157,5 +157,5 @@ segmentRobust accuracyTarget batchSegmentCount bounds expression label = command
 
   commands = map toPlotCommand splitDomainSegments
 
-  toPlotCommand :: Array Approx -> PlotCommand
+  toPlotCommand :: Array (Tuple Depth Approx) -> PlotCommand
   toPlotCommand segments = RobustPlot bounds expression segments label

@@ -6,12 +6,13 @@ import Prelude
 import Data.Array (length)
 import Data.Either (Either(..))
 import Data.String (joinWith)
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple(..), snd)
 import Effect.Exception.Unsafe (unsafeThrow)
 import Expression.Parser (parse)
 import Expression.Simplifier (simplify)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, boundsNumber)
+import Plot.Commands (Depth)
 import Plot.JobBatcher (initialJobQueue)
 import Plot.RoughPlot (evaluateWithX)
 import Plot.Segments (segmentDomain)
@@ -77,8 +78,8 @@ segmentDomainTests =
       equal expectedCount $ length segments
       equal expected $ showSegments segments
 
-showSegments :: Array Approx -> String
-showSegments = (joinWith ",") <<< (map showSegment)
+showSegments :: Array (Tuple Depth Approx) -> String
+showSegments = (joinWith ",") <<< (map (showSegment <<< snd))
   where
   showSegment :: Approx -> String
   showSegment a = "(" <> (show l) <> "," <> (show u) <> ")"

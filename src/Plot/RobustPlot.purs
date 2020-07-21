@@ -14,9 +14,10 @@ import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, fromRationalPrec, isFinite, lowerA, toNumber, upperA)
 import IntervalArith.Approx.NumOrder (absA, maxA, (!<=!), (!>=!))
 import IntervalArith.Misc (Rational, rationalToNumber, two)
+import Plot.Commands (Depth)
 import Types (Polygon, Size, XYBounds)
 
-drawRobustPlot :: Size -> XYBounds -> Expression -> Array Approx -> String -> DrawCommand Unit
+drawRobustPlot :: Size -> XYBounds -> Expression -> Array (Tuple Depth Approx) -> String -> DrawCommand Unit
 drawRobustPlot canvasSize bounds expression domainSegments label = drawCommands
   where
   segmentEnclosures = plotEnclosures canvasSize bounds domainSegments evaluateWithX evaluateWithX2
@@ -42,7 +43,7 @@ drawRobustPlot canvasSize bounds expression domainSegments label = drawCommands
 plotEnclosures ::
   Size ->
   XYBounds ->
-  Array Approx ->
+  Array (Tuple Depth Approx) ->
   (Approx -> Maybe (ValueAndDerivative Approx)) ->
   (Approx -> Maybe (ValueAndDerivative2 Approx)) ->
   Array (Maybe Polygon)
@@ -65,7 +66,7 @@ plotEnclosures canvasSize bounds domainSegments evaluator evaluator2 = segmentEn
   toRange :: Rational -> Rational -> Tuple Rational Rational
   toRange lower upper = Tuple lower upper
 
-  toCanvasEnclosure :: Approx -> Maybe Polygon
+  toCanvasEnclosure :: (Tuple Depth Approx) -> Maybe Polygon
   {- overview:
       - try to compute f'(x)
         - if f''(x) is positive or negative, get f'(x) by endpoints
@@ -73,7 +74,7 @@ plotEnclosures canvasSize bounds domainSegments evaluator evaluator2 = segmentEn
       - if f'(x) cannot be computed, use a box with f(x)
       - if f'(x) is available, use it to compute parallelogram and intersect it with the f(x) box
     -}
-  toCanvasEnclosure x =
+  toCanvasEnclosure (Tuple depth x) =
     let
       (Tuple canvasXLower canvasXUpper) = bimap toCanvasX toCanvasX $ boundsNumber x
 

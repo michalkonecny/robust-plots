@@ -6,11 +6,13 @@ import Data.List (singleton)
 import Data.Maybe (Maybe(..))
 import Data.Number as Number
 import Data.Ord (abs)
+import Data.Tuple (Tuple(..))
 import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative2)
 import IntervalArith.Approx (Approx, fromRationalBoundsPrec)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
+import Plot.Commands (Depth)
 
-segmentDomain :: Number -> (Number -> Maybe (ValueAndDerivative2 Number)) -> Rational -> Rational -> Array Approx
+segmentDomain :: Number -> (Number -> Maybe (ValueAndDerivative2 Number)) -> Rational -> Rational -> Array (Tuple Depth Approx)
 segmentDomain accuracyTarget evaluator l u =
   fromFoldable
     $ segmentDomainF
@@ -52,7 +54,7 @@ segmentDomain accuracyTarget evaluator l u =
         bisect state
       else
         if depth >= 10 then
-          singleton x
+          singleton (Tuple depth x)
         else
           segmentBasedOnDerivative
             state
@@ -65,7 +67,7 @@ segmentDomain accuracyTarget evaluator l u =
             , f''xU: checkFinite $ evaluatorXU <#> (_.derivative2)
             }
 
-  segmentBasedOnDerivative state@{ xL, xM } x { fxL: Just _
+  segmentBasedOnDerivative state@{ depth, xL, xM } x { fxL: Just _
   , fxU: Just _
   , f'xL: Just b1
   , f'xU: Just b2
@@ -94,10 +96,10 @@ segmentDomain accuracyTarget evaluator l u =
           if h > accuracyTarget then
             bisect state
           else
-            singleton x
+            singleton (Tuple depth x)
 
   -- function not defined on either end, assume not defined on the whole segment:
-  segmentBasedOnDerivative state x { fxL: Nothing, fxU: Nothing } = singleton x
+  segmentBasedOnDerivative state@{ depth } x { fxL: Nothing, fxU: Nothing } = singleton (Tuple depth x)
 
   segmentBasedOnDerivative state x _ = bisect state
 
