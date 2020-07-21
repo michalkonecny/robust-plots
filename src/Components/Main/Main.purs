@@ -150,7 +150,7 @@ mainComponent =
                                 ]
                             ]
                         , HH.div
-                            [ className "card-body"
+                            [ className "card-body pt-0"
                             , HP.id_ "canvasContainer"
                             ]
                             [ HH.slot _progressBar 1 progressBarComponent state.progress absurd

@@ -50,7 +50,7 @@ initialState input =
 
 render :: forall slots m. State -> HH.ComponentHTML Action slots m
 render state =
-  HH.div_
+  HH.div [ style "min-height: 16px" ]
     $ if state.isDone then
         []
       else
