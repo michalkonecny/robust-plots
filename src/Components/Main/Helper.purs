@@ -1,7 +1,6 @@
 module Components.Main.Helper where
 
 import Prelude
-
 import Components.ExpressionInput (Status(..))
 import Components.ExpressionManager.Types (DrawingStatus(..), ExpressionPlot)
 import Components.Main.Types (State)
@@ -44,6 +43,12 @@ updateExpressionPlotCommands commands plot = plot { commands { robust = fold [ p
 
 alterPlot :: (ExpressionPlot -> ExpressionPlot) -> Id -> Array ExpressionPlot -> Array ExpressionPlot
 alterPlot alterF id = alterWhere (\p -> p.id == id) alterF
+
+alterPlotAsync :: (ExpressionPlot -> Aff ExpressionPlot) -> Id -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
+alterPlotAsync alterF id = alterWhereAsync (\p -> p.id == id) alterF
+
+alterWhereAsync :: forall a. (a -> Boolean) -> (a -> Aff a) -> Array a -> Aff (Array a)
+alterWhereAsync predicate alterF = parSequence <<< map (\element -> if predicate element then alterF element else pure element)
 
 countBatches :: Array ExpressionPlot -> Int
 countBatches = (foldl (+) 0) <<< map (\p -> countJobs p.queue)
@@ -129,14 +134,13 @@ clearAddPlotCommands autoRobust batchCount size newBounds = parSequence <<< (map
     Nothing -> pure plot
     Just expression -> do
       drawCommands <- computePlotAsync size $ roughPlot newBounds expression plot.expressionText
-      pure $ plot { queue = queue, commands { rough = drawCommands, robust = pure unit, status = status } }
-      where
-      queue =
+      queue <-
         if autoRobust && plot.status == Robust then
           addPlot (toDomainAccuracy plot.accuracy) batchCount (cancelAll plot.queue) newBounds expression plot.expressionText plot.id
         else
-          cancelAll plot.queue
-
+          pure $ cancelAll plot.queue
+      pure $ plot { queue = queue, commands { rough = drawCommands, robust = pure unit, status = status } }
+      where
       status =
         if autoRobust && plot.status == Robust then
           RobustInProgress

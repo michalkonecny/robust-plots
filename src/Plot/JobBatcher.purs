@@ -14,13 +14,14 @@ module Plot.JobBatcher
   ) where
 
 import Prelude
-
 import Data.Array (elem, foldl, foldr)
+import Data.Either (Either(..))
 import Data.Foldable (class Foldable)
 import Data.Maybe (Maybe(..))
 import Data.Set (Set, empty, insert) as S
 import Draw.Commands (DrawCommand)
-import Effect.Aff (Aff)
+import Effect (Effect)
+import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx)
 import Misc.Array (split)
@@ -87,10 +88,10 @@ cancelAll jobQueue = cancelRunning $ jobQueue { cancelled = cancelled, queue = Q
 -- | Adds a plot with its associated `batchId` to the `Job` queue.
 -- |
 -- | Running time: `O(batchSegmentCount * (batchSegmentCount - 1))`
-addPlot :: Number -> Int -> JobQueue -> XYBounds -> Expression -> String -> Id -> JobQueue
-addPlot accuracyTarget batchSegmentCount jobQueue bounds expression label batchId = foldl (addJob batchId) jobQueue segmentedPlots
-  where
-  segmentedPlots = segmentRobust accuracyTarget batchSegmentCount bounds expression label
+addPlot :: Number -> Int -> JobQueue -> XYBounds -> Expression -> String -> Id -> Aff JobQueue
+addPlot accuracyTarget batchSegmentCount jobQueue bounds expression label batchId = do
+  segmentedPlots <- makeAff $ runSegmentRobust accuracyTarget batchSegmentCount bounds expression label
+  pure $ foldl (addJob batchId) jobQueue segmentedPlots
 
 -- | Sets the `Job` at the front of the queue as running.
 -- |
@@ -115,6 +116,11 @@ isCancelled jobQueue id = elem id jobQueue.cancelled
 --------------------------------------------------------------------
 insertAll :: forall a f b. Foldable f => Ord b => (a -> b) -> f a -> S.Set b -> S.Set b
 insertAll mapper toInsert set = foldr (S.insert <<< mapper) set toInsert
+
+runSegmentRobust :: Number -> Int -> XYBounds -> Expression -> String -> (Either Error (Array PlotCommand) -> Effect Unit) -> Effect Canceler
+runSegmentRobust accuracyTarget batchSegmentCount bounds expression label callback = do
+  callback $ Right $ segmentRobust accuracyTarget batchSegmentCount bounds expression label
+  pure nonCanceler
 
 cancelRunning :: JobQueue -> JobQueue
 cancelRunning jobQueue = case jobQueue.running of
