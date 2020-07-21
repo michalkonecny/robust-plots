@@ -1,7 +1,6 @@
 module Expression.Evaluate.AutomaticDifferentiator where
 
-import Prelude hiding (min,max)
-
+import Prelude hiding (min, max)
 import Data.Array (head)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
@@ -146,19 +145,21 @@ evaluateDerivative2WithSample variableMap sample = evaluate
         pure
           { value: u / v
           , derivative: (u' * v - u * v') / (v ^ 2)
-          , derivative2: u'' / v - (two * u' * v' + u * v'')/(v^2) + two * u * v' ^ 2 / (v ^ 3)
+          , derivative2: u'' / v - (two * u' * v' + u * v'') / (v ^ 2) + two * u * v' ^ 2 / (v ^ 3)
           }
       -- (g^f)' = g^(f-1) * ((f*g')+(g*f'*log(g)))
       -- source: https://www.wolframalpha.com/input/?i=(f%5E(g))%27
       Power
         | isZero v' && isZero v'' -> do
           uPowV <- u `power` v
+          uPowVminus1 <- u `power` (v - one)
+          uPowVminus2 <- u `power` (v - two)
           let
-            t = (v * u') / u
+            t = (v * u')
           pure
             { value: uPowV
-            , derivative: uPowV * t
-            , derivative2: uPowV * (t ^ 2 + (v * u'') / u - v * u' ^ 2 / u ^ 2)
+            , derivative: uPowVminus1 * t
+            , derivative2: uPowVminus2 * (t ^ 2 + (v * u'') * u - v * u' ^ 2)
             }
       Power -> do
         uPowV <- u `power` v
