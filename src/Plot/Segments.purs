@@ -8,7 +8,7 @@ import Data.Number as Number
 import Data.Ord (abs)
 import Data.Tuple (Tuple(..))
 import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative2)
-import IntervalArith.Approx (Approx, fromRationalBoundsPrec)
+import IntervalArith.Approx (Approx, Precision, fromRationalBoundsPrec)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
 import Plot.Commands (Depth)
 
@@ -17,6 +17,9 @@ minDepth = 5
 
 maxDepth :: Depth
 maxDepth = 10
+
+xPrecision :: Precision
+xPrecision = 50
 
 segmentDomain :: Number -> (Number -> Maybe (ValueAndDerivative2 Number)) -> Rational -> Rational -> Array (Tuple Depth Approx)
 segmentDomain accuracyTarget evaluator l u =
@@ -47,7 +50,7 @@ segmentDomain accuracyTarget evaluator l u =
 
   segmentDomainF { depth, xL, evaluatorXL, xU, evaluatorXU } = segments
     where
-    x = fromRationalBoundsPrec 50 xL xU
+    x = fromRationalBoundsPrec xPrecision xL xU
 
     xM = (xL + xU) / two
 
