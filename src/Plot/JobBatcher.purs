@@ -158,4 +158,4 @@ segmentRobust accuracyTarget batchSegmentCount bounds expression label = command
   commands = map toPlotCommand splitDomainSegments
 
   toPlotCommand :: Array (Tuple Depth Approx) -> PlotCommand
-  toPlotCommand segments = RobustPlot bounds expression segments label
+  toPlotCommand segments = RobustPlot bounds expression segments accuracyTarget label

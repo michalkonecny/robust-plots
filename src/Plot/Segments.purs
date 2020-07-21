@@ -12,6 +12,12 @@ import IntervalArith.Approx (Approx, fromRationalBoundsPrec)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
 import Plot.Commands (Depth)
 
+minDepth :: Depth
+minDepth = 5
+
+maxDepth :: Depth
+maxDepth = 10
+
 segmentDomain :: Number -> (Number -> Maybe (ValueAndDerivative2 Number)) -> Rational -> Rational -> Array (Tuple Depth Approx)
 segmentDomain accuracyTarget evaluator l u =
   fromFoldable
@@ -50,10 +56,10 @@ segmentDomain accuracyTarget evaluator l u =
     state = { depth, xL, evaluatorXL, xM, evaluatorXM, xU, evaluatorXU }
 
     segments =
-      if depth < 5 then
+      if depth < minDepth then
         bisect state
       else
-        if depth >= 10 then
+        if depth >= maxDepth then
           singleton (Tuple depth x)
         else
           segmentBasedOnDerivative
