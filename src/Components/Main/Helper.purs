@@ -1,6 +1,7 @@
 module Components.Main.Helper where
 
 import Prelude
+
 import Components.ExpressionInput (Status(..))
 import Components.ExpressionManager.Types (DrawingStatus(..), ExpressionPlot)
 import Components.Main.Types (State)
@@ -102,7 +103,9 @@ toMaybeDrawCommand plot = case plot.expression of
   Just expression -> case plot.status of
     Off -> Nothing
     Rough -> Just plot.commands.rough
-    Robust -> Just $ fold [ plot.commands.rough, plot.commands.robust ]
+    Robust -> case plot.commands.status of
+      DrawnRobust -> Just plot.commands.robust
+      _ -> Just $ fold [ plot.commands.rough, plot.commands.robust ]
   Nothing -> Nothing
 
 foldDrawCommands :: State -> DrawCommand Unit
