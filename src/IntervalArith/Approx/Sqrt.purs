@@ -28,11 +28,11 @@ sqrtA :: Approx -> Maybe Approx
 sqrtA Bottom = Just Bottom
 
 sqrtA x@(Approx mb m e _)
-  | m < -e = Nothing -- definitely negative
-  | m == zero && e == zero = Just x
-  | m <= e = map (unionA zero) $ sqrtA (upperA x) -- possibly negative, be optimistic
-  | e > zero = increasingPartialFunctionViaBounds sqrtA x
-  | otherwise = result -- e == zero || e == m
+  | m == zero && e == zero = Just x -- x = zero
+  | m < -e = Nothing -- x definitely negative
+  | m <= e = map (unionA zero) $ sqrtA (upperA x) -- x contains zero, ignore any negative values
+  | e > zero = increasingPartialFunctionViaBounds sqrtA x -- x positive, not exact
+  | otherwise = result -- e == zero, ie x is exact
     where
     k = 2 * mb + 2
 
