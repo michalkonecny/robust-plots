@@ -1,27 +1,38 @@
 module Plot.RobustPlot where
 
 import Prelude
-import Data.Array (catMaybes, reverse, take)
+import Data.Array (catMaybes, concat, reverse, take)
 import Data.Bifunctor (bimap)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Number as Number
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple(..), snd)
 import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
 import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative, ValueAndDerivative2, evaluateDerivative, evaluateDerivative2)
 import Expression.Syntax (Expression)
-import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, fromRationalPrec, isFinite, lowerA, toNumber, upperA)
-import IntervalArith.Approx.NumOrder (absA, maxA, (!<=!), (!>=!))
+import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, isFinite, lowerA, toNumber, unionA, upperA)
+import IntervalArith.Approx.NumOrder (absA, maxA, minA, (!<=!), (!>=!))
 import IntervalArith.Misc (Rational, rationalToNumber, two)
+import Misc.Debug (unsafeLog)
+import Plot.Commands (Depth)
+import Plot.Segments (maxDepth)
 import Types (Polygon, Size, XYBounds)
 
-drawRobustPlot :: Size -> XYBounds -> Expression -> Array Approx -> String -> DrawCommand Unit
-drawRobustPlot canvasSize bounds expression domainSegments label = drawCommands
-  where
-  segmentEnclosures = plotEnclosures canvasSize bounds domainSegments evaluateWithX evaluateWithX2
+shouldLog :: Boolean
+shouldLog = false
 
-  drawCommands = drawPlot segmentEnclosures
+log :: forall a. String -> a -> a
+log
+  | shouldLog = unsafeLog
+  | otherwise = \_ a -> a
+
+drawRobustPlot :: Size -> XYBounds -> Expression -> Array (Tuple Depth Approx) -> Number -> String -> DrawCommand Unit
+drawRobustPlot canvasSize bounds expression domainSegments accuracyTarget label = drawCommands
+  where
+  segmentEnclosures = plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator: evaluateWithX, evaluator2: evaluateWithX2 }
+
+  drawCommands = drawPlot $ concat segmentEnclosures
 
   evaluateWithX x = value
     where
@@ -40,19 +51,21 @@ drawRobustPlot canvasSize bounds expression domainSegments label = drawCommands
       Right v -> Just v
 
 plotEnclosures ::
-  Size ->
-  XYBounds ->
-  Array Approx ->
-  (Approx -> Maybe (ValueAndDerivative Approx)) ->
-  (Approx -> Maybe (ValueAndDerivative2 Approx)) ->
-  Array (Maybe Polygon)
-plotEnclosures canvasSize bounds domainSegments evaluator evaluator2 = segmentEnclosures
+  { bounds :: XYBounds
+  , canvasSize :: Size
+  , domainSegments :: Array (Tuple Int Approx)
+  , accuracyTarget :: Number
+  , evaluator :: Approx -> Maybe (ValueAndDerivative Approx)
+  , evaluator2 :: Approx -> Maybe (ValueAndDerivative2 Approx)
+  } ->
+  Array (Array (Maybe Polygon))
+plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, evaluator2 } = segmentEnclosures
   where
   rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
   rangeX = rationalToNumber $ bounds.xBounds.upper - bounds.xBounds.lower
 
-  segmentEnclosures = map toCanvasEnclosure domainSegments
+  segmentEnclosures = map toCanvasEnclosures domainSegments
 
   yLowerBound = rationalToNumber bounds.yBounds.lower
 
@@ -65,7 +78,44 @@ plotEnclosures canvasSize bounds domainSegments evaluator evaluator2 = segmentEn
   toRange :: Rational -> Rational -> Tuple Rational Rational
   toRange lower upper = Tuple lower upper
 
-  toCanvasEnclosure :: Approx -> Maybe Polygon
+  toCanvasEnclosures :: (Tuple Depth Approx) -> Array (Maybe Polygon)
+  toCanvasEnclosures (Tuple depth x) = case toCanvasEnclosure x of
+    Just (Tuple polygon accuracy)
+      | debugLog accuracy $ accuracy <= accuracyTarget || depth >= maxDepth -> [ Just polygon ]
+    _
+      | depth >= maxDepth -> [ Nothing ]
+    _ -> bisect
+      where
+      bisect = enclosuresLeft <> enclosuresRight
+        where
+        (Tuple xL xU) = boundsA x
+
+        xLeft = xL `unionA` xM
+
+        xRight = xM `unionA` xU
+
+        xM = (xL + xU) / two
+
+        enclosuresLeft = toCanvasEnclosures (Tuple (depth + 1) xLeft)
+
+        enclosuresRight = toCanvasEnclosures (Tuple (depth + 1) xRight)
+    where
+    debugLog accuracy =
+      log
+        $ "x = "
+        <> show (boundsNumber x)
+        <> ", depth = "
+        <> show depth
+        <> if accuracy <= accuracyTarget then
+            ""
+          else
+            ", INSUFFICIENT ACCURACY "
+              <> ", accuracy = "
+              <> show accuracy
+              <> ", accuracyTarget = "
+              <> show accuracyTarget
+
+  toCanvasEnclosure :: Approx -> Maybe (Tuple Polygon Number)
   {- overview:
       - try to compute f'(x)
         - if f''(x) is positive or negative, get f'(x) by endpoints
@@ -83,7 +133,7 @@ plotEnclosures canvasSize bounds domainSegments evaluator evaluator2 = segmentEn
 
       enclosureWidth = xUA - xLA
 
-      twoA = fromRationalPrec 50 two
+      enclosureWidthHalf = enclosureWidth / two
 
       evaluatorX = evaluator2 x
 
@@ -101,11 +151,11 @@ plotEnclosures canvasSize bounds domainSegments evaluator evaluator2 = segmentEn
             xGradLeft <- (_.derivative) <$> evaluator xLA
             xGradRight <- (_.derivative) <$> evaluator xUA
             Just (Tuple (lowerA xGradRight) (upperA xGradLeft))
-          | otherwise -> case boundsA <$> (_.derivative) <$> evaluator xMidPoint of
+          | isFinite xGradGradLower && isFinite xGradGradUpper -> case boundsA <$> (_.derivative) <$> evaluator xMidPoint of
             Just (Tuple xGradientMidPointLower xGradientMidPointUpper)
               | isFinite xGradientMidPointLower && isFinite xGradientMidPointUpper ->
                 let
-                  xGradientVariation = upperA $ ((absA xGradGradLower) `maxA` (absA xGradGradUpper)) * enclosureWidth / twoA
+                  xGradientVariation = upperA $ ((absA xGradGradLower) `maxA` (absA xGradGradUpper)) * enclosureWidthHalf
 
                   xGradientUpper = xGradientMidPointUpper + xGradientVariation
 
@@ -130,19 +180,27 @@ plotEnclosures canvasSize bounds domainSegments evaluator evaluator2 = segmentEn
     in
       case xValue, xMidPointValue, xGradient of
         Just (Tuple yLower yUpper), Just (Tuple yMidLower yMidUpper), Just (Tuple lowerGradient upperGradient)
-          | isFinite lowerGradient && isFinite upperGradient ->
-            Just
-              $ upperBoundary
-              <> reverse lowerBoundary
-              <> take 1 upperBoundary
+          | isFinite lowerGradient && isFinite upperGradient -> Just (Tuple polygon accuracy)
             where
-            yUpperRight = yMidUpper + ((enclosureWidth * upperGradient) / twoA)
+            polygon = upperBoundary <> reverse lowerBoundary <> take 1 upperBoundary
 
-            yUpperLeft = yMidUpper - ((enclosureWidth * lowerGradient) / twoA)
+            accuracy = snd $ boundsNumber accuracyA
 
-            yLowerRight = yMidLower + ((enclosureWidth * lowerGradient) / twoA)
+            accuracyA = minA (minA enclosureWidth enclosureParallelogramWidth) (minA enclosureBoxHeight enclosureParallelogramHeight)
+              where
+              enclosureBoxHeight = yUpper - yLower
 
-            yLowerLeft = yMidLower - ((enclosureWidth * upperGradient) / twoA)
+              enclosureParallelogramHeight = enclosureWidthHalf * (upperGradient - lowerGradient)
+
+              enclosureParallelogramWidth = enclosureParallelogramHeight / (absA upperGradient)
+
+            yUpperRight = yMidUpper + (enclosureWidthHalf * upperGradient)
+
+            yUpperLeft = yMidUpper - (enclosureWidthHalf * lowerGradient)
+
+            yLowerRight = yMidLower + (enclosureWidthHalf * lowerGradient)
+
+            yLowerLeft = yMidLower - (enclosureWidthHalf * upperGradient)
 
             upperBoundary =
               minHorizontalSlantedBoundary
@@ -179,7 +237,7 @@ plotEnclosures canvasSize bounds domainSegments evaluator evaluator2 = segmentEn
                 | otherwise = [ { x: xL, y: yUL }, { x: xI, y: yU }, { x: xR, y: yU } ]
                   where
                   xI = xL + (yU - yUL) * (xR - xL) / (yUR - yUL)
-        Just (Tuple yLower yUpper), _, _ -> Just polygon
+        Just (Tuple yLower yUpper), _, _ -> Just (Tuple polygon accuracy)
           where
           a = { x: canvasXLower, y: toCanvasY { y: yUpper, roundDown: false } }
 
@@ -190,6 +248,8 @@ plotEnclosures canvasSize bounds domainSegments evaluator evaluator2 = segmentEn
           d = { x: canvasXUpper, y: toCanvasY { y: yUpper, roundDown: false } }
 
           polygon = [ a, b, c, d, a ]
+
+          accuracy = snd $ boundsNumber $ yUpper - yLower
         _, _, _ -> Nothing
 
   toCanvasX :: Number -> Number

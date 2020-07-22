@@ -6,11 +6,22 @@ import Data.List (singleton)
 import Data.Maybe (Maybe(..))
 import Data.Number as Number
 import Data.Ord (abs)
+import Data.Tuple (Tuple(..))
 import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative2)
-import IntervalArith.Approx (Approx, fromRationalBoundsPrec)
+import IntervalArith.Approx (Approx, Precision, fromRationalBoundsPrec)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
+import Plot.Commands (Depth)
 
-segmentDomain :: Number -> (Number -> Maybe (ValueAndDerivative2 Number)) -> Rational -> Rational -> Array Approx
+minDepth :: Depth
+minDepth = 3
+
+maxDepth :: Depth
+maxDepth = 10
+
+xPrecision :: Precision
+xPrecision = 50
+
+segmentDomain :: Number -> (Number -> Maybe (ValueAndDerivative2 Number)) -> Rational -> Rational -> Array (Tuple Depth Approx)
 segmentDomain accuracyTarget evaluator l u =
   fromFoldable
     $ segmentDomainF
@@ -39,7 +50,7 @@ segmentDomain accuracyTarget evaluator l u =
 
   segmentDomainF { depth, xL, evaluatorXL, xU, evaluatorXU } = segments
     where
-    x = fromRationalBoundsPrec 50 xL xU
+    x = fromRationalBoundsPrec xPrecision xL xU
 
     xM = (xL + xU) / two
 
@@ -48,11 +59,11 @@ segmentDomain accuracyTarget evaluator l u =
     state = { depth, xL, evaluatorXL, xM, evaluatorXM, xU, evaluatorXU }
 
     segments =
-      if depth < 5 then
+      if depth < minDepth then
         bisect state
       else
-        if depth >= 10 then
-          singleton x
+        if depth >= maxDepth then
+          singleton (Tuple depth x)
         else
           segmentBasedOnDerivative
             state
@@ -65,7 +76,7 @@ segmentDomain accuracyTarget evaluator l u =
             , f''xU: checkFinite $ evaluatorXU <#> (_.derivative2)
             }
 
-  segmentBasedOnDerivative state@{ xL, xM } x { fxL: Just _
+  segmentBasedOnDerivative state@{ depth, xL, xM } x { fxL: Just _
   , fxU: Just _
   , f'xL: Just b1
   , f'xU: Just b2
@@ -75,29 +86,35 @@ segmentDomain accuracyTarget evaluator l u =
     let
       w = rationalToNumber $ xM - xL
 
-      w2 = w * two
-
-      bUnstable = abs (b1 - b2) * w2 > accuracyTarget
-
-      aUnstable = abs (a1 - a2) * w2 > accuracyTarget
     in
-      if bUnstable || aUnstable then
-        bisect state
-      else
-        let
-          b = (b1 + b2) / two
+    if w <= accuracyTarget then
+      singleton (Tuple depth x)
+    else
+      let
 
-          a = (a1 + a2) / two
+        w2 = w * two
 
-          h = if abs b > one then abs ((a * w * w) / b) else abs (a * w * w)
-        in
-          if h > accuracyTarget then
-            bisect state
-          else
-            singleton x
+        bUnstable = abs (b1 - b2) * w > accuracyTarget
+
+        aUnstable = abs (a1 - a2) * w > accuracyTarget
+      in
+        if bUnstable || aUnstable then
+          bisect state
+        else
+          let
+            b = (b1 + b2) / two
+
+            a = (a1 + a2) / two
+
+            h = if abs b > one then abs ((a * w * w) / b) else abs (a * w * w)
+          in
+            if h > accuracyTarget then
+              bisect state
+            else
+              singleton (Tuple depth x)
 
   -- function not defined on either end, assume not defined on the whole segment:
-  segmentBasedOnDerivative state x { fxL: Nothing, fxU: Nothing } = singleton x
+  segmentBasedOnDerivative state@{ depth } x { fxL: Nothing, fxU: Nothing } = singleton (Tuple depth x)
 
   segmentBasedOnDerivative state x _ = bisect state
 

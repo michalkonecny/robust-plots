@@ -24,4 +24,4 @@ runCommand _ (Empty bounds) = clearAndDrawGridLines bounds
 
 runCommand canvasSize (RoughPlot bounds expression label) = drawRoughPlot canvasSize bounds expression label
 
-runCommand canvasSize (RobustPlot bounds expression domainSegments label) = drawRobustPlot canvasSize bounds expression domainSegments label
+runCommand canvasSize (RobustPlot bounds expression domainSegments accuracyTarget label) = drawRobustPlot canvasSize bounds expression domainSegments accuracyTarget label
