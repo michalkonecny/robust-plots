@@ -16,7 +16,7 @@ minDepth :: Depth
 minDepth = 3
 
 maxDepth :: Depth
-maxDepth = 10
+maxDepth = 12
 
 xPrecision :: Precision
 xPrecision = 50
