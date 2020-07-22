@@ -1,11 +1,11 @@
 module Expression.Evaluate.AutomaticDifferentiator where
 
-import Prelude hiding (min, max)
+import Prelude hiding (min, max, bottom)
 import Data.Array (head)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Expression.Error (Expect, evaluationError, unknownValue)
-import Expression.Evaluate.OperatorClasses (class CanEvaluate, abs, branchBySign, cos, eWithSample, exp, fromRationalWithSample, isZero, log, max, min, piWithSample, power, sin, sqrt, tan, union)
+import Expression.Evaluate.OperatorClasses (class CanEvaluate, abs, bottom, branchBySign, cos, eWithSample, exp, fromRationalWithSample, isZero, log, max, min, piWithSample, power, sin, sqrt, tan, union)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 import Expression.VariableMap (VariableMap, lookup)
 import IntervalArith.Misc (two, (^))
@@ -172,40 +172,49 @@ evaluateDerivative2WithSample variableMap sample = evaluate
           , derivative2: uPowV * (t ^ 2 + (v * u'' + two * u' * v') / u - v * u' ^ 2 / u ^ 2 + logU * v'')
           }
       Min ->
-        pure
-          { value: min u v
-          , derivative:
-              branchBySign (u - v)
-                { positive: v', zero: union u' v', unknown: union u' v', negative: u' }
-          , derivative2:
-              branchBySign (u - v)
-                { positive: v'', zero: union u'' v'', unknown: union u'' v'', negative: u'' }
-          }
+        let
+          ddUnion = if isZero (u' - v') then union u'' v'' else bottom
+        in
+          pure
+            { value: min u v
+            , derivative:
+                branchBySign (u - v)
+                  { positive: v', zero: union u' v', unknown: union u' v', negative: u' }
+            , derivative2:
+                branchBySign (u - v)
+                  { positive: v'', zero: ddUnion, unknown: ddUnion, negative: u'' }
+            }
       Max ->
-        pure
-          { value: max u v
-          , derivative:
-              branchBySign (v - u)
-                { positive: v', zero: union u' v', unknown: union u' v', negative: u' }
-          , derivative2:
-              branchBySign (v - u)
-                { positive: v'', zero: union u'' v'', unknown: union u'' v'', negative: u'' }
-          }
+        let
+          ddUnion = if isZero (u' - v') then union u'' v'' else bottom
+        in
+          pure
+            { value: max u v
+            , derivative:
+                branchBySign (v - u)
+                  { positive: v', zero: union u' v', unknown: union u' v', negative: u' }
+            , derivative2:
+                branchBySign (v - u)
+                  { positive: v'', zero: ddUnion, unknown: ddUnion, negative: u'' }
+            }
 
   evaluateUnary operation subExpression = do
     { value: u, derivative: u', derivative2: u'' } <- evaluate subExpression
     case operation of
       Neg -> pure { value: -u, derivative: -u', derivative2: -u'' }
       Abs ->
-        pure
-          { value: abs u
-          , derivative:
-              branchBySign u
-                { positive: u', zero: union u' (-u'), unknown: union u' (-u'), negative: -u' }
-          , derivative2:
-              branchBySign u
-                { positive: u'', zero: union u'' (-u''), unknown: union u'' (-u''), negative: -u'' }
-          }
+        let
+          ddUnion = if isZero u' then union u'' (-u'') else bottom
+        in
+          pure
+            { value: abs u
+            , derivative:
+                branchBySign u
+                  { positive: u', zero: union u' (-u'), unknown: union u' (-u'), negative: -u' }
+            , derivative2:
+                branchBySign u
+                  { positive: u'', zero: ddUnion, unknown: ddUnion, negative: -u'' }
+            }
       Sqrt -> do
         sqrtU <- sqrt u
         pure
