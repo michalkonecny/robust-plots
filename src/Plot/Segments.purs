@@ -86,26 +86,32 @@ segmentDomain accuracyTarget evaluator l u =
     let
       w = rationalToNumber $ xM - xL
 
-      w2 = w * two
-
-      bUnstable = abs (b1 - b2) * w2 > accuracyTarget
-
-      aUnstable = abs (a1 - a2) * w2 > accuracyTarget
     in
-      if bUnstable || aUnstable then
-        bisect state
-      else
-        let
-          b = (b1 + b2) / two
+    if w <= accuracyTarget then
+      singleton (Tuple depth x)
+    else
+      let
 
-          a = (a1 + a2) / two
+        w2 = w * two
 
-          h = if abs b > one then abs ((a * w * w) / b) else abs (a * w * w)
-        in
-          if h > accuracyTarget then
-            bisect state
-          else
-            singleton (Tuple depth x)
+        bUnstable = abs (b1 - b2) * w > accuracyTarget
+
+        aUnstable = abs (a1 - a2) * w > accuracyTarget
+      in
+        if bUnstable || aUnstable then
+          bisect state
+        else
+          let
+            b = (b1 + b2) / two
+
+            a = (a1 + a2) / two
+
+            h = if abs b > one then abs ((a * w * w) / b) else abs (a * w * w)
+          in
+            if h > accuracyTarget then
+              bisect state
+            else
+              singleton (Tuple depth x)
 
   -- function not defined on either end, assume not defined on the whole segment:
   segmentBasedOnDerivative state@{ depth } x { fxL: Nothing, fxU: Nothing } = singleton (Tuple depth x)
