@@ -178,7 +178,9 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedAccuracy 
     pure
       $ plot
           { commands
-            { robust = pure unit }
+            { robust = pure unit
+            , status = status
+            }
           , queue = queue
           , accuracy = accuracy
           }
