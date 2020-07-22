@@ -13,7 +13,7 @@ import IntervalArith.Misc (Rational, rationalToNumber, two)
 import Plot.Commands (Depth)
 
 minDepth :: Depth
-minDepth = 5
+minDepth = 3
 
 maxDepth :: Depth
 maxDepth = 10
