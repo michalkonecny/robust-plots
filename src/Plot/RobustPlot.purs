@@ -14,9 +14,18 @@ import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, isFinite, lowerA, toNumber, unionA, upperA)
 import IntervalArith.Approx.NumOrder (absA, maxA, minA, (!<=!), (!>=!))
 import IntervalArith.Misc (Rational, rationalToNumber, two)
+import Misc.Debug (unsafeLog)
 import Plot.Commands (Depth)
 import Plot.Segments (maxDepth)
 import Types (Polygon, Size, XYBounds)
+
+shouldLog :: Boolean
+shouldLog = false
+
+log :: forall a. String -> a -> a
+log
+  | shouldLog = unsafeLog
+  | otherwise = \_ a -> a
 
 drawRobustPlot :: Size -> XYBounds -> Expression -> Array (Tuple Depth Approx) -> Number -> String -> DrawCommand Unit
 drawRobustPlot canvasSize bounds expression domainSegments accuracyTarget label = drawCommands
@@ -72,7 +81,7 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
   toCanvasEnclosures :: (Tuple Depth Approx) -> Array (Maybe Polygon)
   toCanvasEnclosures (Tuple depth x) = case toCanvasEnclosure x of
     Just (Tuple polygon accuracy)
-      | accuracy <= accuracyTarget || depth >= maxDepth -> [ Just polygon ]
+      | debugLog accuracy $ accuracy <= accuracyTarget || depth >= maxDepth -> [ Just polygon ]
     _
       | depth >= maxDepth -> [ Nothing ]
     _ -> bisect
@@ -90,6 +99,21 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
         enclosuresLeft = toCanvasEnclosures (Tuple (depth + 1) xLeft)
 
         enclosuresRight = toCanvasEnclosures (Tuple (depth + 1) xRight)
+    where
+    debugLog accuracy =
+      log
+        $ "x = "
+        <> show (boundsNumber x)
+        <> ", depth = "
+        <> show depth
+        <> if accuracy <= accuracyTarget then
+            ""
+          else
+            ", INSUFFICIENT ACCURACY "
+              <> ", accuracy = "
+              <> show accuracy
+              <> ", accuracyTarget = "
+              <> show accuracyTarget
 
   toCanvasEnclosure :: Approx -> Maybe (Tuple Polygon Number)
   {- overview:
