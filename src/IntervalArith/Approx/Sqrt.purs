@@ -29,8 +29,8 @@ sqrtA Bottom = Just Bottom
 
 sqrtA x@(Approx mb m e _)
   | m < -e = Nothing -- definitely negative
-  | m <= e = map (unionA zero) $ sqrtA (upperA x) -- possibly negative, be optimistic
   | m == zero && e == zero = Just x
+  | m <= e = map (unionA zero) $ sqrtA (upperA x) -- possibly negative, be optimistic
   | e > zero = increasingPartialFunctionViaBounds sqrtA x
   | otherwise = result -- e == zero || e == m
     where
