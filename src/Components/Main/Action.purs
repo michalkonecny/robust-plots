@@ -7,15 +7,13 @@ import Components.Canvas (CanvasMessage(..), calculateNewCanvasSize)
 import Components.ExpressionInput (ExpressionInputMessage(..), Status(..))
 import Components.ExpressionManager (ExpressionManagerMessage(..))
 import Components.ExpressionManager.Types (DrawingStatus(..), ExpressionPlot)
-import Components.Main.Helper (alterPlot, anyPlotHasJobs, clearAddPlotCommands, clearAllCancelled, countBatches, defaultPlotName, foldDrawCommands, fromPixelAccuracy, isCancelledInAnyPlot, newPlot, queueHasJobs, runFirstJob, setFirstRunningJob, updateExpressionPlotCommands)
+import Components.Main.Helper (alterPlot, alterPlotAsync, anyPlotHasJobs, clearAddPlotCommands, clearAllCancelled, countBatches, defaultPlotName, foldDrawCommands, fromPixelAccuracy, isCancelledInAnyPlot, newPlot, queueHasJobs, runFirstJob, setFirstRunningJob, updateExpressionPlotCommands)
 import Components.Main.Types (ChildSlots, Config, State)
-import Components.ProgressBar (Progress)
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.Trans.Class (lift)
 import Control.Parallel (parSequence)
 import Data.Array (filter)
 import Data.Maybe (Maybe(..), isJust)
-import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff, Milliseconds(..), delay)
 import Halogen as H
 import Halogen.Query.EventSource as ES
@@ -69,7 +67,8 @@ handleJobResult Nothing _ = pure unit
 
 handleJobResult (Just jobResult) newState =
   when (not (isCancelledInAnyPlot jobResult.job newState.plots)) do
-    H.modify_ (_ { plots = alterPlot updatePlot jobResult.job.batchId newState.plots, progress = updateProgress newState })
+    H.modify_ (_ { plots = alterPlot updatePlot jobResult.job.batchId newState.plots })
+    updateProgress newState
     handleAction DrawPlot
     handleAction ProcessNextJob
   where
@@ -107,11 +106,12 @@ processNextJobAction state = do
   if (anyPlotHasJobs state.plots) then do
     H.modify_ (_ { plots = setFirstRunningJob state.plots })
     maybeJobResult <- lift $ lift $ runFirstJob state.input.size state.bounds.xBounds state.plots
-    _ <- fork -- Subsiquent code is placed on the end of the JS event queue
+    fork -- Subsiquent code is placed on the end of the JS event queue
     newState <- H.get
     handleJobResult maybeJobResult newState
-  else
-    H.modify_ (_ { plots = clearAllCancelled state.plots, progress = updateProgress state })
+  else do
+    H.modify_ (_ { plots = clearAllCancelled state.plots })
+    updateProgress state
 
 handleCanvasMessage :: forall output. State -> CanvasMessage -> HalogenMain output Unit
 handleCanvasMessage state (Dragged delta) = redrawWithoutRobustWithBounds state (panBoundsByVector state.input.size state.bounds delta)
@@ -122,68 +122,72 @@ handleCanvasMessage state (Scrolled isZoomedIn) = handleAction $ Zoom isZoomedIn
 
 handleExpressionPlotMessage :: forall output. State -> ExpressionManagerMessage -> HalogenMain output Unit
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpression id expression text)) = do
-  newRoughCommands <- lift $ lift $ computePlotAsync state.input.size (roughPlot state.bounds expression text)
-  let
-    plots = alterPlot (updatePlot newRoughCommands) id state.plots
-  H.modify_ (_ { plots = plots, progress = resetProgress state { plots = plots } })
+  plots <- lift $ lift $ alterPlotAsync updatePlot id state.plots
+  H.modify_ (_ { plots = plots })
+  resetProgress state { plots = plots }
   handleAction DrawPlot
   handleAction ProcessNextJob
   where
   toDomainAccuracy :: Number -> Number
   toDomainAccuracy = fromPixelAccuracy state.input.size state.bounds
 
-  updatePlot :: DrawCommand Unit -> ExpressionPlot -> ExpressionPlot
-  updatePlot newRoughCommands plot =
-    plot
-      { expressionText = text
-      , expression = Just expression
-      , commands
-        { rough = newRoughCommands
-        , robust = pure unit
-        , status = status
-        }
-      , queue = queue
-      , name = name
-      }
+  updatePlot :: ExpressionPlot -> Aff ExpressionPlot
+  updatePlot plot = do
+    newRoughCommands <- computePlotAsync state.input.size (roughPlot state.bounds expression text)
+    queue <-
+      if state.autoRobust then
+        addPlot (toDomainAccuracy plot.accuracy) state.batchCount (cancelAll plot.queue) state.bounds expression text id
+      else
+        pure $ cancelAll plot.queue
+    pure
+      $ plot
+          { expressionText = text
+          , expression = Just expression
+          , commands
+            { rough = newRoughCommands
+            , robust = pure unit
+            , status = status
+            }
+          , queue = queue
+          , name = name
+          }
     where
     status = if state.autoRobust then RobustInProgress else DrawnRough
 
     name = if plot.name == defaultPlotName id || plot.name == plot.expressionText then text else plot.name
-
-    queue =
-      if state.autoRobust then
-        addPlot (toDomainAccuracy plot.accuracy) state.batchCount (cancelAll plot.queue) state.bounds expression text id
-      else
-        cancelAll plot.queue
 
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ChangedStatus id status)) = do
   H.modify_ (_ { plots = alterPlot (_ { status = status }) id state.plots })
   handleAction DrawPlot
 
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedAccuracy id accuracy)) = do
-  H.modify_ (_ { plots = plots, progress = resetProgress state { plots = plots } })
+  plots <- lift $ lift $ alterPlotAsync updatePlot id state.plots
+  H.modify_ (_ { plots = plots })
+  resetProgress state { plots = plots }
   handleAction DrawPlot
   handleAction ProcessNextJob
   where
-  plots = alterPlot updatePlot id state.plots
-
   toDomainAccuracy :: Number -> Number
   toDomainAccuracy = fromPixelAccuracy state.input.size state.bounds
 
-  updatePlot :: ExpressionPlot -> ExpressionPlot
-  updatePlot plot =
-    plot
-      { commands
-        { robust = pure unit }
-      , queue = queue
-      , accuracy = accuracy
-      }
-    where
-    status = if plot.status == Robust && isJust plot.expression then RobustInProgress else DrawnRough
-
-    queue = case plot.expression, plot.status == Robust of
+  updatePlot :: ExpressionPlot -> Aff ExpressionPlot
+  updatePlot plot = do
+    queue <- case plot.expression, startRobust of
       Just expression, true -> addPlot (toDomainAccuracy accuracy) state.batchCount (cancelAll plot.queue) state.bounds expression plot.expressionText plot.id
-      _, _ -> cancelAll plot.queue
+      _, _ -> pure $ cancelAll plot.queue
+    pure
+      $ plot
+          { commands
+            { robust = pure unit
+            , status = status
+            }
+          , queue = queue
+          , accuracy = accuracy
+          }
+    where
+    startRobust = plot.status == Robust && (plot.commands.status == DrawnRobust || plot.commands.status == RobustInProgress)
+
+    status = if startRobust && isJust plot.expression then RobustInProgress else DrawnRough
 
 handleExpressionPlotMessage state (DeletePlot plotId) = do
   H.modify_ (_ { plots = filter (\p -> p.id /= plotId) state.plots })
@@ -209,26 +213,44 @@ fork = forkWithDelay 0.0
 
 redrawWithDelayAndBounds :: forall output. State -> XYBounds -> HalogenMain output Unit
 redrawWithDelayAndBounds state newBounds = do
-  plots <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size newBounds state.plots
-  clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
-  H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds, progress = resetProgress state { plots = plots } })
+  if state.autoRobust then do
+    clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
+    H.modify_ (_ { clearPlot = clearBounds, inProgress = true, bounds = newBounds })
+    handleAction DrawPlot
+    fork
+    plots <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size newBounds state.plots
+    H.modify_ (_ { plots = plots })
+    resetProgress state { plots = plots }
+  else do
+    clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
+    plots <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size newBounds state.plots
+    H.modify_ (_ { clearPlot = clearBounds, inProgress = true, bounds = newBounds, plots = plots })
+    resetProgress state { plots = plots }
   handleAction DrawPlot
-  _ <- forkWithDelay 500.0 -- Subsiquent code is placed on the end of the JS event queue
+  forkWithDelay 500.0 -- Subsiquent code is placed on the end of the JS event queue
   handleAction ProcessNextJob
 
 redraw :: forall output. State -> HalogenMain output Unit
 redraw state = do
-  plots <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size state.bounds state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
-  H.modify_ (_ { plots = plots, clearPlot = clearBounds, progress = resetProgress state { plots = plots } })
+  H.modify_ (_ { clearPlot = clearBounds, inProgress = true })
+  handleAction DrawPlot
+  fork
+  plots <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size state.bounds state.plots
+  H.modify_ (_ { plots = plots })
+  resetProgress state { plots = plots }
   handleAction DrawPlot
   handleAction ProcessNextJob
 
 redrawRough :: forall output. State -> HalogenMain output Unit
 redrawRough state = do
-  plots <- mapPlots clearAddPlot state.plots
   clearBounds <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
-  H.modify_ (_ { plots = plots, clearPlot = clearBounds, progress = resetProgress state { plots = plots } })
+  H.modify_ (_ { clearPlot = clearBounds, inProgress = true })
+  handleAction DrawPlot
+  fork
+  plots <- mapPlots clearAddPlot state.plots
+  H.modify_ (_ { plots = plots })
+  resetProgress state { plots = plots }
   handleAction DrawPlot
   handleAction ProcessNextJob
   where
@@ -239,9 +261,8 @@ redrawRough state = do
   clearAddPlot plot = case plot.expression, plot.commands.status /= DrawnRobust && plot.status == Robust of
     Just expression, true -> do
       drawCommands <- computePlotAsync state.input.size $ roughPlot state.bounds expression plot.expressionText
+      queue <- addPlot (toDomainAccuracy plot.accuracy) state.batchCount (cancelAll plot.queue) state.bounds expression plot.expressionText plot.id
       pure $ plot { queue = queue, commands { rough = drawCommands, robust = pure unit, status = RobustInProgress } }
-      where
-      queue = addPlot (toDomainAccuracy plot.accuracy) state.batchCount (cancelAll plot.queue) state.bounds expression plot.expressionText plot.id
     _, _ -> pure plot
 
 redrawWithBounds :: forall output. State -> XYBounds -> HalogenMain output Unit
@@ -266,15 +287,15 @@ redrawWithoutRobustWithBounds state newBounds = do
 mapPlots :: forall output. (ExpressionPlot -> Aff ExpressionPlot) -> Array ExpressionPlot -> HalogenMain output (Array ExpressionPlot)
 mapPlots f = lift <<< lift <<< parSequence <<< (map f)
 
-resetProgress :: State -> Progress
-resetProgress state = { index, total }
+resetProgress :: forall output. State -> HalogenMain output Unit
+resetProgress state = H.modify_ (_ { progress = { index, total }, inProgress = index /= total })
   where
   index = 0
 
   total = countBatches state.plots
 
-updateProgress :: State -> Progress
-updateProgress state = { index, total }
+updateProgress :: forall output. State -> HalogenMain output Unit
+updateProgress state = H.modify_ (_ { progress = { index, total }, inProgress = index /= total })
   where
   batchCount = countBatches state.plots
 

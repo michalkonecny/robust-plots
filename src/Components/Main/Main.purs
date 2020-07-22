@@ -63,6 +63,7 @@ mainComponent =
         { index: 0
         , total: 0
         }
+    , inProgress: false
     }
 
   render :: forall m. MonadAff m => MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
@@ -150,7 +151,7 @@ mainComponent =
                                 ]
                             ]
                         , HH.div
-                            [ className "card-body"
+                            [ className "card-body pt-0"
                             , HP.id_ "canvasContainer"
                             ]
                             [ HH.slot _progressBar 1 progressBarComponent state.progress absurd
@@ -165,7 +166,6 @@ mainComponent =
             [ HH.footer
                 [ className "footer-copyright text-right py-3 pr-2" ]
                 [ HH.text "By Michal Konecny, Joshua Eddy; source on"
-
                 , HH.a
                     [ HP.href "https://github.com/michalkonecny/robust-plots"
                     , className "pl-1"
@@ -187,5 +187,5 @@ toExpressionManagerInput state =
   { plots: state.plots
   , autoRobust: state.autoRobust
   , allRobustDraw: isAllRobustPlotsComplete state.plots
-  , inProgress: state.progress.index /= state.progress.total
+  , inProgress: state.inProgress
   }
