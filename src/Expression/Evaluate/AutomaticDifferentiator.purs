@@ -3,12 +3,13 @@ module Expression.Evaluate.AutomaticDifferentiator where
 import Prelude hiding (min, max, bottom)
 import Data.Array (head)
 import Data.Maybe (Maybe(..))
+import Data.Ratio ((%))
 import Data.Tuple (Tuple(..))
 import Expression.Error (Expect, evaluationError, unknownValue)
-import Expression.Evaluate.OperatorClasses (class CanEvaluate, abs, bottom, branchBySign, cos, eWithSample, exp, fromRationalWithSample, isZero, log, max, min, piWithSample, power, sin, sqrt, tan, union)
+import Expression.Evaluate.OperatorClasses (class CanEvaluate, abs, bottom, branchBySign, cos, eWithSample, exp, fromRationalWithSample, intPower, isZero, log, max, min, piWithSample, power, sin, sqrt, tan, union)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
 import Expression.VariableMap (VariableMap, lookup)
-import IntervalArith.Misc (two, (^))
+import IntervalArith.Misc (big, two, (^))
 
 type ValueAndDerivative a
   = { value :: a, derivative :: a }
@@ -30,8 +31,9 @@ evaluateDerivativeWithSample variableMap sample = evaluate
     ExpressionVariable name -> case lookup variableMap name of
       Just valueAndDerivative -> pure valueAndDerivative
       _ -> unknownValue name
-    ExpressionBinary operation leftExpression rightExpression -> evaluateBinary operation leftExpression rightExpression
     ExpressionUnary operation subExpression -> evaluateUnary operation subExpression
+    ExpressionBinary operation leftExpression rightExpression -> evaluateBinary operation leftExpression rightExpression
+    ExpressionIntPower leftExpression n -> evaluateIntPower leftExpression n
     ExpressionLet name expression parentExpression -> do
       expressionValueAndDerivative <- evaluate expression
       evaluateDerivative ([ (Tuple name expressionValueAndDerivative) ] <> variableMap) parentExpression
@@ -70,6 +72,20 @@ evaluateDerivativeWithSample variableMap sample = evaluate
               branchBySign (v - u)
                 { positive: v', zero: union u' v', unknown: union u' v', negative: u' }
           }
+
+  evaluateIntPower leftExpression n = do
+    { value: u, derivative: u' } <- evaluate leftExpression
+    v <- fromRationalWithSample u ((big n) % one)
+    let
+      uPowV = u `intPower` n
+
+      uPowVminus1 = u `intPower` (n - 1)
+
+      t = (v * u')
+    pure
+      { value: uPowV
+      , derivative: uPowVminus1 * t
+      }
 
   evaluateUnary operation subExpression = do
     { value: u, derivative: u' } <- evaluate subExpression
@@ -123,8 +139,9 @@ evaluateDerivative2WithSample variableMap sample = evaluate
     ExpressionVariable name -> case lookup variableMap name of
       Just valueAndDerivative2 -> pure valueAndDerivative2
       _ -> unknownValue name
-    ExpressionBinary operation leftExpression rightExpression -> evaluateBinary operation leftExpression rightExpression
     ExpressionUnary operation subExpression -> evaluateUnary operation subExpression
+    ExpressionBinary operation leftExpression rightExpression -> evaluateBinary operation leftExpression rightExpression
+    ExpressionIntPower leftExpression n -> evaluateIntPower leftExpression n
     ExpressionLet name expression parentExpression -> do
       expressionValueAndDerivative2 <- evaluate expression
       evaluateDerivative2 ([ (Tuple name expressionValueAndDerivative2) ] <> variableMap) parentExpression
@@ -197,6 +214,23 @@ evaluateDerivative2WithSample variableMap sample = evaluate
                 branchBySign (v - u)
                   { positive: v'', zero: ddUnion, unknown: ddUnion, negative: u'' }
             }
+
+  evaluateIntPower leftExpression n = do
+    { value: u, derivative: u', derivative2: u'' } <- evaluate leftExpression
+    v <- fromRationalWithSample u ((big n) % one)
+    let
+      uPowV = u `intPower` n
+
+      uPowVminus1 = u `intPower` (n - 1)
+
+      uPowVminus2 = u `intPower` (n - 2)
+
+      t = (v * u')
+    pure
+      { value: uPowV
+      , derivative: uPowVminus1 * t
+      , derivative2: uPowVminus2 * (t ^ 2 + (v * u'') * u - v * u' ^ 2)
+      }
 
   evaluateUnary operation subExpression = do
     { value: u, derivative: u', derivative2: u'' } <- evaluate subExpression
