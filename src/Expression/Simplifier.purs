@@ -4,7 +4,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Expression.Syntax (BinaryOperation(..), Expression(..), UnaryOperation(..))
-import IntervalArith.Misc (toRational)
+import IntervalArith.Misc (branchRationalIsInt, toRational)
 
 simplify :: Expression -> Expression
 simplify (ExpressionUnary operation expression) = case simplify expression, operation of
@@ -87,14 +87,15 @@ trimDivideNodes (ExpressionLiteral leftValue) rightExpression =
 trimDivideNodes _ _ = Nothing
 
 trimPowerNodes :: Expression -> Expression -> Maybe Expression
-trimPowerNodes leftExpression (ExpressionLiteral rightValue) =
-  if (toRational 0) == rightValue then
-    Just $ ExpressionLiteral $ toRational 1
-  else
-    if (toRational 1) == rightValue then
-      Just $ leftExpression
-    else
-      Nothing
+trimPowerNodes leftExpression (ExpressionLiteral rightValue)
+  | (toRational 0) == rightValue = Just $ ExpressionLiteral $ toRational 1
+  | (toRational 1) == rightValue = Just $ leftExpression
+  | otherwise =
+    branchRationalIsInt
+      { isNotInt: \r -> Nothing
+      , isInt: \i -> Just $ ExpressionIntPower leftExpression i
+      }
+      rightValue
 
 trimPowerNodes _ _ = Nothing
 
