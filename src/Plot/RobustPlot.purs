@@ -1,9 +1,11 @@
 module Plot.RobustPlot where
 
 import Prelude
-import Data.Array (catMaybes, concat, reverse, take)
+
+import Data.Array (catMaybes, concat, length, reverse, take)
 import Data.Bifunctor (bimap)
 import Data.Either (Either(..))
+import Data.Foldable (sum)
 import Data.Maybe (Maybe(..))
 import Data.Number as Number
 import Data.Tuple (Tuple(..), snd)
@@ -20,7 +22,7 @@ import Plot.Segments (maxDepth)
 import Types (Polygon, Size, XYBounds)
 
 shouldLogSubsegments :: Boolean
-shouldLogSubsegments = true
+shouldLogSubsegments = false
 
 shouldLogEnclosures :: Boolean
 shouldLogEnclosures = false
@@ -57,7 +59,10 @@ plotEnclosures ::
   , evaluator2 :: Approx -> Maybe (ValueAndDerivative2 Approx)
   } ->
   Array (Array (Maybe Polygon))
-plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, evaluator2 } = segmentEnclosures
+plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, evaluator2 } =
+  unsafeLog
+    ("plotEnclosures: sum (map length segmentEnclosures) = " <> show (sum (map length segmentEnclosures)))
+    segmentEnclosures
   where
   rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
@@ -84,7 +89,7 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
       | depth >= maxDepth -> [ Nothing ]
     _ -> bisect
       where
-      setHigherPrecision = setMB (5 + (mBound x))
+      setHigherPrecision = setMB (2 + (mBound x))
 
       bisect = enclosuresLeft <> enclosuresRight
         where

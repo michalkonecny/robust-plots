@@ -50,7 +50,7 @@ segmentDomain { accuracyTarget, evaluator, l, u } = unsafeLog ("segmentDomain: l
     unsafeSpy "xPrecisionBase"
       $ min maxPrecision
       $ max minPrecision
-          (20 - (Int.round $ 5.0 * (log accuracyTarget) / (log 2.0)))
+          (40 - (Int.round $ 2.0 * (log accuracyTarget) / (log 2.0)))
 
   bisect { depth, xL, evaluatorXL, xM, evaluatorXM, xU, evaluatorXU } =
     segmentDomainF
