@@ -1,8 +1,7 @@
 module IntervalArith.Misc where
 
 import Prelude
-
-import Data.BigInt (BigInt)
+import Data.BigInt (BigInt, toNumber)
 import Data.BigInt as BigInt
 import Data.Int as Int
 import Data.Monoid (power)
@@ -17,7 +16,6 @@ fromCA :: Array Char -> String
 fromCA = StrCU.fromCharArray
 
 {-- Constants --}
-
 two :: forall t. Semiring t => t
 two = one + one
 
@@ -94,6 +92,20 @@ ceilingRational r =
     q = denominator r
   in
     (p + q - one) `div` q
+
+branchRationalIsInteger :: forall a. { isInteger :: Integer -> a, isNotInteger :: Rational -> a } -> Rational -> a
+branchRationalIsInteger { isInteger, isNotInteger } r
+  | denominator r == one = isInteger (numerator r)
+  | otherwise = isNotInteger r
+
+branchRationalIsInt :: forall a. { isInt :: Int -> a, isNotInt :: Rational -> a } -> Rational -> a
+branchRationalIsInt { isInt, isNotInt } r
+  | denominator r /= one = isNotInt r
+  | otherwise = fromInteger (numerator r)
+    where
+    fromInteger i = if big roundedI == i then isInt roundedI else isNotInt r
+      where
+      roundedI = Int.round (toNumber i)
 
 {-- Scalable --}
 -- | 'Scalable' allows scaling numerical data types by powers of 2.
