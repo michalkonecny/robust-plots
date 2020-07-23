@@ -19,7 +19,7 @@ maxDepth :: Depth
 maxDepth = 12
 
 xPrecision :: Precision
-xPrecision = 50
+xPrecision = 85
 
 segmentDomain :: Number -> (Number -> Maybe (ValueAndDerivative2 Number)) -> Rational -> Rational -> Array (Tuple Depth Approx)
 segmentDomain accuracyTarget evaluator l u =
