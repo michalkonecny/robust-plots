@@ -1,9 +1,10 @@
 module Expression.Evaluate.OperatorClasses where
 
 import Prelude
+
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
-import Data.Number (isNaN)
+import Data.Number (isNaN, nan)
 import Data.Ord as Ord
 import Expression.Error (Expect, evaluationError)
 import IntervalArith.Approx (Approx(..), fromRationalPrec, unionA)
@@ -32,6 +33,7 @@ class HasMinMax a where
 
 class HasUnion a where
   union :: a -> a -> a
+  bottom :: a
 
 class HasSqrt a where
   sqrt :: a -> Expect a
@@ -85,6 +87,7 @@ instance numberHasMinMax :: HasMinMax Number where
 
 instance numberHasUnion :: HasUnion Number where
   union a b = (a + b) / 2.0
+  bottom = nan -- all comparisons will fail
 
 instance numberHasSqrt :: HasSqrt Number where
   sqrt = checkNumber "sqrt: parameter out of range" <<< Math.sqrt
@@ -145,6 +148,7 @@ instance approxHasMinMax :: HasMinMax Approx where
 
 instance approxHasUnion :: HasUnion Approx where
   union = unionA
+  bottom = Bottom
 
 instance approxHasSqrt :: HasSqrt Approx where
   sqrt = checkApprox "sqrt: parameter out of range" <<< sqrtA

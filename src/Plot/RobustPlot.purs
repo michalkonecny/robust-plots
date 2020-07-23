@@ -19,13 +19,11 @@ import Plot.Commands (Depth)
 import Plot.Segments (maxDepth)
 import Types (Polygon, Size, XYBounds)
 
-shouldLog :: Boolean
-shouldLog = false
+shouldLogSubsegments :: Boolean
+shouldLogSubsegments = false
 
-log :: forall a. String -> a -> a
-log
-  | shouldLog = unsafeLog
-  | otherwise = \_ a -> a
+shouldLogEnclosures :: Boolean
+shouldLogEnclosures = false
 
 drawRobustPlot :: Size -> XYBounds -> Expression -> Array (Tuple Depth Approx) -> Number -> String -> DrawCommand Unit
 drawRobustPlot canvasSize bounds expression domainSegments accuracyTarget label = drawCommands
@@ -101,7 +99,7 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
         enclosuresRight = toCanvasEnclosures (Tuple (depth + 1) xRight)
     where
     debugLog accuracy =
-      log
+      logSubsegments
         $ "x = "
         <> show (boundsNumber x)
         <> ", depth = "
@@ -165,6 +163,8 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
             _ -> map boundsA $ (_.derivative) <$> evaluatorX
         _ -> map boundsA $ (_.derivative) <$> evaluatorX
 
+      xValueDirect = map boundsA $ (_.value) <$> evaluatorX
+
       xValue = case xGradient of
         Just (Tuple xGradLower xGradUpper)
           | xGradLower !>=! zero -> do
@@ -175,10 +175,25 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
             xLeft <- (_.value) <$> evaluator xLA
             xRight <- (_.value) <$> evaluator xUA
             Just (Tuple (lowerA xRight) (upperA xLeft))
-          | otherwise -> map boundsA $ (_.value) <$> evaluatorX
-        _ -> map boundsA $ (_.value) <$> evaluatorX
+          | otherwise -> xValueDirect
+        _ -> xValueDirect
+
+      showEATuple t = show (bimap toNumber toNumber <$> t)
+
+      logEnclosureInputValues =
+        logEnclosures
+          $ "x = "
+          <> show (boundsNumber x)
+          <> ", xValueDirect = "
+          <> showEATuple xValueDirect
+          <> ", xValue = "
+          <> showEATuple xValue
+          <> ", xGradient = "
+          <> showEATuple xGradient
+          <> ", xGradGrad = "
+          <> showEATuple xGradGrad
     in
-      case xValue, xMidPointValue, xGradient of
+      case logEnclosureInputValues xValue, xMidPointValue, xGradient of
         Just (Tuple yLower yUpper), Just (Tuple yMidLower yMidUpper), Just (Tuple lowerGradient upperGradient)
           | isFinite lowerGradient && isFinite upperGradient -> Just (Tuple polygon accuracy)
             where
@@ -265,3 +280,14 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
 
 drawPlot :: Array (Maybe Polygon) -> DrawCommand Unit
 drawPlot = (drawEnclosure true) <<< catMaybes
+
+logSubsegments :: forall a. String -> a -> a
+logSubsegments = logSomething shouldLogSubsegments
+
+logEnclosures :: forall a. String -> a -> a
+logEnclosures = logSomething shouldLogEnclosures
+
+logSomething :: forall a. Boolean -> String -> a -> a
+logSomething shouldLogSomething
+  | shouldLogSomething = unsafeLog
+  | otherwise = \_ a -> a
