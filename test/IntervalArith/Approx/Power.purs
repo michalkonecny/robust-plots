@@ -3,9 +3,10 @@ module Test.IntervalArith.Approx.Power
   ) where
 
 import Prelude
+
 import Data.Maybe (fromJust)
 import IntervalArith.Approx (consistent, fromInt, fromRationalPrec, lowerA, modA, recipA, sqrA)
-import IntervalArith.Approx.ExpLog (eA, expA, powA)
+import IntervalArith.Approx.ExpLog (eA, expA, powA, powAInt)
 import IntervalArith.Approx.NumOrder (absA, (!<=!))
 import IntervalArith.Approx.ShowA (showA)
 import IntervalArith.Approx.Sqrt (sqrtA)
@@ -19,6 +20,23 @@ import Test.Unit.QuickCheck (quickCheck)
 approxTests_PowA :: TestSuite
 approxTests_PowA =
   suite "IntervalArith.Approx - power" do
+    test "SHOULD HOLD powAInt a 0 = 1 FOR ALL Approx a"
+      $ quickCheck
+      $ \aPre ->
+          let
+            -- given
+            (ArbitraryApprox a) = aPre
+
+            -- when
+            result = powAInt a 0
+
+            -- then
+            expected = one
+
+            -- then
+            consistentOp = assertOpWithInput consistent " `consistent` " [ show a, showA a ]
+          in
+            result `consistentOp` expected
     test "SHOULD HOLD powA a 0 = 1 FOR ALL Approx a"
       $ quickCheck
       $ \aPre ->
@@ -36,6 +54,23 @@ approxTests_PowA =
             consistentOp = assertOpWithInput consistent " `consistent` " [ show a, showA a ]
           in
             result `consistentOp` expected
+    test "SHOULD HOLD powAInt a 2 = sqrA a FOR ALL Approx a"
+      $ quickCheck
+      $ \aPre ->
+          let
+            -- given
+            (ArbitraryApprox a) = aPre
+
+            -- when
+            result = powAInt a 2
+
+            -- then
+            expected = sqrA a
+
+            -- then
+            consistentOp = assertOpWithInput consistent " `consistent` " [ show a, showA a ]
+          in
+            result `consistentOp` expected
     test "SHOULD HOLD powA a 2 = sqrA a FOR ALL Approx a"
       $ quickCheck
       $ \aPre ->
@@ -48,6 +83,23 @@ approxTests_PowA =
 
             -- then
             expected = sqrA a
+
+            -- then
+            consistentOp = assertOpWithInput consistent " `consistent` " [ show a, showA a ]
+          in
+            result `consistentOp` expected
+    test "SHOULD HOLD powAInt a (-1) = 1/a FOR ALL Approx a"
+      $ quickCheck
+      $ \aPre ->
+          let
+            -- given
+            (ArbitraryApprox a) = aPre
+
+            -- when
+            result = powAInt a (-1)
+
+            -- then
+            expected = recipA a
 
             -- then
             consistentOp = assertOpWithInput consistent " `consistent` " [ show a, showA a ]
