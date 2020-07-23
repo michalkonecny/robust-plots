@@ -11,7 +11,7 @@ import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
 import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative, ValueAndDerivative2, evaluateDerivative, evaluateDerivative2)
 import Expression.Syntax (Expression)
-import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, isFinite, lowerA, toNumber, unionA, upperA)
+import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, isFinite, lowerA, mBound, setMB, toNumber, unionA, upperA)
 import IntervalArith.Approx.NumOrder (absA, maxA, minA, (!<=!), (!>=!))
 import IntervalArith.Misc (Rational, rationalToNumber, two)
 import Misc.Debug (unsafeLog)
@@ -20,7 +20,7 @@ import Plot.Segments (maxDepth)
 import Types (Polygon, Size, XYBounds)
 
 shouldLogSubsegments :: Boolean
-shouldLogSubsegments = false
+shouldLogSubsegments = true
 
 shouldLogEnclosures :: Boolean
 shouldLogEnclosures = false
@@ -84,13 +84,15 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
       | depth >= maxDepth -> [ Nothing ]
     _ -> bisect
       where
+      setHigherPrecision = setMB (5 + (mBound x))
+
       bisect = enclosuresLeft <> enclosuresRight
         where
         (Tuple xL xU) = boundsA x
 
-        xLeft = xL `unionA` xM
+        xLeft = setHigherPrecision $ xL `unionA` xM
 
-        xRight = xM `unionA` xU
+        xRight = setHigherPrecision $ xM `unionA` xU
 
         xM = (xL + xU) / two
 
@@ -104,6 +106,8 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
         <> show (boundsNumber x)
         <> ", depth = "
         <> show depth
+        <> ", mb = "
+        <> show (mBound x)
         <> if accuracy <= accuracyTarget then
             ""
           else

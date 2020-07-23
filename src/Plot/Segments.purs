@@ -9,9 +9,10 @@ import Data.Number as Number
 import Data.Ord (abs)
 import Data.Tuple (Tuple(..))
 import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative2)
-import IntervalArith.Approx (Approx, Precision, fromRationalBoundsPrec)
+import IntervalArith.Approx (Approx, Precision, fromRationalBoundsPrec, setMB)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
 import Math (log)
+import Misc.Debug (unsafeSpy)
 import Plot.Commands (Depth)
 
 minDepth :: Depth
@@ -43,10 +44,11 @@ segmentDomain { accuracyTarget, evaluator, l, u } =
         , evaluatorXU: evaluator (rationalToNumber u)
         }
   where
-  xPrecision =
-    min maxPrecision
+  xPrecisionBase =
+    unsafeSpy "xPrecisionBase"
+      $ min maxPrecision
       $ max minPrecision
-          (20 - (Int.round $ 10.0 * (log accuracyTarget)*(log 2.0)))
+          (30 - (Int.round $ 5.0 * (log accuracyTarget) / (log 2.0)))
 
   bisect { depth, xL, evaluatorXL, xM, evaluatorXM, xU, evaluatorXU } =
     segmentDomainF
@@ -66,7 +68,9 @@ segmentDomain { accuracyTarget, evaluator, l, u } =
 
   segmentDomainF { depth, xL, evaluatorXL, xU, evaluatorXU } = segments
     where
-    x = fromRationalBoundsPrec xPrecision xL xU
+    xPrecisionDepth = xPrecisionBase + 2 * depth
+
+    x = setMB xPrecisionDepth $ fromRationalBoundsPrec xPrecisionDepth xL xU
 
     xM = (xL + xU) / two
 
