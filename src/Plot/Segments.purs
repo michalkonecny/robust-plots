@@ -1,7 +1,7 @@
 module Plot.Segments where
 
 import Prelude
-import Data.Array (fromFoldable)
+import Data.Array (fromFoldable, length)
 import Data.Int as Int
 import Data.List (singleton)
 import Data.Maybe (Maybe(..))
@@ -12,7 +12,7 @@ import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative2)
 import IntervalArith.Approx (Approx, Precision, fromRationalBoundsPrec, setMB)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
 import Math (log)
-import Misc.Debug (unsafeSpy)
+import Misc.Debug (unsafeLog, unsafeSpy)
 import Plot.Commands (Depth)
 
 minDepth :: Depth
@@ -34,21 +34,23 @@ segmentDomain ::
   , u :: Rational
   } ->
   Array (Tuple Int Approx)
-segmentDomain { accuracyTarget, evaluator, l, u } =
-  fromFoldable
-    $ segmentDomainF
-        { depth: 0
-        , xL: l
-        , evaluatorXL: evaluator (rationalToNumber l)
-        , xU: u
-        , evaluatorXU: evaluator (rationalToNumber u)
-        }
+segmentDomain { accuracyTarget, evaluator, l, u } = unsafeLog ("segmentDomain: length result = " <> show (length result)) result
   where
+  result =
+    fromFoldable
+      $ segmentDomainF
+          { depth: 0
+          , xL: l
+          , evaluatorXL: evaluator (rationalToNumber l)
+          , xU: u
+          , evaluatorXU: evaluator (rationalToNumber u)
+          }
+
   xPrecisionBase =
     unsafeSpy "xPrecisionBase"
       $ min maxPrecision
       $ max minPrecision
-          (30 - (Int.round $ 5.0 * (log accuracyTarget) / (log 2.0)))
+          (20 - (Int.round $ 5.0 * (log accuracyTarget) / (log 2.0)))
 
   bisect { depth, xL, evaluatorXL, xM, evaluatorXM, xU, evaluatorXU } =
     segmentDomainF
