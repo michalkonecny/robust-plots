@@ -1,12 +1,11 @@
 module Plot.RobustPlot where
 
 import Prelude
-
-import Data.Array (catMaybes, concat, length, reverse, take)
+import Data.Array (catMaybes, concat, head, length, reverse, take)
 import Data.Bifunctor (bimap)
 import Data.Either (Either(..))
 import Data.Foldable (sum)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromJust)
 import Data.Number as Number
 import Data.Tuple (Tuple(..), snd)
 import Draw.Actions (drawEnclosure)
@@ -17,6 +16,7 @@ import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, isFinite, l
 import IntervalArith.Approx.NumOrder (absA, maxA, minA, (!<=!), (!>=!))
 import IntervalArith.Misc (rationalToNumber, two)
 import Misc.Debug (unsafeLog)
+import Partial.Unsafe (unsafePartial)
 import Plot.Commands (Depth)
 import Plot.Segments (maxDepth)
 import Types (Polygon, Size, XYBounds)
@@ -68,8 +68,6 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
 
   rangeX = rationalToNumber $ bounds.xBounds.upper - bounds.xBounds.lower
 
-  segmentEnclosures = map toCanvasEnclosures domainSegments
-
   yLowerBound = rationalToNumber bounds.yBounds.lower
 
   xLowerBound = rationalToNumber bounds.xBounds.lower
@@ -77,6 +75,28 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
   canvasHeight = rationalToNumber canvasSize.height
 
   canvasWidth = rationalToNumber canvasSize.width
+
+  extraPrecision = raiseUntilGoodOrNotImproving 5 Nothing 0 0
+    where
+    x = snd $ unsafePartial $ fromJust $ head domainSegments
+
+    xPrecision = mBound x
+
+    raiseUntilGoodOrNotImproving attemptsLeft maybePreviousAccuracy p pToTry
+      | attemptsLeft <= 0 = p
+      | otherwise = case toCanvasEnclosure (setMB (xPrecision + pToTry) x), maybePreviousAccuracy of
+        Just (Tuple _ a), _
+          | a <= accuracyTarget -> pToTry -- pToTry met target accuracy
+        Just (Tuple _ a), Just previousAccuracy
+          | a > previousAccuracy -> p -- pToTry made it worse, revert to p
+          | a <= 0.75 * previousAccuracy -> raiseUntilGoodOrNotImproving (attemptsLeft - 1) (Just a) pToTry (pToTry + 10)
+          | otherwise -> raiseUntilGoodOrNotImproving (attemptsLeft - 1) (Just a) p (pToTry + 10)
+        Just (Tuple _ a), _ -> raiseUntilGoodOrNotImproving (attemptsLeft - 1) (Just a) pToTry (pToTry + 10)
+        _, _ -> raiseUntilGoodOrNotImproving (attemptsLeft - 1) maybePreviousAccuracy p (pToTry + 10)
+
+  addExtraPrecision (Tuple depth x) = Tuple depth (setMB (mBound x + extraPrecision) x)
+
+  segmentEnclosures = map (toCanvasEnclosures <<< addExtraPrecision) domainSegments
 
   toCanvasEnclosures :: (Tuple Depth Approx) -> Array (Maybe Polygon)
   toCanvasEnclosures (Tuple depth x) = case toCanvasEnclosure x of
