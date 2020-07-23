@@ -158,7 +158,7 @@ segmentRobust accuracyTarget batchSegmentCount bounds expression label = command
   where
   evaluator = evaluateWithX expression
 
-  domainSegments = segmentDomain accuracyTarget evaluator bounds.xBounds.lower bounds.xBounds.upper
+  domainSegments = segmentDomain { accuracyTarget, evaluator, l: bounds.xBounds.lower, u: bounds.xBounds.upper }
 
   splitDomainSegments = split batchSegmentCount domainSegments
 
