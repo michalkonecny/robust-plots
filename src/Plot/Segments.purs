@@ -98,8 +98,8 @@ segmentDomain { accuracyTarget, evaluator, l, u } = unsafeLog ("segmentDomain: l
             , f''xU: checkFinite $ evaluatorXU <#> (_.derivative2)
             }
 
-  segmentBasedOnDerivative state@{ depth, xL, xM } x { fxL: Just _
-  , fxU: Just _
+  segmentBasedOnDerivative state@{ depth, xL, xM } x { fxL: Just c1
+  , fxU: Just c2
   , f'xL: Just b1
   , f'xU: Just b2
   , f''xL: Just a1
@@ -107,12 +107,12 @@ segmentDomain { accuracyTarget, evaluator, l, u } = unsafeLog ("segmentDomain: l
   } =
     let
       w = rationalToNumber $ xM - xL
+      w2 = w * 2.0
     in
-      if w <= accuracyTarget then
+      if w2 <= accuracyTarget then
         singleton (Tuple depth x)
       else
         let
-          w2 = w * two
 
           bUnstable = abs (b1 - b2) * w > accuracyTarget
 
@@ -126,9 +126,15 @@ segmentDomain { accuracyTarget, evaluator, l, u } = unsafeLog ("segmentDomain: l
 
               a = (a1 + a2) / two
 
-              h = if abs b > one then abs ((a * w * w) / b) else abs (a * w * w)
+              accuracyEstimate = max (min w2 enclosureParallelogramWidth) (min enclosureBoxHeight enclosureParallelogramHeight)
+                where
+                enclosureBoxHeight = w2 * b / (1.0 + (abs b))
+
+                enclosureParallelogramHeight = w * w * a
+
+                enclosureParallelogramWidth = enclosureParallelogramHeight / (abs b)
             in
-              if h > accuracyTarget then
+              if 1.2 * accuracyEstimate > accuracyTarget then
                 bisect state
               else
                 singleton (Tuple depth x)
