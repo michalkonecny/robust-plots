@@ -1,14 +1,13 @@
 module Expression.Evaluate.OperatorClasses where
 
 import Prelude
-
 import Data.Int as Int
 import Data.Maybe (Maybe(..))
 import Data.Number (isNaN, nan)
 import Data.Ord as Ord
 import Expression.Error (Expect, evaluationError)
 import IntervalArith.Approx (Approx(..), fromRationalPrec, unionA)
-import IntervalArith.Approx.ExpLog (eA, expA, logA, powA)
+import IntervalArith.Approx.ExpLog (eA, expA, logA, powA, powAInt)
 import IntervalArith.Approx.NumOrder (absA, maxA, minA, (!<!))
 import IntervalArith.Approx.Pi (piA)
 import IntervalArith.Approx.SinCos (cosA, sinA, tanA)
@@ -40,6 +39,7 @@ class HasSqrt a where
 
 class HasPower a where
   power :: a -> a -> Expect a
+  intPower :: a -> Int -> a
 
 class HasSinCos a where
   sin :: a -> a
@@ -101,6 +101,7 @@ instance numberHasPower :: HasPower Number where
           Math.exp (e * (Math.log a))
     where
     eInt = Int.round e
+  intPower a eInt = a ^^ eInt
 
 instance numberHasSinCos :: HasSinCos Number where
   sin = Math.sin
@@ -155,6 +156,7 @@ instance approxHasSqrt :: HasSqrt Approx where
 
 instance approxHasPower :: HasPower Approx where
   power a e = checkApprox "power: parameter out of range" $ powA a e
+  intPower = powAInt
 
 instance approxHasSinCos :: HasSinCos Approx where
   sin = sinA
