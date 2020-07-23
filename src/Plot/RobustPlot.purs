@@ -15,7 +15,7 @@ import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative, ValueAnd
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, isFinite, lowerA, mBound, setMB, toNumber, unionA, upperA)
 import IntervalArith.Approx.NumOrder (absA, maxA, minA, (!<=!), (!>=!))
-import IntervalArith.Misc (Rational, rationalToNumber, two)
+import IntervalArith.Misc (rationalToNumber, two)
 import Misc.Debug (unsafeLog)
 import Plot.Commands (Depth)
 import Plot.Segments (maxDepth)
@@ -77,9 +77,6 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
   canvasHeight = rationalToNumber canvasSize.height
 
   canvasWidth = rationalToNumber canvasSize.width
-
-  toRange :: Rational -> Rational -> Tuple Rational Rational
-  toRange lower upper = Tuple lower upper
 
   toCanvasEnclosures :: (Tuple Depth Approx) -> Array (Maybe Polygon)
   toCanvasEnclosures (Tuple depth x) = case toCanvasEnclosure x of
