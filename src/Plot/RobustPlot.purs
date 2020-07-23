@@ -108,14 +108,14 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
         <> show depth
         <> ", mb = "
         <> show (mBound x)
+        <> ", accuracy = "
+        <> show accuracy
+        <> ", accuracyTarget = "
+        <> show accuracyTarget
         <> if accuracy <= accuracyTarget then
             ""
           else
             ", INSUFFICIENT ACCURACY "
-              <> ", accuracy = "
-              <> show accuracy
-              <> ", accuracyTarget = "
-              <> show accuracyTarget
 
   toCanvasEnclosure :: Approx -> Maybe (Tuple Polygon Number)
   {- overview:
@@ -205,11 +205,11 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
 
             accuracy = snd $ boundsNumber accuracyA
 
-            accuracyA = minA (minA enclosureWidth enclosureParallelogramWidth) (minA enclosureBoxHeight enclosureParallelogramHeight)
+            accuracyA = maxA (minA enclosureWidth enclosureParallelogramWidth) (minA enclosureBoxHeight enclosureParallelogramHeight)
               where
-              enclosureBoxHeight = yUpper - yLower
+              enclosureBoxHeight = (yUpper - yLower) / (one + (maxA (absA upperGradient) (absA lowerGradient)))
 
-              enclosureParallelogramHeight = enclosureWidthHalf * (upperGradient - lowerGradient)
+              enclosureParallelogramHeight = enclosureWidthHalf * (upperGradient - lowerGradient) + (yMidUpper - yMidLower)
 
               enclosureParallelogramWidth = enclosureParallelogramHeight / (absA upperGradient)
 
