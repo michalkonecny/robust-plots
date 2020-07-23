@@ -2,6 +2,7 @@ module Plot.Segments where
 
 import Prelude
 import Data.Array (fromFoldable)
+import Data.Int as Int
 import Data.List (singleton)
 import Data.Maybe (Maybe(..))
 import Data.Number as Number
@@ -10,6 +11,7 @@ import Data.Tuple (Tuple(..))
 import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative2)
 import IntervalArith.Approx (Approx, Precision, fromRationalBoundsPrec)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
+import Math (log)
 import Plot.Commands (Depth)
 
 minDepth :: Depth
@@ -18,8 +20,11 @@ minDepth = 3
 maxDepth :: Depth
 maxDepth = 12
 
-xPrecision :: Precision
-xPrecision = 85
+minPrecision :: Precision
+minPrecision = 10
+
+maxPrecision :: Precision
+maxPrecision = 300
 
 segmentDomain ::
   { accuracyTarget :: Number
@@ -38,6 +43,11 @@ segmentDomain { accuracyTarget, evaluator, l, u } =
         , evaluatorXU: evaluator (rationalToNumber u)
         }
   where
+  xPrecision =
+    min maxPrecision
+      $ max minPrecision
+          (20 - (Int.round $ 10.0 * (log accuracyTarget)*(log 2.0)))
+
   bisect { depth, xL, evaluatorXL, xM, evaluatorXM, xU, evaluatorXU } =
     segmentDomainF
       { depth: depth + one
