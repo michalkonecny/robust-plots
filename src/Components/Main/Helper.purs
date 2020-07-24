@@ -32,7 +32,7 @@ newPlot id =
   , queue: initialJobQueue
   , status: Robust
   , name: defaultPlotName id
-  , accuracy: 1.0
+  , accuracy: 2.0
   }
 
 defaultPlotName :: Int -> String

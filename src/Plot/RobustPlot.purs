@@ -1,20 +1,22 @@
 module Plot.RobustPlot where
 
 import Prelude
-import Data.Array (catMaybes, concat, reverse, take)
+import Data.Array (catMaybes, concat, head, length, reverse, take)
 import Data.Bifunctor (bimap)
 import Data.Either (Either(..))
-import Data.Maybe (Maybe(..))
+import Data.Foldable (sum)
+import Data.Maybe (Maybe(..), fromJust)
 import Data.Number as Number
 import Data.Tuple (Tuple(..), snd)
 import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
 import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative, ValueAndDerivative2, evaluateDerivative, evaluateDerivative2)
 import Expression.Syntax (Expression)
-import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, isFinite, lowerA, toNumber, unionA, upperA)
+import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, isFinite, lowerA, mBound, setMB, toNumber, unionA, upperA)
 import IntervalArith.Approx.NumOrder (absA, maxA, minA, (!<=!), (!>=!))
-import IntervalArith.Misc (Rational, rationalToNumber, two)
+import IntervalArith.Misc (rationalToNumber, two)
 import Misc.Debug (unsafeLog)
+import Partial.Unsafe (unsafePartial)
 import Plot.Commands (Depth)
 import Plot.Segments (maxDepth)
 import Types (Polygon, Size, XYBounds)
@@ -57,13 +59,14 @@ plotEnclosures ::
   , evaluator2 :: Approx -> Maybe (ValueAndDerivative2 Approx)
   } ->
   Array (Array (Maybe Polygon))
-plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, evaluator2 } = segmentEnclosures
+plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, evaluator2 } =
+  unsafeLog
+    ("plotEnclosures: sum (map length segmentEnclosures) = " <> show (sum (map length segmentEnclosures)))
+    segmentEnclosures
   where
   rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
   rangeX = rationalToNumber $ bounds.xBounds.upper - bounds.xBounds.lower
-
-  segmentEnclosures = map toCanvasEnclosures domainSegments
 
   yLowerBound = rationalToNumber bounds.yBounds.lower
 
@@ -73,8 +76,27 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
 
   canvasWidth = rationalToNumber canvasSize.width
 
-  toRange :: Rational -> Rational -> Tuple Rational Rational
-  toRange lower upper = Tuple lower upper
+  extraPrecision = raiseUntilGoodOrNotImproving 5 Nothing 0 0
+    where
+    x = snd $ unsafePartial $ fromJust $ head domainSegments
+
+    xPrecision = mBound x
+
+    raiseUntilGoodOrNotImproving attemptsLeft maybePreviousAccuracy p pToTry
+      | attemptsLeft <= 0 = p
+      | otherwise = case toCanvasEnclosure (setMB (xPrecision + pToTry) x), maybePreviousAccuracy of
+        Just (Tuple _ a), _
+          | a <= accuracyTarget -> pToTry -- pToTry met target accuracy
+        Just (Tuple _ a), Just previousAccuracy
+          | a > previousAccuracy -> p -- pToTry made it worse, revert to p
+          | a <= 0.75 * previousAccuracy -> raiseUntilGoodOrNotImproving (attemptsLeft - 1) (Just a) pToTry (pToTry + 10)
+          | otherwise -> raiseUntilGoodOrNotImproving (attemptsLeft - 1) (Just a) p (pToTry + 10)
+        Just (Tuple _ a), _ -> raiseUntilGoodOrNotImproving (attemptsLeft - 1) (Just a) pToTry (pToTry + 10)
+        _, _ -> raiseUntilGoodOrNotImproving (attemptsLeft - 1) maybePreviousAccuracy p (pToTry + 10)
+
+  addExtraPrecision (Tuple depth x) = Tuple depth (setMB (mBound x + extraPrecision) x)
+
+  segmentEnclosures = map (toCanvasEnclosures <<< addExtraPrecision) domainSegments
 
   toCanvasEnclosures :: (Tuple Depth Approx) -> Array (Maybe Polygon)
   toCanvasEnclosures (Tuple depth x) = case toCanvasEnclosure x of
@@ -84,13 +106,15 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
       | depth >= maxDepth -> [ Nothing ]
     _ -> bisect
       where
+      setHigherPrecision = setMB (2 + (mBound x))
+
       bisect = enclosuresLeft <> enclosuresRight
         where
         (Tuple xL xU) = boundsA x
 
-        xLeft = xL `unionA` xM
+        xLeft = setHigherPrecision $ xL `unionA` xM
 
-        xRight = xM `unionA` xU
+        xRight = setHigherPrecision $ xM `unionA` xU
 
         xM = (xL + xU) / two
 
@@ -104,14 +128,16 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
         <> show (boundsNumber x)
         <> ", depth = "
         <> show depth
+        <> ", mb = "
+        <> show (mBound x)
+        <> ", accuracy = "
+        <> show accuracy
+        <> ", accuracyTarget = "
+        <> show accuracyTarget
         <> if accuracy <= accuracyTarget then
             ""
           else
             ", INSUFFICIENT ACCURACY "
-              <> ", accuracy = "
-              <> show accuracy
-              <> ", accuracyTarget = "
-              <> show accuracyTarget
 
   toCanvasEnclosure :: Approx -> Maybe (Tuple Polygon Number)
   {- overview:
@@ -201,11 +227,11 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
 
             accuracy = snd $ boundsNumber accuracyA
 
-            accuracyA = minA (minA enclosureWidth enclosureParallelogramWidth) (minA enclosureBoxHeight enclosureParallelogramHeight)
+            accuracyA = maxA (minA enclosureWidth enclosureParallelogramWidth) (minA enclosureBoxHeight enclosureParallelogramHeight)
               where
-              enclosureBoxHeight = yUpper - yLower
+              enclosureBoxHeight = (yUpper - yLower) / (one + (maxA (absA upperGradient) (absA lowerGradient)))
 
-              enclosureParallelogramHeight = enclosureWidthHalf * (upperGradient - lowerGradient)
+              enclosureParallelogramHeight = enclosureWidthHalf * (upperGradient - lowerGradient) + (yMidUpper - yMidLower)
 
               enclosureParallelogramWidth = enclosureParallelogramHeight / (absA upperGradient)
 

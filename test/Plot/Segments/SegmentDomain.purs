@@ -37,11 +37,10 @@ segmentDomainTests =
 
         u = one
 
-        segments = segmentDomain accuracyTarget evaluator l u
+        segments = segmentDomain { accuracyTarget, evaluator, l, u }
 
         -- then
-        expected =
-          "(-1.0,-0.75),(-0.75,-0.5),(-0.5,-0.25),(-0.25,0.0),(0.0,0.25),(0.25,0.5),(0.5,0.75),(0.75,1.0)"
+        expected = "(-1.0,-0.75),(-0.75,-0.5),(-0.5,-0.25),(-0.25,0.0),(0.0,0.25),(0.25,0.5),(0.5,0.75),(0.75,1.0)"
 
         expectedCount = 8
       equal expectedCount $ length segments
