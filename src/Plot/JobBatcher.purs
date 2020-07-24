@@ -20,6 +20,7 @@ import Data.Either (Either(..))
 import Data.Foldable (class Foldable)
 import Data.Maybe (Maybe(..))
 import Data.Set (Set, empty, insert) as S
+import Data.Tuple (Tuple)
 import Draw.Commands (DrawCommand)
 import Effect (Effect)
 import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
@@ -29,7 +30,7 @@ import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx)
 import Misc.Array (split)
 import Misc.Queue (Queue, empty, null, peek, push, tail, toList, length) as Q
-import Plot.Commands (PlotCommand(..))
+import Plot.Commands (PlotCommand(..), Depth)
 import Plot.PlotController (computePlotAsync)
 import Plot.RoughPlot (evaluateWithX)
 import Plot.Segments (segmentDomain)
@@ -167,11 +168,11 @@ segmentRobust accuracyTarget batchSegmentCount bounds expression label = command
   where
   evaluator = evaluateWithX expression
 
-  domainSegments = segmentDomain accuracyTarget evaluator bounds.xBounds.lower bounds.xBounds.upper
+  domainSegments = segmentDomain { accuracyTarget, evaluator, l: bounds.xBounds.lower, u: bounds.xBounds.upper }
 
   splitDomainSegments = split batchSegmentCount domainSegments
 
   commands = map toPlotCommand splitDomainSegments
 
-  toPlotCommand :: Array Approx -> PlotCommand
-  toPlotCommand segments = RobustPlot bounds expression segments label
+  toPlotCommand :: Array (Tuple Depth Approx) -> PlotCommand
+  toPlotCommand segments = RobustPlot bounds expression segments accuracyTarget label

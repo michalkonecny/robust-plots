@@ -1,26 +1,57 @@
 module Plot.Segments where
 
 import Prelude
-import Data.Array (fromFoldable)
+import Data.Array (fromFoldable, length)
+import Data.Int as Int
 import Data.List (singleton)
 import Data.Maybe (Maybe(..))
 import Data.Number as Number
 import Data.Ord (abs)
+import Data.Tuple (Tuple(..))
 import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative2)
-import IntervalArith.Approx (Approx, fromRationalBoundsPrec)
+import IntervalArith.Approx (Approx, Precision, fromRationalBoundsPrec, setMB)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
+import Math (log)
+import Misc.Debug (unsafeLog, unsafeSpy)
+import Plot.Commands (Depth)
 
-segmentDomain :: Number -> (Number -> Maybe (ValueAndDerivative2 Number)) -> Rational -> Rational -> Array Approx
-segmentDomain accuracyTarget evaluator l u =
-  fromFoldable
-    $ segmentDomainF
-        { depth: 0
-        , xL: l
-        , evaluatorXL: evaluator (rationalToNumber l)
-        , xU: u
-        , evaluatorXU: evaluator (rationalToNumber u)
-        }
+minDepth :: Depth
+minDepth = 3
+
+maxDepth :: Depth
+maxDepth = 12
+
+minPrecision :: Precision
+minPrecision = 10
+
+maxPrecision :: Precision
+maxPrecision = 300
+
+segmentDomain ::
+  { accuracyTarget :: Number
+  , evaluator :: Number -> Maybe (ValueAndDerivative2 Number)
+  , l :: Rational
+  , u :: Rational
+  } ->
+  Array (Tuple Int Approx)
+segmentDomain { accuracyTarget, evaluator, l, u } = unsafeLog ("segmentDomain: length result = " <> show (length result)) result
   where
+  result =
+    fromFoldable
+      $ segmentDomainF
+          { depth: 0
+          , xL: l
+          , evaluatorXL: evaluator (rationalToNumber l)
+          , xU: u
+          , evaluatorXU: evaluator (rationalToNumber u)
+          }
+
+  xPrecisionBase =
+    unsafeSpy "xPrecisionBase"
+      $ min maxPrecision
+      $ max minPrecision
+          (40 - (Int.round $ 2.0 * (log accuracyTarget) / (log 2.0)))
+
   bisect { depth, xL, evaluatorXL, xM, evaluatorXM, xU, evaluatorXU } =
     segmentDomainF
       { depth: depth + one
@@ -39,7 +70,9 @@ segmentDomain accuracyTarget evaluator l u =
 
   segmentDomainF { depth, xL, evaluatorXL, xU, evaluatorXU } = segments
     where
-    x = fromRationalBoundsPrec 50 xL xU
+    xPrecisionDepth = xPrecisionBase + 2 * depth
+
+    x = setMB xPrecisionDepth $ fromRationalBoundsPrec xPrecisionDepth xL xU
 
     xM = (xL + xU) / two
 
@@ -48,11 +81,11 @@ segmentDomain accuracyTarget evaluator l u =
     state = { depth, xL, evaluatorXL, xM, evaluatorXM, xU, evaluatorXU }
 
     segments =
-      if depth < 5 then
+      if depth < minDepth then
         bisect state
       else
-        if depth >= 10 then
-          singleton x
+        if depth >= maxDepth then
+          singleton (Tuple depth x)
         else
           segmentBasedOnDerivative
             state
@@ -65,8 +98,8 @@ segmentDomain accuracyTarget evaluator l u =
             , f''xU: checkFinite $ evaluatorXU <#> (_.derivative2)
             }
 
-  segmentBasedOnDerivative state@{ xL, xM } x { fxL: Just _
-  , fxU: Just _
+  segmentBasedOnDerivative state@{ depth, xL, xM } x { fxL: Just c1
+  , fxU: Just c2
   , f'xL: Just b1
   , f'xU: Just b2
   , f''xL: Just a1
@@ -74,30 +107,40 @@ segmentDomain accuracyTarget evaluator l u =
   } =
     let
       w = rationalToNumber $ xM - xL
-
-      w2 = w * two
-
-      bUnstable = abs (b1 - b2) * w2 > accuracyTarget
-
-      aUnstable = abs (a1 - a2) * w2 > accuracyTarget
+      w2 = w * 2.0
     in
-      if bUnstable || aUnstable then
-        bisect state
+      if w2 <= accuracyTarget then
+        singleton (Tuple depth x)
       else
         let
-          b = (b1 + b2) / two
 
-          a = (a1 + a2) / two
+          bUnstable = abs (b1 - b2) * w > accuracyTarget
 
-          h = if abs b > one then abs ((a * w * w) / b) else abs (a * w * w)
+          aUnstable = abs (a1 - a2) * w > accuracyTarget
         in
-          if h > accuracyTarget then
+          if bUnstable || aUnstable then
             bisect state
           else
-            singleton x
+            let
+              b = (b1 + b2) / two
+
+              a = (a1 + a2) / two
+
+              accuracyEstimate = max (min w2 enclosureParallelogramWidth) (min enclosureBoxHeight enclosureParallelogramHeight)
+                where
+                enclosureBoxHeight = w2 * b / (1.0 + (abs b))
+
+                enclosureParallelogramHeight = w * w * a
+
+                enclosureParallelogramWidth = enclosureParallelogramHeight / (abs b)
+            in
+              if 1.2 * accuracyEstimate > accuracyTarget then
+                bisect state
+              else
+                singleton (Tuple depth x)
 
   -- function not defined on either end, assume not defined on the whole segment:
-  segmentBasedOnDerivative state x { fxL: Nothing, fxU: Nothing } = singleton x
+  segmentBasedOnDerivative state@{ depth } x { fxL: Nothing, fxU: Nothing } = singleton (Tuple depth x)
 
   segmentBasedOnDerivative state x _ = bisect state
 

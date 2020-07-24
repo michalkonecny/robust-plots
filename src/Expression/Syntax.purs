@@ -6,8 +6,7 @@ module Expression.Syntax
   ) where
 
 import Prelude
-import Data.Int (round, toNumber)
-import IntervalArith.Misc (Rational, rationalToNumber)
+import IntervalArith.Misc (Rational, branchRationalIsInt, rationalToNumber)
 
 data UnaryOperation
   = Neg
@@ -70,6 +69,7 @@ data Expression
   | ExpressionLiteral Rational
   | ExpressionUnary UnaryOperation Expression
   | ExpressionBinary BinaryOperation Expression Expression
+  | ExpressionIntPower Expression Int
   | ExpressionLet VariableName Expression Expression
 
 derive instance expressionEq :: Eq Expression
@@ -85,13 +85,17 @@ instance expressionShow :: Show Expression where
       (showNestedBinaryExpression leftExpression)
         <> (show binaryOperation)
         <> (showNestedBinaryExpression rightExpression)
+  show (ExpressionIntPower leftExpression exponent) =
+    (showNestedBinaryExpression leftExpression)
+      <> (show Power)
+      <> (show exponent)
   show (ExpressionBinary binaryOperation leftExpression rightExpression) =
-        (show binaryOperation)
-        <> "("
-        <> (showNestedBinaryExpression leftExpression)
-        <> ","
-        <> (showNestedBinaryExpression rightExpression)
-        <> ")"
+    (show binaryOperation)
+      <> "("
+      <> (showNestedBinaryExpression leftExpression)
+      <> ","
+      <> (showNestedBinaryExpression rightExpression)
+      <> ")"
   show (ExpressionLet name expression parentExpression) =
     "let "
       <> name
@@ -101,17 +105,7 @@ instance expressionShow :: Show Expression where
       <> (show parentExpression)
 
 showLiteral :: Rational -> String
-showLiteral value =
-  if isInteger then
-    show integerValue
-  else
-    show numberValue
-  where
-  numberValue = rationalToNumber value
-
-  integerValue = round $ numberValue
-
-  isInteger = numberValue == toNumber integerValue
+showLiteral = branchRationalIsInt { isInt: show, isNotInt: show <<< rationalToNumber }
 
 showUnaryExpression :: UnaryOperation -> Expression -> String
 showUnaryExpression Neg expression@(ExpressionVariable name) = (show Neg) <> (show expression)
