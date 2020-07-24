@@ -104,6 +104,7 @@ handleBoundsInputMessage state ResetBounds = redrawWithBounds state $ canvasSize
 
 clearAction :: forall output. State -> HalogenMain output Unit
 clearAction state = do
+  clearGlobalError
   clearBoundsOrError <- H.liftAff $ computePlotAsync state.input.size (clear state.bounds)
   handleError clearBoundsOrError
     $ \clearBounds -> do
@@ -131,6 +132,7 @@ handleCanvasMessage state (Scrolled isZoomedIn) = handleAction $ Zoom isZoomedIn
 
 handleExpressionPlotMessage :: forall output. State -> ExpressionManagerMessage -> HalogenMain output Unit
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpression id expression text)) = do
+  clearGlobalError
   plotsOrError <- H.liftAff $ alterPlotAsync updatePlot id state.plots
   handleError (toFirstError plotsOrError)
     $ \plots -> do
@@ -176,6 +178,7 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ChangedStatus i
   handleAction DrawPlot
 
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedAccuracy id accuracy)) = do
+  clearGlobalError
   plotsOrError <- H.liftAff $ alterPlotAsync updatePlot id state.plots
   handleError (toFirstError plotsOrError)
     $ \plots -> do
@@ -233,6 +236,7 @@ fork = forkWithDelay 0.0
 
 redrawWithDelayAndBounds :: forall output. State -> XYBounds -> HalogenMain output Unit
 redrawWithDelayAndBounds state newBounds = do
+  clearGlobalError
   if state.autoRobust then do
     clearBoundsOrError <- H.liftAff $ computePlotAsync state.input.size (clear newBounds)
     handleError clearBoundsOrError
@@ -260,6 +264,7 @@ redrawWithDelayAndBounds state newBounds = do
 
 redraw :: forall output. State -> HalogenMain output Unit
 redraw state = do
+  clearGlobalError
   clearBoundsOrError <- H.liftAff $ computePlotAsync state.input.size (clear state.bounds)
   handleError clearBoundsOrError
     $ \clearBounds -> do
@@ -276,6 +281,7 @@ redraw state = do
 
 redrawRough :: forall output. State -> HalogenMain output Unit
 redrawRough state = do
+  clearGlobalError
   clearBoundsOrError <- H.liftAff $ computePlotAsync state.input.size (clear state.bounds)
   handleError clearBoundsOrError
     $ \clearBounds -> do
@@ -311,6 +317,7 @@ redrawWithBounds state newBounds = do
 
 redrawWithoutRobustWithBounds :: forall output. State -> XYBounds -> HalogenMain output Unit
 redrawWithoutRobustWithBounds state newBounds = do
+  clearGlobalError
   plotsOrError <- mapPlots clearAddDrawRough state.plots
   handleError (toFirstError plotsOrError)
     $ \plots -> do

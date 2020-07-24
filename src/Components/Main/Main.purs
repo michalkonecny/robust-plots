@@ -1,6 +1,7 @@
 module Components.Main where
 
 import Prelude
+
 import Components.BatchInput (batchInputComponent)
 import Components.BoundsInput (boundsInputComponent, canvasSizeToBounds)
 import Components.Canvas (canvasComponent, defaultCanvasSize)
@@ -14,7 +15,8 @@ import Components.Main.Types (ChildSlots, Config, State)
 import Components.ProgressBar (progressBarComponent)
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT)
-import Data.Maybe (Maybe(..))
+import Data.Array (length)
+import Data.Maybe (Maybe(..), isJust)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff)
@@ -73,8 +75,11 @@ mainComponent =
       $ [ HH.nav
             [ className "navbar navbar-expand navbar-dark bg-dark" ]
             [ HH.div
-                [ className "navbar-brand" ]
+                [ className "navbar-brand mr-auto" ]
                 [ HH.text "Robust plots" ]
+            , HH.span
+                [ className "navbar-text" ]
+                [ HH.text $ status state ]
             ]
         , HH.br_
         , HH.div
@@ -190,3 +195,11 @@ toExpressionManagerInput state =
   , allRobustDraw: isAllRobustPlotsComplete state.plots
   , inProgress: state.inProgress
   }
+
+status :: State -> String
+status state
+  | isJust state.error = "Internal error!"
+  | state.progress.index == state.progress.total && state.inProgress = "Segmenting"
+  | state.inProgress = "Computing robust enclosure"
+  | (not $ isAllRobustPlotsComplete state.plots) && 1 < length state.plots = "Some enclosures not computed"
+  | otherwise = "Ready"
