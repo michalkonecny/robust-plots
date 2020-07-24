@@ -1,6 +1,7 @@
 module Components.Main.Action where
 
 import Prelude
+
 import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..), canvasSizeToBounds)
 import Components.Canvas (CanvasMessage(..), calculateNewCanvasSize)
@@ -16,6 +17,7 @@ import Data.Array (filter, foldl, snoc)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), isJust)
 import Effect.Aff (Aff, Milliseconds(..), delay)
+import Effect.Console (log)
 import Effect.Exception (Error)
 import Halogen as H
 import Halogen.Query.EventSource as ES
@@ -102,7 +104,7 @@ handleBoundsInputMessage state ResetBounds = redrawWithBounds state $ canvasSize
 
 clearAction :: forall output. State -> HalogenMain output Unit
 clearAction state = do
-  clearBoundsOrError <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
+  clearBoundsOrError <- H.liftAff $ computePlotAsync state.input.size (clear state.bounds)
   handleError clearBoundsOrError
     $ \clearBounds -> do
         H.modify_ (_ { plots = [ newPlot 0 ], clearPlot = clearBounds })
@@ -112,7 +114,7 @@ processNextJobAction :: forall output. State -> HalogenMain output Unit
 processNextJobAction state = do
   if (anyPlotHasJobs state.plots) then do
     H.modify_ (_ { plots = setFirstRunningJob state.plots })
-    maybeJobResult <- lift $ lift $ runFirstJob state.input.size state.bounds.xBounds state.plots
+    maybeJobResult <- H.liftAff $ runFirstJob state.input.size state.bounds.xBounds state.plots
     fork -- Subsiquent code is placed on the end of the JS event queue
     newState <- H.get
     handleJobResult maybeJobResult newState
@@ -129,7 +131,7 @@ handleCanvasMessage state (Scrolled isZoomedIn) = handleAction $ Zoom isZoomedIn
 
 handleExpressionPlotMessage :: forall output. State -> ExpressionManagerMessage -> HalogenMain output Unit
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpression id expression text)) = do
-  plotsOrError <- lift $ lift $ alterPlotAsync updatePlot id state.plots
+  plotsOrError <- H.liftAff $ alterPlotAsync updatePlot id state.plots
   handleError (toFirstError plotsOrError)
     $ \plots -> do
         H.modify_ (_ { plots = plots })
@@ -174,7 +176,7 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ChangedStatus i
   handleAction DrawPlot
 
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedAccuracy id accuracy)) = do
-  plotsOrError <- lift $ lift $ alterPlotAsync updatePlot id state.plots
+  plotsOrError <- H.liftAff $ alterPlotAsync updatePlot id state.plots
   handleError (toFirstError plotsOrError)
     $ \plots -> do
         H.modify_ (_ { plots = plots })
@@ -224,7 +226,7 @@ handleExpressionPlotMessage state ClearPlots = clearAction state
 handleExpressionPlotMessage state CalulateRobustPlots = redrawRough state
 
 forkWithDelay :: forall output. Number -> HalogenMain output Unit
-forkWithDelay duration = lift $ lift $ delay $ Milliseconds duration
+forkWithDelay duration = H.liftAff $ delay $ Milliseconds duration
 
 fork :: forall output. HalogenMain output Unit
 fork = forkWithDelay 0.0
@@ -232,22 +234,22 @@ fork = forkWithDelay 0.0
 redrawWithDelayAndBounds :: forall output. State -> XYBounds -> HalogenMain output Unit
 redrawWithDelayAndBounds state newBounds = do
   if state.autoRobust then do
-    clearBoundsOrError <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
+    clearBoundsOrError <- H.liftAff $ computePlotAsync state.input.size (clear newBounds)
     handleError clearBoundsOrError
       $ \clearBounds -> do
           H.modify_ (_ { clearPlot = clearBounds, inProgress = true, bounds = newBounds })
           handleAction DrawPlot
           fork
-          plotsOrError <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size newBounds state.plots
+          plotsOrError <- H.liftAff $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size newBounds state.plots
           handleError (toFirstError plotsOrError)
             $ \plots -> do
                 H.modify_ (_ { plots = plots })
                 resetProgress state { plots = plots }
   else do
-    clearBoundsOrError <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
+    clearBoundsOrError <- H.liftAff $ computePlotAsync state.input.size (clear newBounds)
     handleError clearBoundsOrError
       $ \clearBounds -> do
-          plotsOrError <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size newBounds state.plots
+          plotsOrError <- H.liftAff $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size newBounds state.plots
           handleError (toFirstError plotsOrError)
             $ \plots -> do
                 H.modify_ (_ { clearPlot = clearBounds, inProgress = true, bounds = newBounds, plots = plots })
@@ -258,13 +260,13 @@ redrawWithDelayAndBounds state newBounds = do
 
 redraw :: forall output. State -> HalogenMain output Unit
 redraw state = do
-  clearBoundsOrError <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
+  clearBoundsOrError <- H.liftAff $ computePlotAsync state.input.size (clear state.bounds)
   handleError clearBoundsOrError
     $ \clearBounds -> do
         H.modify_ (_ { clearPlot = clearBounds, inProgress = true })
         handleAction DrawPlot
         fork
-        plotsOrError <- lift $ lift $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size state.bounds state.plots
+        plotsOrError <- H.liftAff $ clearAddPlotCommands state.autoRobust state.batchCount state.input.size state.bounds state.plots
         handleError (toFirstError plotsOrError)
           $ \plots -> do
               H.modify_ (_ { plots = plots })
@@ -274,7 +276,7 @@ redraw state = do
 
 redrawRough :: forall output. State -> HalogenMain output Unit
 redrawRough state = do
-  clearBoundsOrError <- lift $ lift $ computePlotAsync state.input.size (clear state.bounds)
+  clearBoundsOrError <- H.liftAff $ computePlotAsync state.input.size (clear state.bounds)
   handleError clearBoundsOrError
     $ \clearBounds -> do
         H.modify_ (_ { clearPlot = clearBounds, inProgress = true })
@@ -312,7 +314,7 @@ redrawWithoutRobustWithBounds state newBounds = do
   plotsOrError <- mapPlots clearAddDrawRough state.plots
   handleError (toFirstError plotsOrError)
     $ \plots -> do
-        clearBoundsOrError <- lift $ lift $ computePlotAsync state.input.size (clear newBounds)
+        clearBoundsOrError <- H.liftAff $ computePlotAsync state.input.size (clear newBounds)
         handleError clearBoundsOrError
           $ \clearBounds -> do
               H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds })
@@ -393,4 +395,9 @@ toFirstError = foldl toSingleError (Right [])
 handleError :: forall output a. Either Error a -> (a -> HalogenMain output Unit) -> HalogenMain output Unit
 handleError (Right v) onSuccess = onSuccess v
 
-handleError (Left error) _ = pure unit -- TODO: handle global error
+handleError (Left error) _ = do 
+  H.liftEffect $ log $ show error
+  H.modify_ (_ { error = Just error, inProgress = false })
+
+clearGlobalError :: forall output. HalogenMain output Unit
+clearGlobalError = H.modify_ (_ { error = Nothing })

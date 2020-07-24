@@ -6,6 +6,7 @@ import Data.Either (Either(..))
 import Draw.Commands (DrawCommand)
 import Effect (Effect)
 import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
+import Effect.Console (log)
 import Effect.Exception (try)
 import Plot.Commands (PlotCommand(..))
 import Plot.GridLines (clearAndDrawGridLines)
@@ -18,7 +19,9 @@ computePlotAsync canvasSize plot = makeAff $ runComputation canvasSize plot
 
 runComputation :: Size -> PlotCommand -> (Either Error (Either Error (DrawCommand Unit)) -> Effect Unit) -> Effect Canceler
 runComputation canvasSize commands callback = do
-  result <- try $ pure $ runCommand canvasSize commands
+  result <- try $ do
+    log "Computing..."
+    pure $ runCommand canvasSize commands
   callback $ Right result
   pure nonCanceler
 

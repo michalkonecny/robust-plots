@@ -1,6 +1,7 @@
 module Plot.RobustPlot where
 
 import Prelude
+
 import Data.Array (catMaybes, reverse, take)
 import Data.Bifunctor (bimap)
 import Data.Either (Either(..))
@@ -9,6 +10,7 @@ import Data.Number as Number
 import Data.Tuple (Tuple(..))
 import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
+import Effect.Exception.Unsafe (unsafeThrow)
 import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative, ValueAndDerivative2, evaluateDerivative, evaluateDerivative2)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, fromRationalPrec, isFinite, lowerA, toNumber, upperA)
@@ -22,7 +24,7 @@ drawRobustPlot canvasSize bounds expression domainSegments label = drawCommands
   segmentEnclosures = plotEnclosures canvasSize bounds domainSegments evaluateWithX evaluateWithX2
 
   drawCommands = drawPlot segmentEnclosures
-
+  t = unsafeThrow "Bread"
   evaluateWithX x = value
     where
     variableMap = [ Tuple "x" { value: x, derivative: one } ]

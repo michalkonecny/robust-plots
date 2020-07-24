@@ -64,6 +64,7 @@ mainComponent =
         , total: 0
         }
     , inProgress: false
+    , error: Nothing
     }
 
   render :: forall m. MonadAff m => MonadEffect m => State -> H.ComponentHTML Action ChildSlots m

@@ -14,6 +14,7 @@ module Plot.JobBatcher
   ) where
 
 import Prelude
+
 import Data.Array (elem, foldl, foldr)
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable)
@@ -22,6 +23,7 @@ import Data.Set (Set, empty, insert) as S
 import Draw.Commands (DrawCommand)
 import Effect (Effect)
 import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
+import Effect.Console (log)
 import Effect.Exception (try)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx)
@@ -122,7 +124,9 @@ insertAll mapper toInsert set = foldr (S.insert <<< mapper) set toInsert
 
 runSegmentRobust :: Number -> Int -> XYBounds -> Expression -> String -> (Either Error (Either Error (Array PlotCommand)) -> Effect Unit) -> Effect Canceler
 runSegmentRobust accuracyTarget batchSegmentCount bounds expression label callback = do
-  result <- try $ pure $ segmentRobust accuracyTarget batchSegmentCount bounds expression label
+  result <- try $ do
+    log "Segmenting..."
+    pure $ segmentRobust accuracyTarget batchSegmentCount bounds expression label
   callback $ Right $ result
   pure nonCanceler
 
@@ -147,7 +151,6 @@ runMaybeJob runner cancelled (Just job) =
     case drawCommandsOrError of
       Left error -> pure $ Just $ Left error
       Right drawCommands -> pure $ Just $ Right { job, drawCommands }
-    
 
 runJob :: Size -> Job -> Aff (Either Error (DrawCommand Unit))
 runJob canvasSize job = computePlotAsync canvasSize job.command
