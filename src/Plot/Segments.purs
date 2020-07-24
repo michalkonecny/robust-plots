@@ -1,67 +1,150 @@
 module Plot.Segments where
 
 import Prelude
-import Data.Array (fromFoldable)
-import Data.List (List, singleton)
+import Data.Array (fromFoldable, length)
+import Data.Int as Int
+import Data.List (singleton)
 import Data.Maybe (Maybe(..))
+import Data.Number as Number
 import Data.Ord (abs)
-import IntervalArith.Approx (Approx, fromRationalBoundsPrec)
+import Data.Tuple (Tuple(..))
+import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative2)
+import IntervalArith.Approx (Approx, Precision, fromRationalBoundsPrec, setMB)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
-import Plot.PlotEvaluator (ExpressionEvaluator)
+import Math (log)
+import Misc.Debug (unsafeLog, unsafeSpy)
+import Plot.Commands (Depth)
 
-segmentDomain :: Number -> ExpressionEvaluator Number -> Rational -> Rational -> Array Approx
-segmentDomain accuracyTarget evaluator l u = fromFoldable $ segementDomainF 0 l u
+minDepth :: Depth
+minDepth = 3
+
+maxDepth :: Depth
+maxDepth = 12
+
+minPrecision :: Precision
+minPrecision = 10
+
+maxPrecision :: Precision
+maxPrecision = 300
+
+segmentDomain ::
+  { accuracyTarget :: Number
+  , evaluator :: Number -> Maybe (ValueAndDerivative2 Number)
+  , l :: Rational
+  , u :: Rational
+  } ->
+  Array (Tuple Int Approx)
+segmentDomain { accuracyTarget, evaluator, l, u } = unsafeLog ("segmentDomain: length result = " <> show (length result)) result
   where
-  bisect { depth, lower, mid, upper } =
-    (segementDomainF (depth + one) lower mid)
-      <> (segementDomainF (depth + one) mid upper)
+  result =
+    fromFoldable
+      $ segmentDomainF
+          { depth: 0
+          , xL: l
+          , evaluatorXL: evaluator (rationalToNumber l)
+          , xU: u
+          , evaluatorXU: evaluator (rationalToNumber u)
+          }
 
-  three = one + two
+  xPrecisionBase =
+    unsafeSpy "xPrecisionBase"
+      $ min maxPrecision
+      $ max minPrecision
+          (40 - (Int.round $ 2.0 * (log accuracyTarget) / (log 2.0)))
 
-  segementDomainF :: Int -> Rational -> Rational -> List Approx
-  segementDomainF depth lower upper = segments
+  bisect { depth, xL, evaluatorXL, xM, evaluatorXM, xU, evaluatorXU } =
+    segmentDomainF
+      { depth: depth + one
+      , xL
+      , evaluatorXL
+      , xU: xM
+      , evaluatorXU: evaluatorXM
+      }
+      <> segmentDomainF
+          { depth: depth + one
+          , xL: xM
+          , evaluatorXL: evaluatorXM
+          , xU
+          , evaluatorXU
+          }
+
+  segmentDomainF { depth, xL, evaluatorXL, xU, evaluatorXU } = segments
     where
-    x = fromRationalBoundsPrec 50 lower upper
+    xPrecisionDepth = xPrecisionBase + 2 * depth
 
-    mid = (lower + upper) / two
+    x = setMB xPrecisionDepth $ fromRationalBoundsPrec xPrecisionDepth xL xU
 
-    range = upper - lower
+    xM = (xL + xU) / two
 
-    a1 = rationalToNumber $ lower + (range / three)
+    evaluatorXM = evaluator (rationalToNumber xM)
 
-    a2 = rationalToNumber $ lower + ((range * two) / three)
+    state = { depth, xL, evaluatorXL, xM, evaluatorXM, xU, evaluatorXU }
 
     segments =
-      if depth < 5 then
-        bisect { depth, lower, mid, upper }
-      else
-        if depth >= 10 then
-          singleton x
-        else
-          segmentBasedOnDerivative { depth, lower, mid, upper }
-            x
-            (evaluator.f (rationalToNumber lower))
-            (evaluator.f (rationalToNumber upper))
-            (evaluator.f'' a1)
-            (evaluator.f'' a2)
-            (evaluator.f' $ rationalToNumber mid)
-
-  segmentBasedOnDerivative state@{ depth, lower, mid, upper } x _ _ (Just a1) (Just a2) (Just b) =
-    let
-      w = rationalToNumber $ mid - lower
-
-      a = (a1 + a2) / two
-
-      h = if abs b > one then abs ((a * w * w) / b) else abs (a * w * w)
-
-    in
-      if abs (a1 - a2) * w > 3.0 * accuracyTarget || h > accuracyTarget then
-        -- unsafeLog logMessage $
+      if depth < minDepth then
         bisect state
       else
-        singleton x
+        if depth >= maxDepth then
+          singleton (Tuple depth x)
+        else
+          segmentBasedOnDerivative
+            state
+            x
+            { fxL: checkFinite $ evaluatorXL <#> (_.value)
+            , fxU: checkFinite $ evaluatorXU <#> (_.value)
+            , f'xL: checkFinite $ evaluatorXL <#> (_.derivative)
+            , f'xU: checkFinite $ evaluatorXU <#> (_.derivative)
+            , f''xL: checkFinite $ evaluatorXL <#> (_.derivative2)
+            , f''xU: checkFinite $ evaluatorXU <#> (_.derivative2)
+            }
+
+  segmentBasedOnDerivative state@{ depth, xL, xM } x { fxL: Just c1
+  , fxU: Just c2
+  , f'xL: Just b1
+  , f'xU: Just b2
+  , f''xL: Just a1
+  , f''xU: Just a2
+  } =
+    let
+      w = rationalToNumber $ xM - xL
+      w2 = w * 2.0
+    in
+      if w2 <= accuracyTarget then
+        singleton (Tuple depth x)
+      else
+        let
+
+          bUnstable = abs (b1 - b2) * w > accuracyTarget
+
+          aUnstable = abs (a1 - a2) * w > accuracyTarget
+        in
+          if bUnstable || aUnstable then
+            bisect state
+          else
+            let
+              b = (b1 + b2) / two
+
+              a = (a1 + a2) / two
+
+              accuracyEstimate = max (min w2 enclosureParallelogramWidth) (min enclosureBoxHeight enclosureParallelogramHeight)
+                where
+                enclosureBoxHeight = w2 * b / (1.0 + (abs b))
+
+                enclosureParallelogramHeight = w * w * a
+
+                enclosureParallelogramWidth = enclosureParallelogramHeight / (abs b)
+            in
+              if 1.2 * accuracyEstimate > accuracyTarget then
+                bisect state
+              else
+                singleton (Tuple depth x)
 
   -- function not defined on either end, assume not defined on the whole segment:
-  segmentBasedOnDerivative state x Nothing Nothing Nothing Nothing Nothing = singleton x
+  segmentBasedOnDerivative state@{ depth } x { fxL: Nothing, fxU: Nothing } = singleton (Tuple depth x)
 
-  segmentBasedOnDerivative state x _ _ _ _ _ = bisect state
+  segmentBasedOnDerivative state x _ = bisect state
+
+checkFinite :: Maybe Number -> Maybe Number
+checkFinite ma@(Just a) = if Number.isFinite a then ma else Nothing
+
+checkFinite ma = ma

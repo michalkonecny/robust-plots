@@ -19,6 +19,7 @@ type State
     , batchCount :: Int
     , autoRobust :: Boolean
     , progress :: Progress
+    , inProgress :: Boolean
     }
 
 type ChildSlots

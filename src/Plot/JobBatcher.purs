@@ -15,18 +15,21 @@ module Plot.JobBatcher
 
 import Prelude
 import Data.Array (elem, foldl, foldr)
+import Data.Either (Either(..))
 import Data.Foldable (class Foldable)
 import Data.Maybe (Maybe(..))
 import Data.Set (Set, empty, insert) as S
+import Data.Tuple (Tuple)
 import Draw.Commands (DrawCommand)
-import Effect.Aff (Aff)
+import Effect (Effect)
+import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx)
-import Plot.Commands (PlotCommand(..))
 import Misc.Array (split)
-import Plot.PlotController (computePlotAsync)
-import Plot.PlotEvaluator (numberExpressionEvaluator)
 import Misc.Queue (Queue, empty, null, peek, push, tail, toList, length) as Q
+import Plot.Commands (PlotCommand(..), Depth)
+import Plot.PlotController (computePlotAsync)
+import Plot.RoughPlot (evaluateWithX)
 import Plot.Segments (segmentDomain)
 import Types (Id, Size, XYBounds, Bounds)
 
@@ -86,10 +89,10 @@ cancelAll jobQueue = cancelRunning $ jobQueue { cancelled = cancelled, queue = Q
 -- | Adds a plot with its associated `batchId` to the `Job` queue.
 -- |
 -- | Running time: `O(batchSegmentCount * (batchSegmentCount - 1))`
-addPlot :: Number -> Int -> JobQueue -> XYBounds -> Expression -> String -> Id -> JobQueue
-addPlot accuracyTarget batchSegmentCount jobQueue bounds expression label batchId = foldl (addJob batchId) jobQueue segmentedPlots
-  where
-  segmentedPlots = segmentRobust accuracyTarget batchSegmentCount bounds expression label
+addPlot :: Number -> Int -> JobQueue -> XYBounds -> Expression -> String -> Id -> Aff JobQueue
+addPlot accuracyTarget batchSegmentCount jobQueue bounds expression label batchId = do
+  segmentedPlots <- makeAff $ runSegmentRobust accuracyTarget batchSegmentCount bounds expression label
+  pure $ foldl (addJob batchId) jobQueue segmentedPlots
 
 -- | Sets the `Job` at the front of the queue as running.
 -- |
@@ -114,6 +117,11 @@ isCancelled jobQueue id = elem id jobQueue.cancelled
 --------------------------------------------------------------------
 insertAll :: forall a f b. Foldable f => Ord b => (a -> b) -> f a -> S.Set b -> S.Set b
 insertAll mapper toInsert set = foldr (S.insert <<< mapper) set toInsert
+
+runSegmentRobust :: Number -> Int -> XYBounds -> Expression -> String -> (Either Error (Array PlotCommand) -> Effect Unit) -> Effect Canceler
+runSegmentRobust accuracyTarget batchSegmentCount bounds expression label callback = do
+  callback $ Right $ segmentRobust accuracyTarget batchSegmentCount bounds expression label
+  pure nonCanceler
 
 cancelRunning :: JobQueue -> JobQueue
 cancelRunning jobQueue = case jobQueue.running of
@@ -148,13 +156,13 @@ addJob batchId jobQueue command = jobQueue { queue = newQueue, currentId = newCu
 segmentRobust :: Number -> Int -> XYBounds -> Expression -> String -> Array PlotCommand
 segmentRobust accuracyTarget batchSegmentCount bounds expression label = commands
   where
-  evaluator = numberExpressionEvaluator expression
+  evaluator = evaluateWithX expression
 
-  domainSegments = segmentDomain accuracyTarget evaluator bounds.xBounds.lower bounds.xBounds.upper
+  domainSegments = segmentDomain { accuracyTarget, evaluator, l: bounds.xBounds.lower, u: bounds.xBounds.upper }
 
   splitDomainSegments = split batchSegmentCount domainSegments
 
   commands = map toPlotCommand splitDomainSegments
 
-  toPlotCommand :: Array Approx -> PlotCommand
-  toPlotCommand segments = RobustPlot bounds expression segments label
+  toPlotCommand :: Array (Tuple Depth Approx) -> PlotCommand
+  toPlotCommand segments = RobustPlot bounds expression segments accuracyTarget label

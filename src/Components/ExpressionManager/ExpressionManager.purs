@@ -9,8 +9,11 @@ import Components.ExpressionInput (ExpressionInputMessage(..), expressionInputCo
 import Components.ExpressionInput.Controller (expressionInputController)
 import Components.ExpressionManager.Types (ExpressionPlot, ChildSlots)
 import Data.Array (catMaybes, find, head, length, (!!))
+import Data.Array.NonEmpty (NonEmptyArray, cons')
+import Data.Array.NonEmpty as NonEmptyArray
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), fromMaybe, isJust)
+import Data.String (joinWith)
 import Data.Symbol (SProxy(..))
 import Effect.Class (class MonadEffect)
 import Halogen as H
@@ -178,32 +181,37 @@ handleAddExample index = do
       Just example, Nothing -> do
         { nextPlotId } <- H.get
         handleAction Add
-        overwriteWithExample nextPlotId example
+        overwriteWithExample nextPlotId (NonEmptyArray.head example)
       Just example, Just selected -> do
         if selected.expressionText == "" then do
-          overwriteWithExample selected.id example
+          overwriteWithExample selected.id (NonEmptyArray.head example)
         else do
           { nextPlotId } <- H.get
           handleAction Add
-          overwriteWithExample nextPlotId example
+          overwriteWithExample nextPlotId (NonEmptyArray.head example)
 
 overwriteWithExample :: forall m. MonadEffect m => Int -> String -> H.HalogenM State Action ChildSlots ExpressionManagerMessage m Unit
 overwriteWithExample id example = case parseAndCheckExpression expressionInputController example of
   Left _ -> pure unit
   Right expression -> H.raise $ RaisedExpressionInputMessage $ ParsedExpression id (expressionInputController.clean expression) example
 
-examples :: Array String
+infix 6 cons' as :.
+
+examples :: Array (NonEmptyArray String)
 examples =
-  [ "x*sin(1/(x^2))"
-  , "sin(100*x)"
-  , "(1+x^2)^(sin(10*x))-1"
+  [ "sin(15*(x^4))" :. []
+  , "x*sin(4/(x^2))" :. [ "... (Continuous despite singularity)" ]
+  , "max(0,x*sin(4/(x^2)))" :. [ "... (Takes minutes to compute)" ]
+  , "1/(1+1000000*(x-0.5)^2)" :. []
+  , "0.1+(10^20)*(x^2-1)-(10^20)*(x+1)*(x-1)" :. [ "... (Rough plot distorted)" ]
+  , "(1+x^2)^(sin(10*x))-1" :. [ "... (Takes minutes to compute)" ]
   ]
 
 exampleFunctionOptions :: forall w. Array (HH.HTML w Action)
 exampleFunctionOptions = [ HH.option [ HP.disabled true, HP.selected true ] [ HH.text "Add example function from below" ] ] <> map toOption examples
   where
-  toOption :: String -> HH.HTML w Action
-  toOption text = HH.option_ [ HH.text text ]
+  toOption :: NonEmptyArray String -> HH.HTML w Action
+  toOption text = HH.option_ [ HH.text (joinWith " " (NonEmptyArray.toArray text)) ]
 
 renderButton :: forall w. Boolean -> Boolean -> HH.HTML w Action
 renderButton disabled false =
