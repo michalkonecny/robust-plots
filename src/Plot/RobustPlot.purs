@@ -10,7 +10,6 @@ import Data.Number as Number
 import Data.Tuple (Tuple(..), snd)
 import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
-import Effect.Exception.Unsafe (unsafeThrow)
 import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative, ValueAndDerivative2, evaluateDerivative, evaluateDerivative2)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, isFinite, lowerA, mBound, setMB, toNumber, unionA, upperA)
