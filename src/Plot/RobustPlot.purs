@@ -34,6 +34,7 @@ drawRobustPlot canvasSize bounds expression domainSegments accuracyTarget label 
 
   drawCommands = drawPlot $ concat segmentEnclosures
 
+  evaluateWithX :: Approx -> Maybe (ValueAndDerivative Approx)
   evaluateWithX x = value
     where
     variableMap = [ Tuple "x" { value: x, derivative: one } ]
@@ -41,7 +42,8 @@ drawRobustPlot canvasSize bounds expression domainSegments accuracyTarget label 
     value = case evaluateDerivative variableMap expression of
       Left _ -> Nothing
       Right v -> Just v
-
+  
+  evaluateWithX2 :: Approx -> Maybe (ValueAndDerivative2 Approx)
   evaluateWithX2 x = value
     where
     variableMap = [ Tuple "x" { value: x, derivative: one, derivative2: zero } ]
