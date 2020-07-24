@@ -78,7 +78,7 @@ mainComponent =
                 [ className "navbar-brand mr-auto" ]
                 [ HH.text "Robust plots" ]
             , HH.span
-                [ className "navbar-text" ]
+                [ className $ statusBadge state ]
                 [ HH.text $ status state ]
             ]
         , HH.br_
@@ -195,6 +195,14 @@ toExpressionManagerInput state =
   , allRobustDraw: isAllRobustPlotsComplete state.plots
   , inProgress: state.inProgress
   }
+
+statusBadge :: State -> String
+statusBadge state
+  | isJust state.error = "badge badge-danger"
+  | state.progress.index == state.progress.total && state.inProgress = "badge badge-warning"
+  | state.inProgress = "badge badge-warning"
+  | (not $ isAllRobustPlotsComplete state.plots) && 1 < length state.plots = "badge badge-success"
+  | otherwise = "badge badge-success"
 
 status :: State -> String
 status state
