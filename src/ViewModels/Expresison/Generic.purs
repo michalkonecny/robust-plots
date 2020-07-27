@@ -1,7 +1,6 @@
 module ViewModels.Expression.Generic where
 
 import Prelude
-
 import Control.Parallel (parSequence)
 import Data.Either (Either(..))
 import Data.Foldable (find)
@@ -9,29 +8,43 @@ import Data.Maybe (Maybe)
 import Misc.Array (alterWhere)
 import Misc.ExpectAff (ExpectAff, ExpectArrayAff)
 import Types (Id)
-import ViewModels.Expression.Common (DrawingStatus, Status)
 import ViewModels.Expression (ExpressionViewModel(..))
+import ViewModels.Expression.Common (DrawingStatus, Status)
 
 expressionId :: ExpressionViewModel -> Id
 expressionId (Function vm) = vm.id
 
+expressionId (Parametric vm) = vm.id
+
 drawingStatus :: ExpressionViewModel -> DrawingStatus
 drawingStatus (Function vm) = vm.commands.status
+
+drawingStatus (Parametric vm) = vm.commands.status
 
 expressionStatus :: ExpressionViewModel -> Status
 expressionStatus (Function vm) = vm.status
 
+expressionStatus (Parametric vm) = vm.status
+
 expressionName :: ExpressionViewModel -> String
 expressionName (Function vm) = vm.name
+
+expressionName (Parametric vm) = vm.name
 
 expressionAccruacy :: ExpressionViewModel -> Number
 expressionAccruacy (Function vm) = vm.accuracy
 
+expressionAccruacy (Parametric vm) = vm.accuracy
+
 overwriteStatus :: Status -> ExpressionViewModel -> ExpressionViewModel
 overwriteStatus status (Function vm) = Function $ vm { status = status }
 
+overwriteStatus status (Parametric vm) = Parametric $ vm { status = status }
+
 overwriteName :: String -> ExpressionViewModel -> ExpressionViewModel
 overwriteName name (Function vm) = Function $ vm { name = name }
+
+overwriteName name (Parametric vm) = Parametric $ vm { name = name }
 
 findById :: Id -> Array ExpressionViewModel -> Maybe ExpressionViewModel
 findById id vms = find (\vm -> id == expressionId vm) vms

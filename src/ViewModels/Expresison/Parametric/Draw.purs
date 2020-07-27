@@ -4,31 +4,30 @@ import Prelude
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), isJust)
 import Draw.Commands (DrawCommand)
-import Expression.Syntax (Expression)
 import Misc.ExpectAff (ExpectAff, bindTo, pureRight)
 import Plot.Commands (roughParametricPlot)
 import Plot.JobBatcher (JobQueue, cancelAll)
 import Plot.PlotController (computePlotAsync)
 import Types (Size, XYBounds)
 import ViewModels.Expression.Common (AccuracyCalculator, DrawingStatus(..), Status(..))
-import ViewModels.Expression.Parametric (ParametricViewModel)
+import ViewModels.Expression.Parametric (ParametricExpression, ParametricViewModel, ParametricExpressionText)
 
-enqueueFunctionExpression :: ParametricViewModel -> Number -> Int -> XYBounds -> ExpectAff JobQueue
-enqueueFunctionExpression vm accuracyTarget batchSegmentCount bounds = case vm.expression of
+enqueueParametricExpression :: ParametricViewModel -> Number -> Int -> XYBounds -> ExpectAff JobQueue
+enqueueParametricExpression vm accuracyTarget batchSegmentCount bounds = case vm.expression of
   Nothing -> pure $ Right $ cancelAll vm.queue
   Just expression -> pure $ Right $ cancelAll vm.queue -- TODO: Add parametric robust to Queue
 
-withExpression :: ParametricViewModel -> ({ x :: Expression, y :: Expression } -> ExpectAff ParametricViewModel) -> ExpectAff ParametricViewModel
+withExpression :: ParametricViewModel -> (ParametricExpression -> ExpectAff ParametricViewModel) -> ExpectAff ParametricViewModel
 withExpression vm op = case vm.expression of
   Nothing -> pure $ Right vm
   Just expression -> op expression
 
-overwiteFunctionAccuracy :: ParametricViewModel -> Number -> AccuracyCalculator -> Int -> XYBounds -> ExpectAff ParametricViewModel
-overwiteFunctionAccuracy vm accuracyTarget toDomainAccuracy batchSegmentCount bounds = bindTo addRobustToQueue (pureRight <<< overwiteQueue)
+overwiteParametricAccuracy :: ParametricViewModel -> Number -> AccuracyCalculator -> Int -> XYBounds -> ExpectAff ParametricViewModel
+overwiteParametricAccuracy vm accuracyTarget toDomainAccuracy batchSegmentCount bounds = bindTo addRobustToQueue (pureRight <<< overwiteQueue)
   where
   addRobustToQueue =
     if startRobust then
-      enqueueFunctionExpression vm (toDomainAccuracy accuracyTarget) batchSegmentCount bounds
+      enqueueParametricExpression vm (toDomainAccuracy accuracyTarget) batchSegmentCount bounds
     else
       pure $ Right $ cancelAll vm.queue
 
@@ -47,8 +46,8 @@ overwiteFunctionAccuracy vm accuracyTarget toDomainAccuracy batchSegmentCount bo
       , accuracy = accuracyTarget
       }
 
-overwriteFunctionExpression :: ParametricViewModel -> Expression -> Expression -> String -> String -> Boolean -> AccuracyCalculator -> Int -> Size -> XYBounds -> ExpectAff ParametricViewModel
-overwriteFunctionExpression vm xExpression yExpression xText yText autoRobust toDomainAccuracy batchSegmentCount size bounds =
+overwriteParametricExpression :: ParametricViewModel -> ParametricExpression -> ParametricExpressionText -> Boolean -> AccuracyCalculator -> Int -> Size -> XYBounds -> ExpectAff ParametricViewModel
+overwriteParametricExpression vm { xExpression, yExpression } { xText, yText } autoRobust toDomainAccuracy batchSegmentCount size bounds =
   bindTo computeRoughCommands
     $ \newRoughCommands ->
         bindTo addRobustToQueue
@@ -67,9 +66,8 @@ overwriteFunctionExpression vm xExpression yExpression xText yText autoRobust to
   overwriteCommandsAndQueue :: DrawCommand Unit -> JobQueue -> ParametricViewModel
   overwriteCommandsAndQueue newRoughCommands queue =
     vm
-      { xExpressionText = xText
-      , yExpressionText = yText
-      , expression = Just { x: xExpression, y: yExpression }
+      { text = { xText, yText }
+      , expression = Just { xExpression, yExpression }
       , commands
         { rough = newRoughCommands
         , robust = pure unit
@@ -80,17 +78,17 @@ overwriteFunctionExpression vm xExpression yExpression xText yText autoRobust to
     where
     status = if autoRobust then RobustInProgress else DrawnRough
 
-drawRoughAndRobustFunction :: AccuracyCalculator -> Boolean -> Int -> Size -> XYBounds -> ParametricViewModel -> ExpectAff ParametricViewModel
-drawRoughAndRobustFunction toDomainAccuracy autoRobust batchSegmentCount size bounds vm = withExpression vm go
+drawRoughAndRobustParametric :: AccuracyCalculator -> Boolean -> Int -> Size -> XYBounds -> ParametricViewModel -> ExpectAff ParametricViewModel
+drawRoughAndRobustParametric toDomainAccuracy autoRobust batchSegmentCount size bounds vm = withExpression vm go
   where
-  go :: { x :: Expression, y :: Expression } -> ExpectAff ParametricViewModel
-  go { x, y } =
+  go :: ParametricExpression -> ExpectAff ParametricViewModel
+  go { xExpression, yExpression } =
     bindTo computeRoughCommands
       $ \newRoughCommands ->
           bindTo addRobustToQueue
             (pureRight <<< overwriteCommandsAndQueue newRoughCommands)
     where
-    computeRoughCommands = computePlotAsync size $ roughParametricPlot bounds vm.domain x y
+    computeRoughCommands = computePlotAsync size $ roughParametricPlot bounds vm.domain xExpression yExpression
 
     clearedQueue = cancelAll vm.queue
 
@@ -117,13 +115,13 @@ drawRoughAndRobustFunction toDomainAccuracy autoRobust batchSegmentCount size bo
         else
           DrawnRough
 
-drawRobustOnlyFunction :: AccuracyCalculator -> Int -> Size -> XYBounds -> ParametricViewModel -> ExpectAff ParametricViewModel
-drawRobustOnlyFunction toDomainAccuracy batchSegmentCount size bounds vm
+drawRobustOnlyParametric :: AccuracyCalculator -> Int -> Size -> XYBounds -> ParametricViewModel -> ExpectAff ParametricViewModel
+drawRobustOnlyParametric toDomainAccuracy batchSegmentCount size bounds vm
   | vm.commands.status == DrawnRobust || vm.status /= Robust = pure $ Right vm
   | otherwise = withExpression vm go
     where
-    go :: { x :: Expression, y :: Expression } -> ExpectAff ParametricViewModel
-    go { x, y } =
+    go :: ParametricExpression -> ExpectAff ParametricViewModel
+    go { xExpression, yExpression } =
       bindTo computeRoughCommands
         $ \newRoughCommands ->
             bindTo addRobustToQueue
@@ -131,7 +129,7 @@ drawRobustOnlyFunction toDomainAccuracy batchSegmentCount size bounds vm
       where
       addRobustToQueue = pure $ Right (cancelAll vm.queue) -- TODO: Add parametric robust to Queue
 
-      computeRoughCommands = computePlotAsync size $ roughParametricPlot bounds vm.domain x y
+      computeRoughCommands = computePlotAsync size $ roughParametricPlot bounds vm.domain xExpression yExpression
 
       overwriteCommandsAndQueue :: DrawCommand Unit -> JobQueue -> ParametricViewModel
       overwriteCommandsAndQueue drawCommands queue =
@@ -144,13 +142,13 @@ drawRobustOnlyFunction toDomainAccuracy batchSegmentCount size bounds vm
             }
           }
 
-drawRoughOnlyFunction :: AccuracyCalculator -> Size -> XYBounds -> ParametricViewModel -> ExpectAff ParametricViewModel
-drawRoughOnlyFunction toDomainAccuracy size bounds vm = withExpression vm go
+drawRoughOnlyParametric :: AccuracyCalculator -> Size -> XYBounds -> ParametricViewModel -> ExpectAff ParametricViewModel
+drawRoughOnlyParametric toDomainAccuracy size bounds vm = withExpression vm go
   where
-  go :: { x :: Expression, y :: Expression } -> ExpectAff ParametricViewModel
-  go { x, y } = bindTo computeRoughCommands (pureRight <<< overwriteCommands)
+  go :: ParametricExpression -> ExpectAff ParametricViewModel
+  go { xExpression, yExpression } = bindTo computeRoughCommands (pureRight <<< overwriteCommands)
     where
-    computeRoughCommands = computePlotAsync size $ roughParametricPlot bounds vm.domain x y
+    computeRoughCommands = computePlotAsync size $ roughParametricPlot bounds vm.domain xExpression yExpression
 
     overwriteCommands :: DrawCommand Unit -> ParametricViewModel
     overwriteCommands drawCommands =

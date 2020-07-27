@@ -15,8 +15,12 @@ countBatches = sum <<< map toBatchCount
   toBatchCount :: ExpressionViewModel -> Int
   toBatchCount (Function vm) = countJobs vm.queue
 
+  toBatchCount (Parametric vm) = countJobs vm.queue
+
 queueHasJobs :: ExpressionViewModel -> Boolean
 queueHasJobs (Function vm) = hasJobs vm.queue
+
+queueHasJobs (Parametric vm) = hasJobs vm.queue
 
 anyHasJobs :: Array ExpressionViewModel -> Boolean
 anyHasJobs = any queueHasJobs
@@ -27,17 +31,23 @@ cancelAllJobs = map cancel
   cancel :: ExpressionViewModel -> ExpressionViewModel
   cancel (Function vm) = Function $ vm { queue = cancelAll vm.queue }
 
+  cancel (Parametric vm) = Parametric $ vm { queue = cancelAll vm.queue }
+
 clearCancelledJobs :: Array ExpressionViewModel -> Array ExpressionViewModel
 clearCancelledJobs = map clear
   where
   clear :: ExpressionViewModel -> ExpressionViewModel
   clear (Function vm) = Function $ vm { queue = clearCancelled vm.queue }
 
+  clear (Parametric vm) = Parametric $ vm { queue = clearCancelled vm.queue }
+
 isJobCancelled :: Job -> Array ExpressionViewModel -> Boolean
 isJobCancelled job = any check
   where
   check :: ExpressionViewModel -> Boolean
   check (Function vm) = isCancelled vm.queue job.id
+
+  check (Parametric vm) = isCancelled vm.queue job.id
 
 setFirstRunningJob :: Array ExpressionViewModel -> Array ExpressionViewModel
 setFirstRunningJob vms = case uncons vms of
@@ -51,6 +61,8 @@ setFirstRunningJob vms = case uncons vms of
   go :: ExpressionViewModel -> ExpressionViewModel
   go (Function vm) = Function $ vm { queue = setRunning vm.queue }
 
+  go (Parametric vm) = Parametric $ vm { queue = setRunning vm.queue }
+
 runFirstJob :: Size -> Array ExpressionViewModel -> MaybeExpectAff JobResult
 runFirstJob size vms = case uncons vms of
   Nothing -> pure Nothing
@@ -62,3 +74,5 @@ runFirstJob size vms = case uncons vms of
   where
   go :: ExpressionViewModel -> MaybeExpectAff JobResult
   go (Function vm) = runFirst size vm.queue
+
+  go (Parametric vm) = runFirst size vm.queue

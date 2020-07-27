@@ -10,12 +10,8 @@ import ViewModels.Expression.Common (DrawingStatus(..), Status(..))
 
 type ParametricViewModel
   = { expression ::
-        Maybe
-          { x :: Expression
-          , y :: Expression
-          }
-    , xExpressionText :: String
-    , yExpressionText :: String
+        Maybe ParametricExpression
+    , text :: ParametricExpressionText
     , commands ::
         { robust :: DrawCommand Unit
         , rough :: DrawCommand Unit
@@ -29,13 +25,25 @@ type ParametricViewModel
     , accuracy :: Number
     }
 
+type ParametricExpression
+  = { xExpression :: Expression
+    , yExpression :: Expression
+    }
+
+type ParametricExpressionText
+  = { xText :: String
+    , yText :: String
+    }
+
 initialName :: Int -> String
 initialName id = "Parametric " <> (show id)
 
 newParametricViewModel :: Id -> ParametricViewModel
 newParametricViewModel id =
-  { xExpressionText: ""
-  , yExpressionText: ""
+  { text:
+      { xText: ""
+      , yText: ""
+      }
   , expression: Nothing
   , id
   , commands:

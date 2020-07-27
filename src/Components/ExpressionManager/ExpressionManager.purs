@@ -21,7 +21,7 @@ import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA as HA
 import ViewModels.Expression (ExpressionViewModel)
 import ViewModels.Expression.Generic (expressionId, expressionName, findById, expressionStatus, expressionAccruacy)
-import ViewModels.Expression.Unsafe (expressionText)
+import ViewModels.Expression.Unsafe (functionExpressionText)
 
 _expressionInput = SProxy :: SProxy "expressionInput"
 
@@ -190,7 +190,7 @@ handleAddExample index = do
         handleAction Add
         overwriteWithExample nextPlotId (NonEmptyArray.head example)
       Just example, Just selected -> do
-        if "" == expressionText selected then do
+        if "" == functionExpressionText selected then do
           overwriteWithExample (expressionId selected) (NonEmptyArray.head example)
         else do
           { nextPlotId } <- H.get
@@ -333,7 +333,7 @@ selectedExpressionPlot plots selectedPlotId = case findById selectedPlotId plots
     where
     component = expressionInputComponent expressionInputController (expressionId plot)
 
-    input = { expressionText: expressionText plot, status: expressionStatus plot, accuracy: expressionAccruacy plot }
+    input = { expressionText: functionExpressionText plot, status: expressionStatus plot, accuracy: expressionAccruacy plot }
 
     toAction = Just <<< HandleExpressionInput
 

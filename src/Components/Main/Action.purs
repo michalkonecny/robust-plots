@@ -30,7 +30,7 @@ import ViewModels.Expression.Job (anyHasJobs, clearCancelledJobs, countBatches, 
 import ViewModels.Expression.Draw (appendRobustDrawCommands, drawRobustOnly, drawRoughAndRobust, drawRoughOnly, overwiteAccuracy)
 import ViewModels.Expression.Generic (alterExpression, alterExpressionAsync, expressionId, overwriteName, overwriteStatus)
 import ViewModels.Expression.Common (fromPixelAccuracy)
-import ViewModels.Expression.Unsafe (overwriteExpression)
+import ViewModels.Expression.Unsafe (overwriteFunctionExpression)
 import Web.Event.Event as E
 import Web.HTML (window) as Web
 import Web.HTML.Window (toEventTarget) as Web
@@ -144,7 +144,7 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpressio
         fork
         handleAction ProcessNextJob
   where
-  updatePlotWithExpression = overwriteExpression expression text state.autoRobust state.batchCount state.input.size state.bounds
+  updatePlotWithExpression = overwriteFunctionExpression expression text state.autoRobust state.batchCount state.input.size state.bounds
 
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ChangedStatus id status)) = do
   H.modify_ (_ { plots = alterExpression (overwriteStatus status) id state.plots })
