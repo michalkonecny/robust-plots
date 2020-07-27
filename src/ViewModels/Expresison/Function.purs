@@ -33,21 +33,21 @@ enqueueFunctionExpression vm accuracyTarget batchSegmentCount bounds = case vm.e
   Just expression -> addPlot accuracyTarget batchSegmentCount (cancelAll vm.queue) bounds expression vm.expressionText vm.id
 
 overwiteFunctionAccuracy :: FunctionViewModel -> Number -> Int -> XYBounds -> ExpectAff FunctionViewModel
-overwiteFunctionAccuracy plot accuracyTarget batchSegmentCount bounds = handleError addRobustToQueue (pure <<< Right <<< overwiteQueue)
+overwiteFunctionAccuracy vm accuracyTarget batchSegmentCount bounds = handleError addRobustToQueue (pure <<< Right <<< overwiteQueue)
   where
   addRobustToQueue =
     if startRobust then
-      enqueueFunctionExpression plot accuracyTarget batchSegmentCount bounds
+      enqueueFunctionExpression vm accuracyTarget batchSegmentCount bounds
     else
-      pure $ Right $ cancelAll plot.queue
+      pure $ Right $ cancelAll vm.queue
 
-  startRobust = plot.status == Robust && (plot.commands.status == DrawnRobust || plot.commands.status == RobustInProgress)
+  startRobust = vm.status == Robust && (vm.commands.status == DrawnRobust || vm.commands.status == RobustInProgress)
 
-  status = if startRobust && isJust plot.expression then RobustInProgress else DrawnRough
+  status = if startRobust && isJust vm.expression then RobustInProgress else DrawnRough
 
   overwiteQueue :: JobQueue -> FunctionViewModel
   overwiteQueue queue =
-    plot
+    vm
       { commands
         { robust = pure unit
         , status = status
@@ -57,27 +57,25 @@ overwiteFunctionAccuracy plot accuracyTarget batchSegmentCount bounds = handleEr
       }
 
 overwriteFunctionExpression :: FunctionViewModel -> Expression -> String -> Boolean -> AccuracyCalculator -> Int -> Size -> XYBounds -> ExpectAff FunctionViewModel
-overwriteFunctionExpression plot expression text autoRobust toDomainAccuracy batchSegmentCount size bounds =
-  handleError roughCommands
+overwriteFunctionExpression vm expression text autoRobust toDomainAccuracy batchSegmentCount size bounds =
+  handleError computeRoughCommands
     $ \newRoughCommands ->
         handleError addRobustToQueue
-          $ (pure <<< Right <<< overwriteCommandsAndQueue newRoughCommands)
+          (pure <<< Right <<< overwriteCommandsAndQueue newRoughCommands)
   where
-  roughCommands = computePlotAsync size (roughPlot bounds expression text)
+  computeRoughCommands = computePlotAsync size $ roughPlot bounds expression text
+
+  clearedQueue = cancelAll vm.queue
 
   addRobustToQueue =
     if autoRobust then
-      addPlot (toDomainAccuracy plot.accuracy) batchSegmentCount (cancelAll plot.queue) bounds expression text plot.id
+      addPlot (toDomainAccuracy vm.accuracy) batchSegmentCount clearedQueue bounds expression text vm.id
     else
-      pure $ Right $ cancelAll plot.queue
-
-  status = if autoRobust then RobustInProgress else DrawnRough
-
-  name = if plot.name == defaultPlotName plot.id || plot.name == plot.expressionText then text else plot.name
+      pure $ Right clearedQueue
 
   overwriteCommandsAndQueue :: DrawCommand Unit -> JobQueue -> FunctionViewModel
   overwriteCommandsAndQueue newRoughCommands queue =
-    plot
+    vm
       { expressionText = text
       , expression = Just expression
       , commands
@@ -88,3 +86,7 @@ overwriteFunctionExpression plot expression text autoRobust toDomainAccuracy bat
       , queue = queue
       , name = name
       }
+    where
+    status = if autoRobust then RobustInProgress else DrawnRough
+
+    name = if vm.name == defaultPlotName vm.id || vm.name == vm.expressionText then text else vm.name
