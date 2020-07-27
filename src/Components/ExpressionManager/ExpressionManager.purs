@@ -117,13 +117,7 @@ render state =
                 [ className "form-inline" ]
                 [ HH.div
                     [ className "btn-group" ]
-                    [ HH.button
-                        [ className "btn btn-danger"
-                        , onClickActionEvent Clear
-                        ]
-                        [ HH.text "Clear plots" ]
-                    , renderButton state.allRobustDraw state.inProgress
-                    ]
+                    [ renderButton state.allRobustDraw state.inProgress ]
                 , HH.div
                     [ className "pl-2" ]
                     [ HH.slot _checkbox 1 (checkboxComponent "Auto") state.autoRobust (Just <<< HandleAutoToggle) ]
