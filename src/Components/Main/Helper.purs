@@ -5,7 +5,7 @@ import Prelude
 import Components.ExpressionInput (Status(..))
 import Components.ExpressionManager.Types (DrawingStatus(..), ExpressionPlot)
 import Components.Main.Types (State)
-import Control.Parallel (parSequence)
+import Control.Parallel (class Parallel, parSequence)
 import Data.Array (cons, fold, foldl, mapMaybe, uncons)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
@@ -47,7 +47,7 @@ alterPlot alterF id = alterWhere (\p -> p.id == id) alterF
 alterPlotAsync :: (ExpressionPlot -> Aff (Either Error ExpressionPlot)) -> Id -> Array ExpressionPlot -> Aff (Array (Either Error ExpressionPlot))
 alterPlotAsync alterF id = parSequence <<< map (\element -> if element.id == id then alterF element else pure $ Right element)
 
-alterWhereAsync :: forall a. (a -> Boolean) -> (a -> Aff a) -> Array a -> Aff (Array a)
+alterWhereAsync :: forall a m f. Parallel f m => (a -> Boolean) -> (a -> m a) -> Array a -> m (Array a)
 alterWhereAsync predicate alterF = parSequence <<< map (\element -> if predicate element then alterF element else pure element)
 
 countBatches :: Array ExpressionPlot -> Int

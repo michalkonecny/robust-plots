@@ -1,6 +1,8 @@
 module Misc.Array where
 
 import Prelude
+
+import Control.Parallel (class Parallel, parSequence)
 import Data.Array (length, singleton, slice, (..))
 
 -- | Seperates an array into a specified number of arrays. If the specified number of sub arrays is 
@@ -29,3 +31,6 @@ split splits values =
 -- | Applies the given mapping function to all the elements in the given `Array` that conform to the given predicate.
 alterWhere :: forall a. (a -> Boolean) -> (a -> a) -> Array a -> Array a
 alterWhere predicate alterF = map (\element -> if predicate element then alterF element else element)
+
+alterWhereParallel :: forall a m f. Parallel f m => (a -> Boolean) -> (a -> m a) -> Array a -> m (Array a)
+alterWhereParallel predicate alterF = parSequence <<< map (\element -> if predicate element then alterF element else pure element)
