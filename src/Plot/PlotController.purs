@@ -28,6 +28,8 @@ runComputation canvasSize commands callback = do
 runCommand :: Size -> PlotCommand -> DrawCommand Unit
 runCommand _ (Empty bounds) = clearAndDrawGridLines bounds
 
-runCommand canvasSize (RoughFunctionPlot bounds expression label) = drawRoughPlot canvasSize bounds expression label
+runCommand canvasSize (RoughFunctionPlot bounds expression) = drawRoughPlot canvasSize bounds expression
 
-runCommand canvasSize (RobustPlot bounds expression domainSegments accuracyTarget label) = drawRobustPlot canvasSize bounds expression domainSegments accuracyTarget label
+runCommand canvasSize (RobustPlot bounds expression domainSegments accuracyTarget) = drawRobustPlot canvasSize bounds expression domainSegments accuracyTarget
+
+runCommand canvasSize (RoughParametricPlot bounds domain xExpression yExpression) = pure unit -- TODO: draw rough parametric plot

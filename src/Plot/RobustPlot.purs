@@ -27,8 +27,8 @@ shouldLogSubsegments = false
 shouldLogEnclosures :: Boolean
 shouldLogEnclosures = false
 
-drawRobustPlot :: Size -> XYBounds -> Expression -> Array (Tuple Depth Approx) -> Number -> String -> DrawCommand Unit
-drawRobustPlot canvasSize bounds expression domainSegments accuracyTarget label = drawCommands
+drawRobustPlot :: Size -> XYBounds -> Expression -> Array (Tuple Depth Approx) -> Number -> DrawCommand Unit
+drawRobustPlot canvasSize bounds expression domainSegments accuracyTarget = drawCommands
   where
   segmentEnclosures = plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator: evaluateWithX, evaluator2: evaluateWithX2 }
 

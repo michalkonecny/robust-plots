@@ -16,8 +16,8 @@ import IntervalArith.Misc (rationalToNumber)
 import Math (abs, e, pi)
 import Types (Size, XYBounds, Position)
 
-drawRoughPlot :: Size -> XYBounds -> Expression -> String -> DrawCommand Unit
-drawRoughPlot canvasSize bounds expression label = drawCommands
+drawRoughPlot :: Size -> XYBounds -> Expression -> DrawCommand Unit
+drawRoughPlot canvasSize bounds expression = drawCommands
   where
   f = evaluateWithX expression
 

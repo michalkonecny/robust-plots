@@ -1,7 +1,6 @@
 module ViewModels.Expression.Function.Draw where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), isJust)
 import Draw.Commands (DrawCommand)
@@ -17,7 +16,7 @@ import ViewModels.Expression.Function (FunctionViewModel, initialName)
 enqueueFunctionExpression :: FunctionViewModel -> Number -> Int -> XYBounds -> ExpectAff JobQueue
 enqueueFunctionExpression vm accuracyTarget batchSegmentCount bounds = case vm.expression of
   Nothing -> pure $ Right $ cancelAll vm.queue
-  Just expression -> addPlot accuracyTarget batchSegmentCount (cancelAll vm.queue) bounds expression vm.expressionText vm.id
+  Just expression -> addPlot accuracyTarget batchSegmentCount (cancelAll vm.queue) bounds expression vm.id
 
 withExpression :: FunctionViewModel -> (Expression -> ExpectAff FunctionViewModel) -> ExpectAff FunctionViewModel
 withExpression vm op = case vm.expression of
@@ -55,13 +54,13 @@ overwriteFunctionExpression vm expression text autoRobust toDomainAccuracy batch
         bindTo addRobustToQueue
           (pureRight <<< overwriteCommandsAndQueue newRoughCommands)
   where
-  computeRoughCommands = computePlotAsync size $ roughPlot bounds expression text
+  computeRoughCommands = computePlotAsync size $ roughPlot bounds expression
 
   clearedQueue = cancelAll vm.queue
 
   addRobustToQueue =
     if autoRobust then
-      addPlot (toDomainAccuracy vm.accuracy) batchSegmentCount clearedQueue bounds expression text vm.id
+      addPlot (toDomainAccuracy vm.accuracy) batchSegmentCount clearedQueue bounds expression vm.id
     else
       pure $ Right clearedQueue
 
@@ -93,13 +92,13 @@ drawRoughAndRobustFunction toDomainAccuracy autoRobust batchSegmentCount size bo
           bindTo addRobustToQueue
             (pureRight <<< overwriteCommandsAndQueue newRoughCommands)
     where
-    computeRoughCommands = computePlotAsync size $ roughPlot bounds expression vm.expressionText
+    computeRoughCommands = computePlotAsync size $ roughPlot bounds expression
 
     clearedQueue = cancelAll vm.queue
 
     addRobustToQueue =
       if autoRobust && vm.status == Robust then
-        addPlot (toDomainAccuracy vm.accuracy) batchSegmentCount clearedQueue bounds expression vm.expressionText vm.id
+        addPlot (toDomainAccuracy vm.accuracy) batchSegmentCount clearedQueue bounds expression vm.id
       else
         pure $ Right $ clearedQueue
 
@@ -132,9 +131,9 @@ drawRobustOnlyFunction toDomainAccuracy batchSegmentCount size bounds vm
             bindTo addRobustToQueue
               (pureRight <<< overwriteCommandsAndQueue newRoughCommands)
       where
-      addRobustToQueue = addPlot (toDomainAccuracy vm.accuracy) batchSegmentCount (cancelAll vm.queue) bounds expression vm.expressionText vm.id
+      addRobustToQueue = addPlot (toDomainAccuracy vm.accuracy) batchSegmentCount (cancelAll vm.queue) bounds expression vm.id
 
-      computeRoughCommands = computePlotAsync size $ roughPlot bounds expression vm.expressionText
+      computeRoughCommands = computePlotAsync size $ roughPlot bounds expression
 
       overwriteCommandsAndQueue :: DrawCommand Unit -> JobQueue -> FunctionViewModel
       overwriteCommandsAndQueue drawCommands queue =
@@ -153,7 +152,7 @@ drawRoughOnlyFunction toDomainAccuracy size bounds vm = withExpression vm go
   go :: Expression -> ExpectAff FunctionViewModel
   go expression = bindTo computeRoughCommands (pureRight <<< overwriteCommands)
     where
-    computeRoughCommands = computePlotAsync size $ roughPlot bounds expression vm.expressionText
+    computeRoughCommands = computePlotAsync size $ roughPlot bounds expression
 
     overwriteCommands :: DrawCommand Unit -> FunctionViewModel
     overwriteCommands drawCommands =
