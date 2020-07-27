@@ -4,7 +4,7 @@ import Prelude
 import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..), canvasSizeToBounds)
 import Components.Canvas (CanvasMessage(..), calculateNewCanvasSize)
-import Components.ExpressionInput (ExpressionInputMessage(..))
+import Components.FunctionExpressionInput (FunctionExpressionInputMessage(..))
 import Components.ExpressionManager (ExpressionManagerMessage(..))
 import Components.Main.Helper (foldDrawCommands)
 import Components.Main.Types (ChildSlots, Config, State)
@@ -133,7 +133,7 @@ handleCanvasMessage state StoppedDragging = redraw state
 handleCanvasMessage state (Scrolled isZoomedIn) = handleAction $ Zoom isZoomedIn
 
 handleExpressionPlotMessage :: forall output. State -> ExpressionManagerMessage -> HalogenMain output Unit
-handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpression id expression text)) = do
+handleExpressionPlotMessage state (RaisedFunctionExpressionInputMessage (ParsedExpression id expression text)) = do
   clearGlobalError
   plotsOrError <- H.liftAff $ alterExpressionAsync updatePlotWithExpression id state.plots
   handleError (toFirstError plotsOrError)
@@ -146,11 +146,11 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpressio
   where
   updatePlotWithExpression = overwriteFunctionExpression expression text state.autoRobust state.batchCount state.input.size state.bounds
 
-handleExpressionPlotMessage state (RaisedExpressionInputMessage (ChangedStatus id status)) = do
+handleExpressionPlotMessage state (RaisedFunctionExpressionInputMessage (ChangedStatus id status)) = do
   H.modify_ (_ { plots = alterExpression (overwriteStatus status) id state.plots })
   handleAction DrawPlot
 
-handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedAccuracy id accuracy)) = do
+handleExpressionPlotMessage state (RaisedFunctionExpressionInputMessage (ParsedAccuracy id accuracy)) = do
   clearGlobalError
   H.modify_ (_ { inProgress = true })
   fork

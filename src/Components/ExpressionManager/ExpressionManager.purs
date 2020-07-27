@@ -5,8 +5,8 @@ import Components.Checkbox (CheckboxSlot, CheckboxMessage(..), checkboxComponent
 import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onSelectedIndexChangeActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (appendClassNameIf, className, classNameIf)
 import Components.Common.Styles (style)
-import Components.ExpressionInput (ExpressionInputSlot, ExpressionInputMessage(..), expressionInputComponent, parseAndCheckExpression)
-import Components.ExpressionInput.Controller (expressionInputController)
+import Components.FunctionExpressionInput (FunctionExpressionInputSlot, FunctionExpressionInputMessage(..), functionExpressionInputComponent, parseAndCheckExpression)
+import Components.FunctionExpressionInput.Controller (expressionInputController)
 import Data.Array (catMaybes, head, length, (!!))
 import Data.Array.NonEmpty (NonEmptyArray, cons')
 import Data.Array.NonEmpty as NonEmptyArray
@@ -31,7 +31,7 @@ type ExpressionManagerSlot p
   = forall q. H.Slot q ExpressionManagerMessage p
 
 type ChildSlots
-  = ( expressionInput :: ExpressionInputSlot Int
+  = ( expressionInput :: FunctionExpressionInputSlot Int
     , checkbox :: CheckboxSlot Int
     )
 
@@ -58,7 +58,7 @@ data ExpressionManagerMessage
   | ClearPlots
   | DeletePlot Int
   | RenamePlot Int String
-  | RaisedExpressionInputMessage ExpressionInputMessage
+  | RaisedFunctionExpressionInputMessage FunctionExpressionInputMessage
   | ToggleAuto Boolean
   | CalulateRobustPlots
 
@@ -71,7 +71,7 @@ data Action
   | Rename
   | HandleInput String
   | ChangeSelected Int
-  | HandleExpressionInput ExpressionInputMessage
+  | HandleFunctionExpressionInput FunctionExpressionInputMessage
   | HandleAutoToggle CheckboxMessage
   | CalulateRobust
   | SelectedExample Int
@@ -174,7 +174,7 @@ handleAction = case _ of
     { selectedPlotId, plots } <- H.get
     when ((plotExists plots plotId) && selectedPlotId /= plotId) do
       H.modify_ (_ { selectedPlotId = plotId, editingSelected = false, editedName = selectedPlotName plots plotId })
-  HandleExpressionInput message -> H.raise $ RaisedExpressionInputMessage message
+  HandleFunctionExpressionInput message -> H.raise $ RaisedFunctionExpressionInputMessage message
   HandleAutoToggle (ToggleChanged isChecked) -> H.raise $ ToggleAuto isChecked
   CalulateRobust -> H.raise CalulateRobustPlots
   SelectedExample index -> handleAddExample index
@@ -200,7 +200,7 @@ handleAddExample index = do
 overwriteWithExample :: forall m. MonadEffect m => Int -> String -> H.HalogenM State Action ChildSlots ExpressionManagerMessage m Unit
 overwriteWithExample id example = case parseAndCheckExpression expressionInputController example of
   Left _ -> pure unit
-  Right expression -> H.raise $ RaisedExpressionInputMessage $ ParsedExpression id (expressionInputController.clean expression) example
+  Right expression -> H.raise $ RaisedFunctionExpressionInputMessage $ ParsedExpression id (expressionInputController.clean expression) example
 
 infix 6 cons' as :.
 
@@ -331,11 +331,11 @@ selectedExpressionPlot plots selectedPlotId = case findById selectedPlotId plots
   Nothing -> HH.text $ "Error: Plot " <> (show selectedPlotId) <> " does not exist"
   Just plot -> HH.slot _expressionInput (expressionId plot) component input toAction
     where
-    component = expressionInputComponent expressionInputController (expressionId plot)
+    component = functionExpressionInputComponent expressionInputController (expressionId plot)
 
     input = { expressionText: functionExpressionText plot, status: expressionStatus plot, accuracy: expressionAccruacy plot }
 
-    toAction = Just <<< HandleExpressionInput
+    toAction = Just <<< HandleFunctionExpressionInput
 
 plotExists :: Array ExpressionViewModel -> Int -> Boolean
 plotExists plots plotId = isJust (findById plotId plots)

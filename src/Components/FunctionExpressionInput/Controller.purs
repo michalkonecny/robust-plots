@@ -1,4 +1,4 @@
-module Components.ExpressionInput.Controller where
+module Components.FunctionExpressionInput.Controller where
 
 import Prelude
 import Data.Either (Either(..))
@@ -12,14 +12,14 @@ import Expression.Simplifier (simplify)
 import Expression.SubExpression (joinCommonSubExpressions)
 import Expression.Syntax (Expression)
 
-type ExpressionInputController
+type FunctionExpressionInputController
   = { parse :: String -> Expect Expression
     , clean :: Expression -> Expression
     , checkExpression :: Expression -> Expect (ValueAndDerivative Number)
     , checkAccuracy :: String -> Either Number String
     }
 
-expressionInputController :: ExpressionInputController
+expressionInputController :: FunctionExpressionInputController
 expressionInputController = { parse, clean: simplify >>> joinCommonSubExpressions, checkExpression, checkAccuracy }
 
 checkExpression :: Expression -> Expect (ValueAndDerivative Number)
