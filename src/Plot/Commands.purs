@@ -7,20 +7,20 @@ import Types (XYBounds)
 
 data PlotCommand
   = Empty XYBounds
-  | RoughPlot XYBounds Expression String
+  | RoughFunctionPlot XYBounds Expression String
   | RobustPlot XYBounds Expression (Array (Tuple Depth Approx)) Number String
 
 type Depth
   = Int
 
 roughPlot :: XYBounds -> Expression -> String -> PlotCommand
-roughPlot = RoughPlot
+roughPlot = RoughFunctionPlot
 
 clear :: XYBounds -> PlotCommand
 clear = Empty
 
 isPlotExpression :: PlotCommand -> Boolean
-isPlotExpression (RoughPlot _ _ _) = true
+isPlotExpression (RoughFunctionPlot _ _ _) = true
 
 isPlotExpression (Empty _) = false
 

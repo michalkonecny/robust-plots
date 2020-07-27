@@ -1,4 +1,4 @@
-module Plot.RoughPlot where
+module Plot.RoughFunctionPlot where
 
 import Prelude
 

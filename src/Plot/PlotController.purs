@@ -11,7 +11,7 @@ import Effect.Exception (try)
 import Plot.Commands (PlotCommand(..))
 import Plot.GridLines (clearAndDrawGridLines)
 import Plot.RobustPlot (drawRobustPlot)
-import Plot.RoughPlot (drawRoughPlot)
+import Plot.RoughFunctionPlot (drawRoughPlot)
 import Types (Size)
 
 computePlotAsync :: Size -> PlotCommand -> Aff (Either Error (DrawCommand Unit))
@@ -28,6 +28,6 @@ runComputation canvasSize commands callback = do
 runCommand :: Size -> PlotCommand -> DrawCommand Unit
 runCommand _ (Empty bounds) = clearAndDrawGridLines bounds
 
-runCommand canvasSize (RoughPlot bounds expression label) = drawRoughPlot canvasSize bounds expression label
+runCommand canvasSize (RoughFunctionPlot bounds expression label) = drawRoughPlot canvasSize bounds expression label
 
 runCommand canvasSize (RobustPlot bounds expression domainSegments accuracyTarget label) = drawRobustPlot canvasSize bounds expression domainSegments accuracyTarget label
