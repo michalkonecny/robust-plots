@@ -19,7 +19,9 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA as HA
-import ViewModels.Expression (ExpressionViewModel, expressionId, expressionName, expressionText, findById, expressionStatus, expressionAccruacy)
+import ViewModels.Expression (ExpressionViewModel)
+import ViewModels.Expression.Generic (expressionId, expressionName, findById, expressionStatus, expressionAccruacy)
+import ViewModels.Expression.Unsafe (expressionText)
 
 _expressionInput = SProxy :: SProxy "expressionInput"
 

@@ -7,7 +7,7 @@ import Draw.Commands (DrawCommand)
 import IntervalArith.Misc (rationalToNumber)
 import Plot.Label (textHeight)
 import Types (Position, Size)
-import ViewModels.Expression (labelCommands, toMaybeDrawCommand)
+import ViewModels.Expression.Draw (labelCommands, toMaybeDrawCommand)
 
 foldDrawCommands :: State -> DrawCommand Unit
 foldDrawCommands state = fold ([ state.clearPlot ] <> (mapMaybe toMaybeDrawCommand state.plots) <> [ labelCommands (isOffCanvasCheck state.input.size) state.plots ])

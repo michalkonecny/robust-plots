@@ -19,6 +19,3 @@ data Status
   | Robust
 
 derive instance statusEq :: Eq Status
-
-defaultPlotName :: Int -> String
-defaultPlotName id = "Plot " <> (show id)

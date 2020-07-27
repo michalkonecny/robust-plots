@@ -1,6 +1,7 @@
 module ViewModels.Expression.Function.Draw where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), isJust)
 import Draw.Commands (DrawCommand)
@@ -10,8 +11,8 @@ import Plot.Commands (roughPlot)
 import Plot.JobBatcher (JobQueue, addPlot, cancelAll)
 import Plot.PlotController (computePlotAsync)
 import Types (Size, XYBounds)
-import ViewModels.Expression.Common (AccuracyCalculator, DrawingStatus(..), Status(..), defaultPlotName)
-import ViewModels.Expression.Function (FunctionViewModel)
+import ViewModels.Expression.Common (AccuracyCalculator, DrawingStatus(..), Status(..))
+import ViewModels.Expression.Function (FunctionViewModel, initialName)
 
 enqueueFunctionExpression :: FunctionViewModel -> Number -> Int -> XYBounds -> ExpectAff JobQueue
 enqueueFunctionExpression vm accuracyTarget batchSegmentCount bounds = case vm.expression of
@@ -80,7 +81,7 @@ overwriteFunctionExpression vm expression text autoRobust toDomainAccuracy batch
     where
     status = if autoRobust then RobustInProgress else DrawnRough
 
-    name = if vm.name == defaultPlotName vm.id || vm.name == vm.expressionText then text else vm.name
+    name = if vm.name == initialName vm.id || vm.name == vm.expressionText then text else vm.name
 
 drawRoughAndRobustFunction :: AccuracyCalculator -> Boolean -> Int -> Size -> XYBounds -> FunctionViewModel -> ExpectAff FunctionViewModel
 drawRoughAndRobustFunction toDomainAccuracy autoRobust batchSegmentCount size bounds vm = withExpression vm go

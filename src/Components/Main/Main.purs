@@ -1,7 +1,6 @@
 module Components.Main where
 
 import Prelude
-
 import Components.BatchInput (batchInputComponent)
 import Components.BoundsInput (boundsInputComponent, canvasSizeToBounds)
 import Components.Canvas (canvasComponent, defaultCanvasSize)
@@ -25,7 +24,8 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Types (Direction(..))
-import ViewModels.Expression (allRobustComplete, newFunctionExpressionViewModel)
+import ViewModels.Expression (newFunctionExpressionViewModel)
+import ViewModels.Expression.Draw (allRobustComplete)
 
 _canvas = SProxy :: SProxy "canvas"
 

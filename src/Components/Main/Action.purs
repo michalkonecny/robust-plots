@@ -25,7 +25,10 @@ import Plot.Pan (panBounds, panBoundsByVector)
 import Plot.PlotController (computePlotAsync)
 import Plot.Zoom (zoomBounds)
 import Types (Direction, XYBounds)
-import ViewModels.Expression (ExpressionViewModel, alterExpression, alterExpressionAsync, anyHasJobs, appendRobustDrawCommands, clearCancelledJobs, countBatches, drawRobustOnly, drawRoughAndRobust, drawRoughOnly, expressionId, fromPixelAccuracy, isJobCancelled, newFunctionExpressionViewModel, overwiteAccuracy, overwriteExpression, overwriteName, overwriteStatus, runFirstJob, setFirstRunningJob)
+import ViewModels.Expression (ExpressionViewModel, newFunctionExpressionViewModel)
+import ViewModels.Expression.Job (anyHasJobs, clearCancelledJobs, countBatches, isJobCancelled, runFirstJob, setFirstRunningJob)
+import ViewModels.Expression.Draw (appendRobustDrawCommands, drawRobustOnly, drawRoughAndRobust, drawRoughOnly, fromPixelAccuracy, overwiteAccuracy, overwriteExpression)
+import ViewModels.Expression.Generic (alterExpression, alterExpressionAsync, expressionId, overwriteName, overwriteStatus)
 import Web.Event.Event as E
 import Web.HTML (window) as Web
 import Web.HTML.Window (toEventTarget) as Web

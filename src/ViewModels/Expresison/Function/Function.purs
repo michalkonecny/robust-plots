@@ -1,16 +1,12 @@
 module ViewModels.Expression.Function where
 
 import Prelude
-import Data.Either (Either(..))
-import Data.Maybe (Maybe(..), isJust)
+import Data.Maybe (Maybe(..))
 import Draw.Commands (DrawCommand)
 import Expression.Syntax (Expression)
-import Misc.ExpectAff (ExpectAff, bindTo, pureRight)
-import Plot.Commands (roughPlot)
-import Plot.JobBatcher (JobQueue, addPlot, cancelAll, initialJobQueue)
-import Plot.PlotController (computePlotAsync)
-import Types (Size, XYBounds, Id)
-import ViewModels.Expression.Common (AccuracyCalculator, DrawingStatus(..), Status(..), defaultPlotName)
+import Plot.JobBatcher (JobQueue, initialJobQueue)
+import Types (Id)
+import ViewModels.Expression.Common (DrawingStatus(..), Status(..))
 
 type FunctionViewModel
   = { expression :: Maybe Expression
