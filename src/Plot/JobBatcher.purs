@@ -34,7 +34,7 @@ import Plot.Commands (PlotCommand(..), Depth)
 import Plot.PlotController (computePlotAsync)
 import Plot.RoughPlot (evaluateWithX)
 import Plot.Segments (segmentDomain)
-import Types (Id, Size, XYBounds, Bounds)
+import Types (Id, Size, XYBounds)
 
 type JobQueue
   = { cancelled :: S.Set Id
@@ -108,8 +108,8 @@ setRunning jobQueue = case Q.peek jobQueue.queue of
   Just job -> jobQueue { running = pure job, queue = Q.tail jobQueue.queue }
 
 -- | Executes the `Job` at the front of the queue.
-runFirst :: Size -> Bounds -> JobQueue -> Aff (Maybe (Either Error JobResult))
-runFirst canvasSize bounds jobQueue = runMaybeJob (runJob canvasSize) jobQueue.cancelled maybeJob
+runFirst :: Size -> JobQueue -> Aff (Maybe (Either Error JobResult))
+runFirst canvasSize jobQueue = runMaybeJob (runJob canvasSize) jobQueue.cancelled maybeJob
   where
   maybeJob = Q.peek jobQueue.queue
 

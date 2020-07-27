@@ -2,7 +2,7 @@ module ViewModels.Expression where
 
 import Prelude
 import Control.Parallel (parSequence)
-import Data.Array (cons, uncons)
+import Data.Array (cons, find, uncons)
 import Data.Either (Either(..))
 import Data.Foldable (all, any, fold, sum)
 import Data.Maybe (Maybe(..))
@@ -10,13 +10,14 @@ import Data.String (splitAt)
 import Data.Tuple (Tuple(..))
 import Draw.Commands (DrawCommand)
 import Expression.Syntax (Expression)
+import IntervalArith.Misc (rationalToNumber)
 import Misc.Array (alterWhere)
 import Misc.ExpectAff (ExpectAff, ExpectArrayAff, MaybeExpectAff, mapExpectAff)
-import Plot.JobBatcher (Job, JobQueue, JobResult, cancelAll, clearCancelled, countJobs, hasJobs, initialJobQueue, isCancelled, runFirst, setRunning)
+import Plot.JobBatcher (Job, JobQueue, JobResult, cancelAll, clearCancelled, countJobs, hasJobs, isCancelled, runFirst, setRunning)
 import Plot.Label (LabelledDrawCommand, drawRoughLabels)
 import Types (Id, Size, XYBounds, Position)
 import ViewModels.Expression.Common (AccuracyCalculator, DrawingStatus(..), Status(..))
-import ViewModels.Expression.Function (FunctionViewModel, drawRobustOnlyFunction, drawRoughAndRobustFunction, drawRoughOnlyFunction, enqueueFunctionExpression, overwiteFunctionAccuracy, overwriteFunctionExpression)
+import ViewModels.Expression.Function (FunctionViewModel, drawRobustOnlyFunction, drawRoughAndRobustFunction, drawRoughOnlyFunction, enqueueFunctionExpression, newFunctionViewModel, overwiteFunctionAccuracy, overwriteFunctionExpression)
 
 data ExpressionViewModel
   = Function FunctionViewModel
@@ -35,57 +36,76 @@ expressionId (Function vm) = vm.id
 drawingStatus :: ExpressionViewModel -> DrawingStatus
 drawingStatus (Function vm) = vm.commands.status
 
-overwiteAccuracy :: ExpressionViewModel -> Number -> Int -> XYBounds -> ExpectAff ExpressionViewModel
-overwiteAccuracy (Function vm) accuracyTarget batchSegmentCount bounds =
+expressionStatus :: ExpressionViewModel -> Status
+expressionStatus (Function vm) = vm.status
+
+expressionName :: ExpressionViewModel -> String
+expressionName (Function vm) = vm.name
+
+expressionText :: ExpressionViewModel -> String
+expressionText (Function vm) = vm.expressionText
+
+expressionAccruacy :: ExpressionViewModel -> Number
+expressionAccruacy (Function vm) = vm.accuracy
+
+overwriteStatus :: Status -> ExpressionViewModel -> ExpressionViewModel
+overwriteStatus status (Function vm) = Function $ vm { status = status }
+
+overwriteName :: String -> ExpressionViewModel -> ExpressionViewModel
+overwriteName name (Function vm) = Function $ vm { name = name }
+
+findById :: Id -> Array ExpressionViewModel -> Maybe ExpressionViewModel
+findById id vms = find (\vm -> id == expressionId vm) vms
+
+overwiteAccuracy :: Number -> AccuracyCalculator -> Int -> XYBounds -> ExpressionViewModel -> ExpectAff ExpressionViewModel
+overwiteAccuracy accuracyTarget toDomainAccuracy batchSegmentCount bounds (Function vm) =
   mapExpectAff Function
     $ overwiteFunctionAccuracy
         vm
         accuracyTarget
+        toDomainAccuracy
         batchSegmentCount
         bounds
 
-overwriteExpression :: ExpressionViewModel -> Expression -> String -> Boolean -> AccuracyCalculator -> Int -> Size -> XYBounds -> ExpectAff ExpressionViewModel
-overwriteExpression (Function vm) expression text autoRobust toDomainAccuracy batchSegmentCount size bounds =
+overwriteExpression :: Expression -> String -> Boolean -> Int -> Size -> XYBounds -> ExpressionViewModel -> ExpectAff ExpressionViewModel
+overwriteExpression expression text autoRobust batchSegmentCount size bounds (Function vm) =
   mapExpectAff Function
     $ overwriteFunctionExpression
         vm
         expression
         text
         autoRobust
-        toDomainAccuracy
+        (fromPixelAccuracy size bounds)
         batchSegmentCount
         size
         bounds
 
-drawRoughAndRobust :: AccuracyCalculator -> Boolean -> Int -> Size -> XYBounds -> ExpressionViewModel -> ExpectAff ExpressionViewModel
-drawRoughAndRobust toDomainAccuracy autoRobust batchSegmentCount size bounds (Function vm) =
+drawRoughAndRobust :: Boolean -> Int -> Size -> XYBounds -> ExpressionViewModel -> ExpectAff ExpressionViewModel
+drawRoughAndRobust autoRobust batchSegmentCount size bounds (Function vm) =
   mapExpectAff Function
     $ drawRoughAndRobustFunction
-        toDomainAccuracy
+        (fromPixelAccuracy size bounds)
         autoRobust
         batchSegmentCount
         size
         bounds
         vm
 
-drawRobustOnly :: AccuracyCalculator -> Boolean -> Int -> Size -> XYBounds -> ExpressionViewModel -> ExpectAff ExpressionViewModel
-drawRobustOnly toDomainAccuracy autoRobust batchSegmentCount size bounds (Function vm) =
+drawRobustOnly :: Int -> Size -> XYBounds -> ExpressionViewModel -> ExpectAff ExpressionViewModel
+drawRobustOnly batchSegmentCount size bounds (Function vm) =
   mapExpectAff Function
     $ drawRobustOnlyFunction
-        toDomainAccuracy
-        autoRobust
+        (fromPixelAccuracy size bounds)
         batchSegmentCount
         size
         bounds
         vm
 
-drawRoughOnly :: AccuracyCalculator -> Boolean -> Int -> Size -> XYBounds -> ExpressionViewModel -> ExpectAff ExpressionViewModel
-drawRoughOnly toDomainAccuracy autoRobust batchSegmentCount size bounds (Function vm) =
+drawRoughOnly :: Size -> XYBounds -> ExpressionViewModel -> ExpectAff ExpressionViewModel
+drawRoughOnly size bounds (Function vm) =
   mapExpectAff Function
     $ drawRoughOnlyFunction
-        toDomainAccuracy
-        autoRobust
-        batchSegmentCount
+        (fromPixelAccuracy size bounds)
         size
         bounds
         vm
@@ -97,27 +117,15 @@ alterExpressionAsync :: (ExpressionViewModel -> ExpectAff ExpressionViewModel) -
 alterExpressionAsync alterF id = parSequence <<< map (\e -> if id == expressionId e then alterF e else pure $ Right e)
 
 appendRobustDrawCommands :: DrawCommand Unit -> ExpressionViewModel -> ExpressionViewModel
-appendRobustDrawCommands commands (Function vm) = Function $ vm { commands { robust = fold [ vm.commands.robust, commands ] } }
+appendRobustDrawCommands commands (Function vm) = Function $ vm { commands { robust = fold [ vm.commands.robust, commands ], status = status } }
+  where
+  status = if hasJobs vm.queue then vm.commands.status else DrawnRobust
 
 initialName :: Int -> String
 initialName id = "Function " <> (show id)
 
-newFunctionViewModel :: Id -> ExpressionViewModel
-newFunctionViewModel id =
-  Function
-    $ { expressionText: ""
-      , expression: Nothing
-      , id
-      , commands:
-          { robust: pure unit
-          , rough: pure unit
-          , status: DrawnNone
-          }
-      , queue: initialJobQueue
-      , status: Robust
-      , name: initialName id
-      , accuracy: 2.0
-      }
+newFunctionExpressionViewModel :: Id -> ExpressionViewModel
+newFunctionExpressionViewModel = Function <<< newFunctionViewModel
 
 countBatches :: Array ExpressionViewModel -> Int
 countBatches = sum <<< map toBatchCount
@@ -173,7 +181,7 @@ setFirstRunningJob vms = case uncons vms of
   go (Function vm) = Function $ vm { queue = setRunning vm.queue }
 
 runFirstJob :: Size -> Array ExpressionViewModel -> MaybeExpectAff JobResult
-runFirstJob size plots = case uncons plots of
+runFirstJob size vms = case uncons vms of
   Nothing -> pure Nothing
   Just { head, tail } ->
     if queueHasJobs head then
@@ -193,3 +201,10 @@ toMaybeDrawCommand (Function plot) = case plot.expression of
       DrawnRobust -> Just plot.commands.robust
       _ -> Just $ fold [ plot.commands.rough, plot.commands.robust ]
   Nothing -> Nothing
+
+fromPixelAccuracy :: Size -> XYBounds -> Number -> Number
+fromPixelAccuracy canvasSize bounds pixelAccuracy = pixelAccuracy * pixelToDomainRatio
+  where
+  rangeY = bounds.yBounds.upper - bounds.yBounds.lower
+
+  pixelToDomainRatio = rationalToNumber $ rangeY / canvasSize.height

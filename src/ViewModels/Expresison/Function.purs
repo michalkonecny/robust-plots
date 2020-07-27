@@ -7,9 +7,9 @@ import Draw.Commands (DrawCommand)
 import Expression.Syntax (Expression)
 import Misc.ExpectAff (ExpectAff, bindTo, pureRight)
 import Plot.Commands (roughPlot)
-import Plot.JobBatcher (JobQueue, addPlot, cancelAll)
+import Plot.JobBatcher (JobQueue, addPlot, cancelAll, initialJobQueue)
 import Plot.PlotController (computePlotAsync)
-import Types (XYBounds, Size)
+import Types (Size, XYBounds, Id)
 import ViewModels.Expression.Common (AccuracyCalculator, DrawingStatus(..), Status(..), defaultPlotName)
 
 type FunctionViewModel
@@ -20,12 +20,31 @@ type FunctionViewModel
         , rough :: DrawCommand Unit
         , status :: DrawingStatus
         }
-    , id :: Int
+    , id :: Id
     , queue :: JobQueue
     , status :: Status
     , name :: String
     , accuracy :: Number
     }
+
+initialName :: Int -> String
+initialName id = "Function " <> (show id)
+
+newFunctionViewModel :: Id -> FunctionViewModel
+newFunctionViewModel id =
+  { expressionText: ""
+  , expression: Nothing
+  , id
+  , commands:
+      { robust: pure unit
+      , rough: pure unit
+      , status: DrawnNone
+      }
+  , queue: initialJobQueue
+  , status: Robust
+  , name: initialName id
+  , accuracy: 2.0
+  }
 
 enqueueFunctionExpression :: FunctionViewModel -> Number -> Int -> XYBounds -> ExpectAff JobQueue
 enqueueFunctionExpression vm accuracyTarget batchSegmentCount bounds = case vm.expression of
@@ -37,12 +56,12 @@ withExpression vm op = case vm.expression of
   Nothing -> pure $ Right vm
   Just expression -> op expression
 
-overwiteFunctionAccuracy :: FunctionViewModel -> Number -> Int -> XYBounds -> ExpectAff FunctionViewModel
-overwiteFunctionAccuracy vm accuracyTarget batchSegmentCount bounds = bindTo addRobustToQueue (pureRight <<< overwiteQueue)
+overwiteFunctionAccuracy :: FunctionViewModel -> Number -> AccuracyCalculator -> Int -> XYBounds -> ExpectAff FunctionViewModel
+overwiteFunctionAccuracy vm accuracyTarget toDomainAccuracy batchSegmentCount bounds = bindTo addRobustToQueue (pureRight <<< overwiteQueue)
   where
   addRobustToQueue =
     if startRobust then
-      enqueueFunctionExpression vm accuracyTarget batchSegmentCount bounds
+      enqueueFunctionExpression vm (toDomainAccuracy accuracyTarget) batchSegmentCount bounds
     else
       pure $ Right $ cancelAll vm.queue
 
@@ -133,8 +152,8 @@ drawRoughAndRobustFunction toDomainAccuracy autoRobust batchSegmentCount size bo
         else
           DrawnRough
 
-drawRobustOnlyFunction :: AccuracyCalculator -> Boolean -> Int -> Size -> XYBounds -> FunctionViewModel -> ExpectAff FunctionViewModel
-drawRobustOnlyFunction toDomainAccuracy autoRobust batchSegmentCount size bounds vm
+drawRobustOnlyFunction :: AccuracyCalculator -> Int -> Size -> XYBounds -> FunctionViewModel -> ExpectAff FunctionViewModel
+drawRobustOnlyFunction toDomainAccuracy batchSegmentCount size bounds vm
   | vm.commands.status == DrawnRobust || vm.status /= Robust = pure $ Right vm
   | otherwise = withExpression vm go
     where
@@ -160,8 +179,8 @@ drawRobustOnlyFunction toDomainAccuracy autoRobust batchSegmentCount size bounds
             }
           }
 
-drawRoughOnlyFunction :: AccuracyCalculator -> Boolean -> Int -> Size -> XYBounds -> FunctionViewModel -> ExpectAff FunctionViewModel
-drawRoughOnlyFunction toDomainAccuracy autoRobust batchSegmentCount size bounds vm = withExpression vm go
+drawRoughOnlyFunction :: AccuracyCalculator -> Size -> XYBounds -> FunctionViewModel -> ExpectAff FunctionViewModel
+drawRoughOnlyFunction toDomainAccuracy size bounds vm = withExpression vm go
   where
   go :: Expression -> ExpectAff FunctionViewModel
   go expression = bindTo computeRoughCommands (pureRight <<< overwriteCommands)

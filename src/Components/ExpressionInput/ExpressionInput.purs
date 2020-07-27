@@ -1,6 +1,7 @@
 module Components.ExpressionInput where
 
 import Prelude
+
 import Components.Common.Action (onCheckedActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (className)
 import Components.ExpressionInput.Controller (ExpressionInputController)
@@ -12,6 +13,7 @@ import Expression.Syntax (Expression)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
+import ViewModels.Expression.Common (Status(..))
 
 type ExpressionInputSlot p
   = forall q. H.Slot q ExpressionInputMessage p
@@ -42,13 +44,6 @@ data Action
   | UpdateAccuracy
   | Status Status
   | HandleAccuracyInput String
-
-data Status
-  = Off
-  | Rough
-  | Robust
-
-derive instance statusEq :: Eq Status
 
 expressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> Int -> H.Component HH.HTML query Input ExpressionInputMessage m
 expressionInputComponent controller id =

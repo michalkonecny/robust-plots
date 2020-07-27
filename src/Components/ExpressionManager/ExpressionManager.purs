@@ -1,14 +1,13 @@
 module Components.ExpressionManager where
 
 import Prelude
-import Components.Checkbox (CheckboxMessage(..), checkboxComponent)
+import Components.Checkbox (CheckboxSlot, CheckboxMessage(..), checkboxComponent)
 import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onSelectedIndexChangeActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (appendClassNameIf, className, classNameIf)
 import Components.Common.Styles (style)
-import Components.ExpressionInput (ExpressionInputMessage(..), expressionInputComponent, parseAndCheckExpression)
+import Components.ExpressionInput (ExpressionInputSlot, ExpressionInputMessage(..), expressionInputComponent, parseAndCheckExpression)
 import Components.ExpressionInput.Controller (expressionInputController)
-import Components.ExpressionManager.Types (ExpressionPlot, ChildSlots)
-import Data.Array (catMaybes, find, head, length, (!!))
+import Data.Array (catMaybes, head, length, (!!))
 import Data.Array.NonEmpty (NonEmptyArray, cons')
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.Either (Either(..))
@@ -20,6 +19,7 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA as HA
+import ViewModels.Expression (ExpressionViewModel, expressionId, expressionName, expressionText, findById, expressionStatus, expressionAccruacy)
 
 _expressionInput = SProxy :: SProxy "expressionInput"
 
@@ -28,8 +28,13 @@ _checkbox = SProxy :: SProxy "checkbox"
 type ExpressionManagerSlot p
   = forall q. H.Slot q ExpressionManagerMessage p
 
+type ChildSlots
+  = ( expressionInput :: ExpressionInputSlot Int
+    , checkbox :: CheckboxSlot Int
+    )
+
 type State
-  = { plots :: Array ExpressionPlot
+  = { plots :: Array ExpressionViewModel
     , selectedPlotId :: Int
     , nextPlotId :: Int
     , editingSelected :: Boolean
@@ -40,7 +45,7 @@ type State
     }
 
 type Input
-  = { plots :: Array ExpressionPlot
+  = { plots :: Array ExpressionViewModel
     , autoRobust :: Boolean
     , allRobustDraw :: Boolean
     , inProgress :: Boolean
@@ -183,8 +188,8 @@ handleAddExample index = do
         handleAction Add
         overwriteWithExample nextPlotId (NonEmptyArray.head example)
       Just example, Just selected -> do
-        if selected.expressionText == "" then do
-          overwriteWithExample selected.id (NonEmptyArray.head example)
+        if "" == expressionText selected then do
+          overwriteWithExample (expressionId selected) (NonEmptyArray.head example)
         else do
           { nextPlotId } <- H.get
           handleAction Add
@@ -234,13 +239,13 @@ renderButton _ true =
         []
     ]
 
-toTab :: forall w. State -> ExpressionPlot -> HH.HTML w Action
+toTab :: forall w. State -> ExpressionViewModel -> HH.HTML w Action
 toTab state plot =
   HH.li
     [ className "nav-item" ]
     [ HH.button
-        [ appendClassNameIf "nav-link" "active" $ state.selectedPlotId == plot.id
-        , onClickActionEvent $ ChangeSelected plot.id
+        [ appendClassNameIf "nav-link" "active" $ state.selectedPlotId == expressionId plot
+        , onClickActionEvent $ ChangeSelected $ expressionId plot
         ]
         [ HH.div
             [ className "form-inline" ]
@@ -248,7 +253,7 @@ toTab state plot =
         ]
     ]
   where
-  tabContent = catMaybes [ Just (textOrEditInput state plot), maybeEditButton state plot.id, maybeDeleteButton state plot.id ]
+  tabContent = catMaybes [ Just (textOrEditInput state plot), maybeEditButton state (expressionId plot), maybeDeleteButton state (expressionId plot) ]
 
 addPlotTab :: forall w. HH.HTML w Action
 addPlotTab =
@@ -275,9 +280,9 @@ addPlotTab =
         ]
     ]
 
-textOrEditInput :: forall w. State -> ExpressionPlot -> HH.HTML w Action
+textOrEditInput :: forall w. State -> ExpressionViewModel -> HH.HTML w Action
 textOrEditInput state plot =
-  if (state.selectedPlotId == plot.id) && state.editingSelected then
+  if (state.selectedPlotId == expressionId plot) && state.editingSelected then
     HH.input
       [ HP.type_ HP.InputText
       , onFocusOutActionEvent Rename
@@ -289,7 +294,7 @@ textOrEditInput state plot =
   else
     HH.span
       [ classNameIf "pr-2" addPaddingToInput ]
-      [ HH.text plot.name ]
+      [ HH.text $ expressionName plot ]
   where
   addPaddingToInput = (1 < length state.plots) || not state.editingSelected
 
@@ -317,24 +322,24 @@ maybeDeleteButton state plotId =
   else
     Nothing
 
-selectedExpressionPlot :: forall m. MonadEffect m => Array ExpressionPlot -> Int -> H.ComponentHTML Action ChildSlots m
+selectedExpressionPlot :: forall m. MonadEffect m => Array ExpressionViewModel -> Int -> H.ComponentHTML Action ChildSlots m
 selectedExpressionPlot [] _ = HH.text "Error: No plots"
 
-selectedExpressionPlot plots selectedPlotId = case find (\p -> p.id == selectedPlotId) plots of
+selectedExpressionPlot plots selectedPlotId = case findById selectedPlotId plots of
   Nothing -> HH.text $ "Error: Plot " <> (show selectedPlotId) <> " does not exist"
-  Just plot -> HH.slot _expressionInput plot.id component input toAction
+  Just plot -> HH.slot _expressionInput (expressionId plot) component input toAction
     where
-    component = expressionInputComponent expressionInputController plot.id
+    component = expressionInputComponent expressionInputController (expressionId plot)
 
-    input = { expressionText: plot.expressionText, status: plot.status, accuracy: plot.accuracy }
+    input = { expressionText: expressionText plot, status: expressionStatus plot, accuracy: expressionAccruacy plot }
 
     toAction = Just <<< HandleExpressionInput
 
-plotExists :: Array ExpressionPlot -> Int -> Boolean
-plotExists plots plotId = isJust (find (\p -> p.id == plotId) plots)
+plotExists :: Array ExpressionViewModel -> Int -> Boolean
+plotExists plots plotId = isJust (findById plotId plots)
 
-selectedPlotName :: Array ExpressionPlot -> Int -> String
-selectedPlotName plots selectedPlotId = fromMaybe "Error" $ (_.name) <$> (find (\p -> p.id == selectedPlotId) plots)
+selectedPlotName :: Array ExpressionViewModel -> Int -> String
+selectedPlotName plots selectedPlotId = fromMaybe "Error" $ expressionName <$> (findById selectedPlotId plots)
 
-firstPlotId :: Array ExpressionPlot -> Int
-firstPlotId plots = fromMaybe 0 $ (_.id) <$> (head plots)
+firstPlotId :: Array ExpressionViewModel -> Int
+firstPlotId plots = fromMaybe 0 $ expressionId <$> (head plots)
