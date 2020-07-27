@@ -3,13 +3,13 @@ module Plot.RobustPlot where
 import Prelude
 import Data.Array (catMaybes, concat, head, length, reverse, take)
 import Data.Bifunctor (bimap)
-import Data.Either (Either(..))
 import Data.Foldable (sum)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Number as Number
 import Data.Tuple (Tuple(..), snd)
 import Draw.Actions (drawEnclosure)
 import Draw.Commands (DrawCommand)
+import Expression.Error (expectToMaybe)
 import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative, ValueAndDerivative2, evaluateDerivative, evaluateDerivative2)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, isFinite, lowerA, mBound, setMB, toNumber, unionA, upperA)
@@ -34,21 +34,13 @@ drawRobustPlot canvasSize bounds expression domainSegments accuracyTarget = draw
 
   drawCommands = drawPlot $ concat segmentEnclosures
 
-  evaluateWithX x = value
+  evaluateWithX x = expectToMaybe $ evaluateDerivative variableMap expression
     where
     variableMap = [ Tuple "x" { value: x, derivative: one } ]
 
-    value = case evaluateDerivative variableMap expression of
-      Left _ -> Nothing
-      Right v -> Just v
-
-  evaluateWithX2 x = value
+  evaluateWithX2 x = expectToMaybe $ evaluateDerivative2 variableMap expression
     where
     variableMap = [ Tuple "x" { value: x, derivative: one, derivative2: zero } ]
-
-    value = case evaluateDerivative2 variableMap expression of
-      Left _ -> Nothing
-      Right v -> Just v
 
 plotEnclosures ::
   { bounds :: XYBounds

@@ -1,15 +1,14 @@
 module Plot.RoughFunctionPlot where
 
 import Prelude
-
 import Data.Array (concat, tail, zipWith, (..))
-import Data.Either (Either(..))
 import Data.Int (floor, toNumber)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Traversable (for_)
 import Data.Tuple (Tuple(..))
 import Draw.Actions (drawPlotLine)
 import Draw.Commands (DrawCommand)
+import Expression.Error (expectToMaybe)
 import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative2, evaluateDerivative2)
 import Expression.Syntax (Expression)
 import IntervalArith.Misc (rationalToNumber)
@@ -26,17 +25,13 @@ drawRoughPlot canvasSize bounds expression = drawCommands
   drawCommands = drawPlot points
 
 evaluateWithX :: Expression -> Number -> Maybe (ValueAndDerivative2 Number)
-evaluateWithX expression x = value
+evaluateWithX expression x = expectToMaybe $ evaluateDerivative2 variableMap expression
   where
   variableMap =
     [ Tuple "x" { value: x, derivative: 1.0, derivative2: 0.0 }
     , Tuple "e" { value: e, derivative: 0.0, derivative2: 0.0 }
     , Tuple "pi" { value: pi, derivative: 0.0, derivative2: 0.0 }
     ]
-
-  value = case evaluateDerivative2 variableMap expression of
-    Left _ -> Nothing
-    Right v -> Just v
 
 plotPoints :: Size -> XYBounds -> (Number -> Maybe (ValueAndDerivative2 Number)) -> Array (Maybe Position)
 plotPoints canvasSize bounds f = points
