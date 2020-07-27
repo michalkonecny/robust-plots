@@ -27,8 +27,10 @@ import Plot.Zoom (zoomBounds)
 import Types (Direction, XYBounds)
 import ViewModels.Expression (ExpressionViewModel, newFunctionExpressionViewModel)
 import ViewModels.Expression.Job (anyHasJobs, clearCancelledJobs, countBatches, isJobCancelled, runFirstJob, setFirstRunningJob)
-import ViewModels.Expression.Draw (appendRobustDrawCommands, drawRobustOnly, drawRoughAndRobust, drawRoughOnly, fromPixelAccuracy, overwiteAccuracy, overwriteExpression)
+import ViewModels.Expression.Draw (appendRobustDrawCommands, drawRobustOnly, drawRoughAndRobust, drawRoughOnly, overwiteAccuracy)
 import ViewModels.Expression.Generic (alterExpression, alterExpressionAsync, expressionId, overwriteName, overwriteStatus)
+import ViewModels.Expression.Common (fromPixelAccuracy)
+import ViewModels.Expression.Unsafe (overwriteExpression)
 import Web.Event.Event as E
 import Web.HTML (window) as Web
 import Web.HTML.Window (toEventTarget) as Web

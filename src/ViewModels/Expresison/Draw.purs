@@ -7,15 +7,13 @@ import Data.Maybe (Maybe(..))
 import Data.String (splitAt)
 import Data.Tuple (Tuple(..))
 import Draw.Commands (DrawCommand)
-import Expression.Syntax (Expression)
-import IntervalArith.Misc (rationalToNumber)
 import Misc.ExpectAff (ExpectAff, mapExpectAff)
 import Plot.JobBatcher (hasJobs)
 import Plot.Label (LabelledDrawCommand, drawRoughLabels)
 import Types (Size, XYBounds, Position)
 import ViewModels.Expression (ExpressionViewModel(..))
-import ViewModels.Expression.Common (AccuracyCalculator, DrawingStatus(..), Status(..))
-import ViewModels.Expression.Function.Draw (drawRobustOnlyFunction, drawRoughAndRobustFunction, drawRoughOnlyFunction, overwiteFunctionAccuracy, overwriteFunctionExpression)
+import ViewModels.Expression.Common (AccuracyCalculator, DrawingStatus(..), Status(..), fromPixelAccuracy)
+import ViewModels.Expression.Function.Draw (drawRobustOnlyFunction, drawRoughAndRobustFunction, drawRoughOnlyFunction, overwiteFunctionAccuracy)
 import ViewModels.Expression.Generic (drawingStatus)
 
 overwiteAccuracy :: Number -> AccuracyCalculator -> Int -> XYBounds -> ExpressionViewModel -> ExpectAff ExpressionViewModel
@@ -26,19 +24,6 @@ overwiteAccuracy accuracyTarget toDomainAccuracy batchSegmentCount bounds (Funct
         accuracyTarget
         toDomainAccuracy
         batchSegmentCount
-        bounds
-
-overwriteExpression :: Expression -> String -> Boolean -> Int -> Size -> XYBounds -> ExpressionViewModel -> ExpectAff ExpressionViewModel
-overwriteExpression expression text autoRobust batchSegmentCount size bounds (Function vm) =
-  mapExpectAff Function
-    $ overwriteFunctionExpression
-        vm
-        expression
-        text
-        autoRobust
-        (fromPixelAccuracy size bounds)
-        batchSegmentCount
-        size
         bounds
 
 drawRoughAndRobust :: Boolean -> Int -> Size -> XYBounds -> ExpressionViewModel -> ExpectAff ExpressionViewModel
@@ -73,13 +58,6 @@ drawRoughOnly size bounds (Function vm) =
 
 allRobustComplete :: Array ExpressionViewModel -> Boolean
 allRobustComplete = all $ \vm -> DrawnRobust == drawingStatus vm
-
-fromPixelAccuracy :: Size -> XYBounds -> Number -> Number
-fromPixelAccuracy canvasSize bounds pixelAccuracy = pixelAccuracy * pixelToDomainRatio
-  where
-  rangeY = bounds.yBounds.upper - bounds.yBounds.lower
-
-  pixelToDomainRatio = rationalToNumber $ rangeY / canvasSize.height
 
 labelCommands :: (Position -> Boolean) -> Array ExpressionViewModel -> DrawCommand Unit
 labelCommands isOffCanvas = drawRoughLabels isOffCanvas <<< map toLabelledPositions
