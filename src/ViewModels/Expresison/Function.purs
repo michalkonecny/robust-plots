@@ -5,7 +5,7 @@ import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), isJust)
 import Draw.Commands (DrawCommand)
 import Expression.Syntax (Expression)
-import Misc.ExpectAff (ExpectAff, bindTo)
+import Misc.ExpectAff (ExpectAff, bindTo, pureRight)
 import Plot.Commands (roughPlot)
 import Plot.JobBatcher (JobQueue, addPlot, cancelAll)
 import Plot.PlotController (computePlotAsync)
@@ -38,7 +38,7 @@ withExpression vm op = case vm.expression of
   Just expression -> op expression
 
 overwiteFunctionAccuracy :: FunctionViewModel -> Number -> Int -> XYBounds -> ExpectAff FunctionViewModel
-overwiteFunctionAccuracy vm accuracyTarget batchSegmentCount bounds = bindTo addRobustToQueue (pure <<< Right <<< overwiteQueue)
+overwiteFunctionAccuracy vm accuracyTarget batchSegmentCount bounds = bindTo addRobustToQueue (pureRight <<< overwiteQueue)
   where
   addRobustToQueue =
     if startRobust then
@@ -66,7 +66,7 @@ overwriteFunctionExpression vm expression text autoRobust toDomainAccuracy batch
   bindTo computeRoughCommands
     $ \newRoughCommands ->
         bindTo addRobustToQueue
-          (pure <<< Right <<< overwriteCommandsAndQueue newRoughCommands)
+          (pureRight <<< overwriteCommandsAndQueue newRoughCommands)
   where
   computeRoughCommands = computePlotAsync size $ roughPlot bounds expression text
 
@@ -104,7 +104,7 @@ drawRoughAndRobustFunction toDomainAccuracy autoRobust batchSegmentCount size bo
     bindTo computeRoughCommands
       $ \newRoughCommands ->
           bindTo addRobustToQueue
-            (pure <<< Right <<< overwriteCommandsAndQueue newRoughCommands)
+            (pureRight <<< overwriteCommandsAndQueue newRoughCommands)
     where
     computeRoughCommands = computePlotAsync size $ roughPlot bounds expression vm.expressionText
 
@@ -143,7 +143,7 @@ drawRobustOnlyFunction toDomainAccuracy autoRobust batchSegmentCount size bounds
       bindTo computeRoughCommands
         $ \newRoughCommands ->
             bindTo addRobustToQueue
-              (pure <<< Right <<< overwriteCommandsAndQueue newRoughCommands)
+              (pureRight <<< overwriteCommandsAndQueue newRoughCommands)
       where
       addRobustToQueue = addPlot (toDomainAccuracy vm.accuracy) batchSegmentCount (cancelAll vm.queue) bounds expression vm.expressionText vm.id
 
@@ -159,3 +159,22 @@ drawRobustOnlyFunction toDomainAccuracy autoRobust batchSegmentCount size bounds
             , status = RobustInProgress
             }
           }
+
+drawRoughOnlyFunction :: AccuracyCalculator -> Boolean -> Int -> Size -> XYBounds -> FunctionViewModel -> ExpectAff FunctionViewModel
+drawRoughOnlyFunction toDomainAccuracy autoRobust batchSegmentCount size bounds vm = withExpression vm go
+  where
+  go :: Expression -> ExpectAff FunctionViewModel
+  go expression = bindTo computeRoughCommands (pureRight <<< overwriteCommands)
+    where
+    computeRoughCommands = computePlotAsync size $ roughPlot bounds expression vm.expressionText
+
+    overwriteCommands :: DrawCommand Unit -> FunctionViewModel
+    overwriteCommands drawCommands =
+      vm
+        { queue = cancelAll vm.queue
+        , commands
+          { rough = drawCommands
+          , robust = pure unit
+          , status = DrawnRough
+          }
+        }

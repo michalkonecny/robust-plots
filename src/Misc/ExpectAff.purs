@@ -24,3 +24,6 @@ bindTo operation onSuccess = do
   case resultOrError of
     Left error -> pure $ Left error
     Right result -> onSuccess result
+
+pureRight :: forall a. a -> ExpectAff a
+pureRight = pure <<< Right

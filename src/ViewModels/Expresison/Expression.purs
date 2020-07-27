@@ -9,7 +9,7 @@ import Misc.ExpectAff (ExpectAff, ExpectArrayAff, mapExpectAff)
 import Plot.JobBatcher (JobQueue)
 import Types (Id, XYBounds, Size)
 import ViewModels.Expression.Common (AccuracyCalculator)
-import ViewModels.Expression.Function (FunctionViewModel, drawRobustOnlyFunction, drawRoughAndRobustFunction, enqueueFunctionExpression, overwiteFunctionAccuracy, overwriteFunctionExpression)
+import ViewModels.Expression.Function (FunctionViewModel, drawRobustOnlyFunction, drawRoughAndRobustFunction, drawRoughOnlyFunction, enqueueFunctionExpression, overwiteFunctionAccuracy, overwriteFunctionExpression)
 
 data ExpressionViewModel
   = Function FunctionViewModel
@@ -62,6 +62,17 @@ drawRobustOnly :: AccuracyCalculator -> Boolean -> Int -> Size -> XYBounds -> Ex
 drawRobustOnly toDomainAccuracy autoRobust batchSegmentCount size bounds (Function vm) =
   mapExpectAff Function
     $ drawRobustOnlyFunction
+        toDomainAccuracy
+        autoRobust
+        batchSegmentCount
+        size
+        bounds
+        vm
+
+drawRoughOnly :: AccuracyCalculator -> Boolean -> Int -> Size -> XYBounds -> ExpressionViewModel -> ExpectAff ExpressionViewModel
+drawRoughOnly toDomainAccuracy autoRobust batchSegmentCount size bounds (Function vm) =
+  mapExpectAff Function
+    $ drawRoughOnlyFunction
         toDomainAccuracy
         autoRobust
         batchSegmentCount
