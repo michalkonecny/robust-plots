@@ -164,7 +164,7 @@ mainComponent =
             [ className "page-footer font-small fixed-bottom" ]
             [ HH.footer
                 [ className "footer-copyright text-right py-3 pr-2" ]
-                [ HH.text "©2020 Michal Konecny, Joshua Eddy; source on"
+                [ HH.text "version 0.1.0, ©2020 Michal Konecny, Joshua Eddy; source on"
                 , HH.a
                     [ HP.href "https://github.com/michalkonecny/robust-plots"
                     , className "pl-1"
