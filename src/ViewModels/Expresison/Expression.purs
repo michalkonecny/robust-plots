@@ -13,22 +13,15 @@ import Expression.Syntax (Expression)
 import IntervalArith.Misc (rationalToNumber)
 import Misc.Array (alterWhere)
 import Misc.ExpectAff (ExpectAff, ExpectArrayAff, MaybeExpectAff, mapExpectAff)
-import Plot.JobBatcher (Job, JobQueue, JobResult, cancelAll, clearCancelled, countJobs, hasJobs, isCancelled, runFirst, setRunning)
+import Plot.JobBatcher (Job, JobResult, cancelAll, clearCancelled, countJobs, hasJobs, isCancelled, runFirst, setRunning)
 import Plot.Label (LabelledDrawCommand, drawRoughLabels)
 import Types (Id, Size, XYBounds, Position)
 import ViewModels.Expression.Common (AccuracyCalculator, DrawingStatus(..), Status(..))
-import ViewModels.Expression.Function (FunctionViewModel, drawRobustOnlyFunction, drawRoughAndRobustFunction, drawRoughOnlyFunction, enqueueFunctionExpression, newFunctionViewModel, overwiteFunctionAccuracy, overwriteFunctionExpression)
+import ViewModels.Expression.Function (FunctionViewModel, newFunctionViewModel)
+import ViewModels.Expression.Function.Draw (drawRobustOnlyFunction, drawRoughAndRobustFunction, drawRoughOnlyFunction, overwiteFunctionAccuracy, overwriteFunctionExpression)
 
 data ExpressionViewModel
   = Function FunctionViewModel
-
-enqueueExpression :: ExpressionViewModel -> Number -> Int -> XYBounds -> ExpectAff JobQueue
-enqueueExpression (Function vm) accuracyTarget batchSegmentCount bounds =
-  enqueueFunctionExpression
-    vm
-    accuracyTarget
-    batchSegmentCount
-    bounds
 
 expressionId :: ExpressionViewModel -> Id
 expressionId (Function vm) = vm.id
