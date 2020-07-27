@@ -176,7 +176,7 @@ handleAction controller = case _ of
           H.raise (ParsedAccuracy id accuracy)
   HandleExpressionInput input -> H.modify_ _ { expressionInput = input }
   HandleAccuracyInput input -> H.modify_ _ { accuracyInput = input }
-  HandleMessage input -> H.modify_ _ { input = input, expressionInput = input.expressionText, accuracyInput = show input.accuracy }
+  HandleMessage input -> H.modify_ _ { input = input, expressionInput = input.expressionText, accuracyInput = show input.accuracy, error = Nothing }
   Status status -> do
     { id } <- H.get
     H.raise (ChangedStatus id status)

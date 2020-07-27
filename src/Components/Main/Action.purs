@@ -82,6 +82,7 @@ handleJobResult (Just jobResultOrError) newState =
           H.modify_ (_ { plots = alterPlot updatePlot jobResult.job.batchId newState.plots })
           updateProgress newState
           handleAction DrawPlot
+          fork
           handleAction ProcessNextJob
 
 resizeCanvas :: forall output. HalogenMain output Unit
@@ -139,6 +140,7 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedExpressio
         H.modify_ (_ { plots = plots })
         resetProgress state { plots = plots }
         handleAction DrawPlot
+        fork
         handleAction ProcessNextJob
   where
   toDomainAccuracy :: Number -> Number
@@ -179,12 +181,16 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ChangedStatus i
 
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedAccuracy id accuracy)) = do
   clearGlobalError
+  H.modify_ (_ { inProgress = true })
+  handleAction DrawPlot
+  fork
   plotsOrError <- H.liftAff $ alterPlotAsync updatePlot id state.plots
   handleError (toFirstError plotsOrError)
     $ \plots -> do
         H.modify_ (_ { plots = plots })
         resetProgress state { plots = plots }
         handleAction DrawPlot
+        fork
         handleAction ProcessNextJob
   where
   toDomainAccuracy :: Number -> Number
@@ -277,6 +283,7 @@ redraw state = do
               H.modify_ (_ { plots = plots })
               resetProgress state { plots = plots }
               handleAction DrawPlot
+              fork
               handleAction ProcessNextJob
 
 redrawRough :: forall output. State -> HalogenMain output Unit
@@ -294,6 +301,7 @@ redrawRough state = do
               H.modify_ (_ { plots = plots })
               resetProgress state { plots = plots }
               handleAction DrawPlot
+              fork
               handleAction ProcessNextJob
   where
   toDomainAccuracy :: Number -> Number
