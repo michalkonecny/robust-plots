@@ -87,18 +87,6 @@ mainComponent =
                     [ className "col-xl-3 col-md-12 sidebar" ]
                     [ HH.slot _expressionManager 1 expressionManagerComponent (toExpressionManagerInput state) (Just <<< HandleExpressionManager)
                     , HH.br_
-                    , HH.div
-                        [ className "card" ]
-                        [ HH.div
-                            [ className "card-header" ]
-                            [ HH.text "Advanced settings"
-                            ]
-                        , HH.div
-                            [ className "card-body" ]
-                            [ HH.slot _batchInput 1 batchInputComponent state.batchCount (Just <<< HandleBatchInput)
-                            ]
-                        ]
-                    , HH.br_
                     ]
                 , HH.div
                     [ className "col-xl col-md-12 canvasCol" ]
