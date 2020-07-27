@@ -7,11 +7,11 @@ import Data.String (splitAt)
 import Data.Tuple (Tuple(..))
 import Draw.Commands (DrawCommand)
 import Misc.ExpectAff (ExpectAff, mapExpectAff)
-import Plot.JobBatcher (hasJobs)
+import Plot.JobBatcher (JobQueue, hasJobs)
 import Plot.Label (LabelledDrawCommand, drawRoughLabels)
 import Types (Size, XYBounds, Position)
 import ViewModels.Expression (ExpressionViewModel(..))
-import ViewModels.Expression.Common (AccuracyCalculator, DrawingStatus(..), Status(..), fromPixelAccuracy)
+import ViewModels.Expression.Common (AccuracyCalculator, DrawingStatus(..), Status(..), DrawingCommands, fromPixelAccuracy)
 import ViewModels.Expression.Function.Draw (drawRobustOnlyFunction, drawRoughAndRobustFunction, drawRoughOnlyFunction, overwiteFunctionAccuracy)
 import ViewModels.Expression.Generic (drawingStatus)
 import ViewModels.Expression.Parametric.Draw (drawRobustOnlyParametric, drawRoughAndRobustParametric, drawRoughOnlyParametric, overwiteParametricAccuracy)
@@ -99,26 +99,23 @@ labelCommands :: (Position -> Boolean) -> Array ExpressionViewModel -> DrawComma
 labelCommands isOffCanvas = drawRoughLabels isOffCanvas <<< map toLabelledPositions
   where
   toLabelledPositions :: ExpressionViewModel -> LabelledDrawCommand
-  toLabelledPositions (Function vm) = Tuple text vm.commands.rough
-    where
-    { before: text } = splitAt 20 vm.name
+  toLabelledPositions (Function vm) = genericToLabelledPositions vm
 
-  toLabelledPositions (Parametric vm) = Tuple text vm.commands.rough
+  toLabelledPositions (Parametric vm) = genericToLabelledPositions vm
+
+  genericToLabelledPositions :: forall r. { commands :: DrawingCommands, queue :: JobQueue, name :: String | r } -> LabelledDrawCommand
+  genericToLabelledPositions vm = Tuple text vm.commands.rough
     where
     { before: text } = splitAt 20 vm.name
 
 toMaybeDrawCommand :: ExpressionViewModel -> Maybe (DrawCommand Unit)
-toMaybeDrawCommand (Function plot) = case plot.expression of
-  Just expression -> case plot.status of
-    Off -> Nothing
-    Rough -> Just plot.commands.rough
-    Robust -> case plot.commands.status of
-      DrawnRobust -> Just plot.commands.robust
-      _ -> Just $ fold [ plot.commands.rough, plot.commands.robust ]
-  Nothing -> Nothing
+toMaybeDrawCommand (Function plot) = genericToMaybeDrawCommand plot
 
-toMaybeDrawCommand (Parametric plot) = case plot.expression of
-  Just expression -> case plot.status of
+toMaybeDrawCommand (Parametric plot) = genericToMaybeDrawCommand plot
+
+genericToMaybeDrawCommand :: forall r a. { commands :: DrawingCommands, expression :: Maybe a, status :: Status | r } -> Maybe (DrawCommand Unit)
+genericToMaybeDrawCommand plot = case plot.expression of
+  Just _ -> case plot.status of
     Off -> Nothing
     Rough -> Just plot.commands.rough
     Robust -> case plot.commands.status of
@@ -127,10 +124,15 @@ toMaybeDrawCommand (Parametric plot) = case plot.expression of
   Nothing -> Nothing
 
 appendRobustDrawCommands :: DrawCommand Unit -> ExpressionViewModel -> ExpressionViewModel
-appendRobustDrawCommands commands (Function vm) = Function $ vm { commands { robust = fold [ vm.commands.robust, commands ], status = status } }
-  where
-  status = if hasJobs vm.queue then vm.commands.status else DrawnRobust
+appendRobustDrawCommands commands (Function vm) = Function $ genericAppendRobustDrawCommands commands vm
 
-appendRobustDrawCommands commands (Parametric vm) = Parametric $ vm { commands { robust = fold [ vm.commands.robust, commands ], status = status } }
+appendRobustDrawCommands commands (Parametric vm) = Parametric $ genericAppendRobustDrawCommands commands vm
+
+genericAppendRobustDrawCommands ::
+  forall r.
+  DrawCommand Unit ->
+  { commands :: DrawingCommands, queue :: JobQueue, status :: Status | r } ->
+  { commands :: DrawingCommands, queue :: JobQueue, status :: Status | r }
+genericAppendRobustDrawCommands commands vm = vm { commands { robust = fold [ vm.commands.robust, commands ], status = status } }
   where
   status = if hasJobs vm.queue then vm.commands.status else DrawnRobust

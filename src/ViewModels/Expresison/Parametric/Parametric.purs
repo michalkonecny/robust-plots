@@ -2,21 +2,15 @@ module ViewModels.Expression.Parametric where
 
 import Prelude
 import Data.Maybe (Maybe(..))
-import Draw.Commands (DrawCommand)
 import Expression.Syntax (Expression)
 import Plot.JobBatcher (JobQueue, initialJobQueue)
 import Types (Id, Bounds)
-import ViewModels.Expression.Common (DrawingStatus(..), Status(..))
+import ViewModels.Expression.Common (DrawingStatus(..), Status(..), DrawingCommands)
 
 type ParametricViewModel
-  = { expression ::
-        Maybe ParametricExpression
+  = { expression :: Maybe ParametricExpression
     , text :: ParametricExpressionText
-    , commands ::
-        { robust :: DrawCommand Unit
-        , rough :: DrawCommand Unit
-        , status :: DrawingStatus
-        }
+    , commands :: DrawingCommands
     , domain :: Bounds
     , id :: Id
     , queue :: JobQueue

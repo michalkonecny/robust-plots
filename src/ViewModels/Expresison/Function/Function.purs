@@ -1,21 +1,17 @@
 module ViewModels.Expression.Function where
 
 import Prelude
+
 import Data.Maybe (Maybe(..))
-import Draw.Commands (DrawCommand)
 import Expression.Syntax (Expression)
 import Plot.JobBatcher (JobQueue, initialJobQueue)
 import Types (Id)
-import ViewModels.Expression.Common (DrawingStatus(..), Status(..))
+import ViewModels.Expression.Common (DrawingStatus(..), Status(..), DrawingCommands)
 
 type FunctionViewModel
   = { expression :: Maybe Expression
     , expressionText :: String
-    , commands ::
-        { robust :: DrawCommand Unit
-        , rough :: DrawCommand Unit
-        , status :: DrawingStatus
-        }
+    , commands :: DrawingCommands
     , id :: Id
     , queue :: JobQueue
     , status :: Status
