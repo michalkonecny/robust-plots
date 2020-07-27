@@ -1,7 +1,9 @@
 module Misc.ExpectAff where
 
 import Prelude
+
 import Data.Either (Either(..))
+import Data.Maybe (Maybe)
 import Effect.Aff (Aff, Error)
 
 type ExpectAff a
@@ -9,6 +11,9 @@ type ExpectAff a
 
 type ExpectArrayAff a
   = Aff (Array (Either Error a))
+
+type MaybeExpectAff a = 
+  Aff (Maybe (Either Error a))
 
 mapExpectAff :: forall a b. (a -> b) -> ExpectAff a -> ExpectAff b
 mapExpectAff mapValue input = mapper <$> input
