@@ -17,3 +17,10 @@ mapExpectAff mapValue input = mapper <$> input
   mapper (Right v) = Right $ mapValue v
 
   mapper (Left e) = Left e
+
+bindTo :: forall a b. ExpectAff a -> (a -> ExpectAff b) -> ExpectAff b
+bindTo operation onSuccess = do
+  resultOrError <- operation
+  case resultOrError of
+    Left error -> pure $ Left error
+    Right result -> onSuccess result

@@ -1,7 +1,6 @@
 module ViewModels.Expression where
 
 import Prelude
-
 import Control.Parallel (parSequence)
 import Data.Either (Either(..))
 import Expression.Syntax (Expression)
@@ -10,7 +9,7 @@ import Misc.ExpectAff (ExpectAff, ExpectArrayAff, mapExpectAff)
 import Plot.JobBatcher (JobQueue)
 import Types (Id, XYBounds, Size)
 import ViewModels.Expression.Common (AccuracyCalculator)
-import ViewModels.Expression.Function (FunctionViewModel, enqueueFunctionExpression, overwiteFunctionAccuracy, overwriteFunctionExpression)
+import ViewModels.Expression.Function (FunctionViewModel, drawRobustOnlyFunction, drawRoughAndRobustFunction, enqueueFunctionExpression, overwiteFunctionAccuracy, overwriteFunctionExpression)
 
 data ExpressionViewModel
   = Function FunctionViewModel
@@ -47,6 +46,28 @@ overwriteExpression (Function vm) expression text autoRobust toDomainAccuracy ba
         batchSegmentCount
         size
         bounds
+
+drawRoughAndRobust :: AccuracyCalculator -> Boolean -> Int -> Size -> XYBounds -> ExpressionViewModel -> ExpectAff ExpressionViewModel
+drawRoughAndRobust toDomainAccuracy autoRobust batchSegmentCount size bounds (Function vm) =
+  mapExpectAff Function
+    $ drawRoughAndRobustFunction
+        toDomainAccuracy
+        autoRobust
+        batchSegmentCount
+        size
+        bounds
+        vm
+
+drawRobustOnly :: AccuracyCalculator -> Boolean -> Int -> Size -> XYBounds -> ExpressionViewModel -> ExpectAff ExpressionViewModel
+drawRobustOnly toDomainAccuracy autoRobust batchSegmentCount size bounds (Function vm) =
+  mapExpectAff Function
+    $ drawRobustOnlyFunction
+        toDomainAccuracy
+        autoRobust
+        batchSegmentCount
+        size
+        bounds
+        vm
 
 alterExpression :: (ExpressionViewModel -> ExpressionViewModel) -> Id -> Array ExpressionViewModel -> Array ExpressionViewModel
 alterExpression alterF id = alterWhere (\e -> id == expressionId e) alterF
