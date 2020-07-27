@@ -1,7 +1,6 @@
 module Components.Main where
 
 import Prelude
-import Components.BatchInput (batchInputComponent)
 import Components.BoundsInput (boundsInputComponent, canvasSizeToBounds)
 import Components.Canvas (canvasComponent, defaultCanvasSize)
 import Components.Canvas.Controller (canvasController)
