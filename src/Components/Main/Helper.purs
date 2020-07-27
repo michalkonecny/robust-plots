@@ -1,23 +1,23 @@
 module Components.Main.Helper where
 
 import Prelude
+
 import Components.ExpressionInput (Status(..))
 import Components.ExpressionManager.Types (DrawingStatus(..), ExpressionPlot)
 import Components.Main.Types (State)
 import Control.Parallel (parSequence)
 import Data.Array (cons, fold, foldl, mapMaybe, uncons)
+import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.String (splitAt)
 import Data.Tuple (Tuple(..))
 import Draw.Commands (DrawCommand)
-import Effect.Aff (Aff)
+import Effect.Aff (Aff, Error)
 import IntervalArith.Misc (rationalToNumber)
 import Misc.Array (alterWhere)
-import Plot.Commands (roughPlot)
-import Plot.JobBatcher (Job, JobResult, addPlot, cancelAll, clearCancelled, hasJobs, initialJobQueue, isCancelled, runFirst, setRunning, countJobs)
+import Plot.JobBatcher (Job, JobResult, cancelAll, clearCancelled, countJobs, hasJobs, initialJobQueue, isCancelled, runFirst, setRunning)
 import Plot.Label (LabelledDrawCommand, drawRoughLabels, textHeight)
-import Plot.PlotController (computePlotAsync)
-import Types (Bounds, Id, Size, XYBounds, Position)
+import Types (Bounds, Id, Position, Size)
 
 newPlot :: Int -> ExpressionPlot
 newPlot id =
@@ -44,8 +44,8 @@ updateExpressionPlotCommands commands plot = plot { commands { robust = fold [ p
 alterPlot :: (ExpressionPlot -> ExpressionPlot) -> Id -> Array ExpressionPlot -> Array ExpressionPlot
 alterPlot alterF id = alterWhere (\p -> p.id == id) alterF
 
-alterPlotAsync :: (ExpressionPlot -> Aff ExpressionPlot) -> Id -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
-alterPlotAsync alterF id = alterWhereAsync (\p -> p.id == id) alterF
+alterPlotAsync :: (ExpressionPlot -> Aff (Either Error ExpressionPlot)) -> Id -> Array ExpressionPlot -> Aff (Array (Either Error ExpressionPlot))
+alterPlotAsync alterF id = parSequence <<< map (\element -> if element.id == id then alterF element else pure $ Right element)
 
 alterWhereAsync :: forall a. (a -> Boolean) -> (a -> Aff a) -> Array a -> Aff (Array a)
 alterWhereAsync predicate alterF = parSequence <<< map (\element -> if predicate element then alterF element else pure element)
@@ -94,7 +94,7 @@ setFirstRunningJob plots = case uncons plots of
     else
       cons head $ setFirstRunningJob tail
 
-runFirstJob :: Size -> Bounds -> Array ExpressionPlot -> Aff (Maybe JobResult)
+runFirstJob :: Size -> Bounds -> Array ExpressionPlot -> Aff (Maybe (Either Error JobResult))
 runFirstJob size xBounds plots = case uncons plots of
   Nothing -> pure Nothing
   Just { head, tail } ->
@@ -122,34 +122,3 @@ isOffCanvasCheck canvasSize position = position.x < textHeight || position.x > w
   width = rationalToNumber canvasSize.width
 
   height = (rationalToNumber canvasSize.height) - 5.0
-
-clearAddPlotCommands :: Boolean -> Int -> Size -> XYBounds -> Array ExpressionPlot -> Aff (Array ExpressionPlot)
-clearAddPlotCommands autoRobust batchCount size newBounds = parSequence <<< (map clearAddPlot)
-  where
-  toDomainAccuracy :: Number -> Number
-  toDomainAccuracy = fromPixelAccuracy size newBounds
-
-  clearAddPlot :: ExpressionPlot -> Aff ExpressionPlot
-  clearAddPlot plot = case plot.expression of
-    Nothing -> pure plot
-    Just expression -> do
-      drawCommands <- computePlotAsync size $ roughPlot newBounds expression plot.expressionText
-      queue <-
-        if autoRobust && plot.status == Robust then
-          addPlot (toDomainAccuracy plot.accuracy) batchCount (cancelAll plot.queue) newBounds expression plot.expressionText plot.id
-        else
-          pure $ cancelAll plot.queue
-      pure $ plot { queue = queue, commands { rough = drawCommands, robust = pure unit, status = status } }
-      where
-      status =
-        if autoRobust && plot.status == Robust then
-          RobustInProgress
-        else
-          DrawnRough
-
-fromPixelAccuracy :: Size -> XYBounds -> Number -> Number
-fromPixelAccuracy canvasSize bounds pixelAccuracy = pixelAccuracy * pixelToDomainRatio
-  where
-  rangeY = bounds.yBounds.upper - bounds.yBounds.lower
-
-  pixelToDomainRatio = rationalToNumber $ rangeY / canvasSize.height

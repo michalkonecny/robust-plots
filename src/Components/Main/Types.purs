@@ -8,7 +8,9 @@ import Components.Canvas (CanvasSlot, Input)
 import Components.ExpressionManager (ExpressionManagerSlot)
 import Components.ExpressionManager.Types (ExpressionPlot)
 import Components.ProgressBar (ProgressBarSlot, Progress)
+import Data.Maybe (Maybe)
 import Draw.Commands (DrawCommand)
+import Effect.Exception (Error)
 import Types (XYBounds)
 
 type State
@@ -20,6 +22,7 @@ type State
     , autoRobust :: Boolean
     , progress :: Progress
     , inProgress :: Boolean
+    , error :: Maybe Error
     }
 
 type ChildSlots

@@ -1,22 +1,28 @@
 module Plot.PlotController where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Draw.Commands (DrawCommand)
 import Effect (Effect)
 import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
+import Effect.Console (log)
+import Effect.Exception (try)
 import Plot.Commands (PlotCommand(..))
 import Plot.GridLines (clearAndDrawGridLines)
 import Plot.RobustPlot (drawRobustPlot)
 import Plot.RoughPlot (drawRoughPlot)
 import Types (Size)
 
-computePlotAsync :: Size -> PlotCommand -> Aff (DrawCommand Unit)
+computePlotAsync :: Size -> PlotCommand -> Aff (Either Error (DrawCommand Unit))
 computePlotAsync canvasSize plot = makeAff $ runComputation canvasSize plot
 
-runComputation :: Size -> PlotCommand -> (Either Error (DrawCommand Unit) -> Effect Unit) -> Effect Canceler
+runComputation :: Size -> PlotCommand -> (Either Error (Either Error (DrawCommand Unit)) -> Effect Unit) -> Effect Canceler
 runComputation canvasSize commands callback = do
-  callback $ Right $ runCommand canvasSize commands
+  result <- try $ do
+    log "Computing..."
+    pure $ runCommand canvasSize commands
+  callback $ Right result
   pure nonCanceler
 
 runCommand :: Size -> PlotCommand -> DrawCommand Unit
