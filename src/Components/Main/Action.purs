@@ -182,7 +182,6 @@ handleExpressionPlotMessage state (RaisedExpressionInputMessage (ChangedStatus i
 handleExpressionPlotMessage state (RaisedExpressionInputMessage (ParsedAccuracy id accuracy)) = do
   clearGlobalError
   H.modify_ (_ { inProgress = true })
-  handleAction DrawPlot
   fork
   plotsOrError <- H.liftAff $ alterPlotAsync updatePlot id state.plots
   handleError (toFirstError plotsOrError)

@@ -1,13 +1,13 @@
 module Components.Main where
 
 import Prelude
-
 import Components.BatchInput (batchInputComponent)
 import Components.BoundsInput (boundsInputComponent, canvasSizeToBounds)
 import Components.Canvas (canvasComponent, defaultCanvasSize)
 import Components.Canvas.Controller (canvasController)
 import Components.Common.Action (onClickActionEvent)
 import Components.Common.ClassName (className)
+import Components.Common.Styles (style)
 import Components.ExpressionManager (Input, expressionManagerComponent)
 import Components.Main.Action (Action(..), handleAction)
 import Components.Main.Helper (isAllRobustPlotsComplete, newPlot)
@@ -77,9 +77,6 @@ mainComponent =
             [ HH.div
                 [ className "navbar-brand mr-auto" ]
                 [ HH.text "Robust plots" ]
-            , HH.span
-                [ className $ statusBadge state ]
-                [ HH.text $ status state ]
             ]
         , HH.br_
         , HH.div
@@ -110,50 +107,59 @@ mainComponent =
                         [ HH.div
                             [ className "card-header" ]
                             [ HH.div
-                                [ className "form-inline" ]
+                                [ className "row" ]
                                 [ HH.div
-                                    [ className "pr-2" ]
+                                    [ className "form-inline" ]
                                     [ HH.div
-                                        [ className "btn-group pr-1" ]
-                                        [ HH.button
-                                            [ className "btn btn-primary"
-                                            , onClickActionEvent $ Pan Left
+                                        [ className "pr-2" ]
+                                        [ HH.div
+                                            [ className "btn-group pr-1" ]
+                                            [ HH.button
+                                                [ className "btn btn-primary"
+                                                , onClickActionEvent $ Pan Left
+                                                ]
+                                                [ HH.text "◄" ]
+                                            , HH.button
+                                                [ className "btn btn-primary"
+                                                , onClickActionEvent $ Pan Right
+                                                ]
+                                                [ HH.text "►" ]
                                             ]
-                                            [ HH.text "◄" ]
-                                        , HH.button
-                                            [ className "btn btn-primary"
-                                            , onClickActionEvent $ Pan Right
+                                        , HH.div
+                                            [ className "btn-group pr-1" ]
+                                            [ HH.button
+                                                [ className "btn btn-primary"
+                                                , onClickActionEvent $ Pan Down
+                                                ]
+                                                [ HH.text "▼" ]
+                                            , HH.button
+                                                [ className "btn btn-primary"
+                                                , onClickActionEvent $ Pan Up
+                                                ]
+                                                [ HH.text "▲" ]
                                             ]
-                                            [ HH.text "►" ]
+                                        , HH.div
+                                            [ className "btn-group" ]
+                                            [ HH.button
+                                                [ className "btn btn-primary"
+                                                , onClickActionEvent $ Zoom true
+                                                ]
+                                                [ HH.text "+" ]
+                                            , HH.button
+                                                [ className "btn btn-primary"
+                                                , onClickActionEvent $ Zoom false
+                                                ]
+                                                [ HH.text "-" ]
+                                            ]
                                         ]
-                                    , HH.div
-                                        [ className "btn-group pr-1" ]
-                                        [ HH.button
-                                            [ className "btn btn-primary"
-                                            , onClickActionEvent $ Pan Down
-                                            ]
-                                            [ HH.text "▼" ]
-                                        , HH.button
-                                            [ className "btn btn-primary"
-                                            , onClickActionEvent $ Pan Up
-                                            ]
-                                            [ HH.text "▲" ]
-                                        ]
-                                    , HH.div
-                                        [ className "btn-group" ]
-                                        [ HH.button
-                                            [ className "btn btn-primary"
-                                            , onClickActionEvent $ Zoom true
-                                            ]
-                                            [ HH.text "+" ]
-                                        , HH.button
-                                            [ className "btn btn-primary"
-                                            , onClickActionEvent $ Zoom false
-                                            ]
-                                            [ HH.text "-" ]
-                                        ]
+                                    , HH.slot _boundsInput 1 boundsInputComponent state.bounds (Just <<< HandleBoundsInput)
                                     ]
-                                , HH.slot _boundsInput 1 boundsInputComponent state.bounds (Just <<< HandleBoundsInput)
+                                , HH.div
+                                    [ className "col align-self-end" ]
+                                    [ HH.span
+                                        [ className $ statusBadge state, style "float:right" ]
+                                        [ HH.text $ status state ]
+                                    ]
                                 ]
                             ]
                         , HH.div
