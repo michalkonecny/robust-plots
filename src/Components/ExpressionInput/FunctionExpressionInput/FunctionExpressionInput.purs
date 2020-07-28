@@ -33,9 +33,9 @@ type Input
     }
 
 data FunctionExpressionInputMessage
-  = ParsedExpression Int Expression String
-  | ChangedStatus Int Status
-  | ParsedAccuracy Int Number
+  = FunctionParsedExpression Int Expression String
+  | FunctionChangedStatus Int Status
+  | FunctionParsedAccuracy Int Number
 
 data Action
   = HandleFunctionExpressionInput String
@@ -160,7 +160,7 @@ handleAction controller = case _ of
       Right expression -> do
         H.modify_ _ { error = Nothing }
         when (expressionInput /= input.expressionText) do
-          H.raise (ParsedExpression id (controller.clean expression) expressionInput)
+          H.raise (FunctionParsedExpression id (controller.clean expression) expressionInput)
   UpdateAccuracy -> do
     { accuracyInput, id, input } <- H.get
     case controller.checkAccuracy accuracyInput of
@@ -168,13 +168,13 @@ handleAction controller = case _ of
       Left accuracy -> do
         H.modify_ _ { error = Nothing }
         when (accuracyInput /= show input.accuracy) do
-          H.raise (ParsedAccuracy id accuracy)
+          H.raise (FunctionParsedAccuracy id accuracy)
   HandleFunctionExpressionInput input -> H.modify_ _ { expressionInput = input }
   HandleAccuracyInput input -> H.modify_ _ { accuracyInput = input }
   HandleMessage input -> H.modify_ _ { input = input, expressionInput = input.expressionText, accuracyInput = show input.accuracy, error = Nothing }
   Status status -> do
     { id } <- H.get
-    H.raise (ChangedStatus id status)
+    H.raise (FunctionChangedStatus id status)
 
 parseAndCheckExpression :: ExpressionInputController -> String -> Expect Expression
 parseAndCheckExpression controller expressionInput = case controller.parse expressionInput of

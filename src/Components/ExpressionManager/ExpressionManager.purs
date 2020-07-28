@@ -200,7 +200,7 @@ handleAddExample index = do
 overwriteWithExample :: forall m. MonadEffect m => Int -> String -> H.HalogenM State Action ChildSlots ExpressionManagerMessage m Unit
 overwriteWithExample id example = case parseAndCheckExpression expressionInputController example of
   Left _ -> pure unit
-  Right expression -> H.raise $ RaisedFunctionExpressionInputMessage $ ParsedExpression id (expressionInputController.clean expression) example
+  Right expression -> H.raise $ RaisedFunctionExpressionInputMessage $ FunctionParsedExpression id (expressionInputController.clean expression) example
 
 infix 6 cons' as :.
 

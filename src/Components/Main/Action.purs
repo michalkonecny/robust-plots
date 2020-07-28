@@ -133,7 +133,7 @@ handleCanvasMessage state StoppedDragging = redraw state
 handleCanvasMessage state (Scrolled isZoomedIn) = handleAction $ Zoom isZoomedIn
 
 handleExpressionPlotMessage :: forall output. State -> ExpressionManagerMessage -> HalogenMain output Unit
-handleExpressionPlotMessage state (RaisedFunctionExpressionInputMessage (ParsedExpression id expression text)) = do
+handleExpressionPlotMessage state (RaisedFunctionExpressionInputMessage (FunctionParsedExpression id expression text)) = do
   clearGlobalError
   plotsOrError <- H.liftAff $ alterExpressionAsync updatePlotWithExpression id state.plots
   handleError (toFirstError plotsOrError)
@@ -146,11 +146,11 @@ handleExpressionPlotMessage state (RaisedFunctionExpressionInputMessage (ParsedE
   where
   updatePlotWithExpression = overwriteFunctionExpression expression text state.autoRobust state.batchCount state.input.size state.bounds
 
-handleExpressionPlotMessage state (RaisedFunctionExpressionInputMessage (ChangedStatus id status)) = do
+handleExpressionPlotMessage state (RaisedFunctionExpressionInputMessage (FunctionChangedStatus id status)) = do
   H.modify_ (_ { plots = alterExpression (overwriteStatus status) id state.plots })
   handleAction DrawPlot
 
-handleExpressionPlotMessage state (RaisedFunctionExpressionInputMessage (ParsedAccuracy id accuracy)) = do
+handleExpressionPlotMessage state (RaisedFunctionExpressionInputMessage (FunctionParsedAccuracy id accuracy)) = do
   clearGlobalError
   H.modify_ (_ { inProgress = true })
   fork
