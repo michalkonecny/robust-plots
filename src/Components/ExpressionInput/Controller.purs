@@ -12,14 +12,14 @@ import Expression.Simplifier (simplify)
 import Expression.SubExpression (joinCommonSubExpressions)
 import Expression.Syntax (Expression)
 
-type FunctionExpressionInputController
+type ExpressionInputController
   = { parse :: String -> Expect Expression
     , clean :: Expression -> Expression
     , checkExpression :: Expression -> Expect (ValueAndDerivative Number)
     , checkAccuracy :: String -> Either Number String
     }
 
-expressionInputController :: FunctionExpressionInputController
+expressionInputController :: ExpressionInputController
 expressionInputController = { parse, clean: simplify >>> joinCommonSubExpressions, checkExpression, checkAccuracy }
 
 checkExpression :: Expression -> Expect (ValueAndDerivative Number)

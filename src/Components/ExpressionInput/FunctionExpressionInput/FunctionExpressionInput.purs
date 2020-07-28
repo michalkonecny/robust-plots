@@ -4,7 +4,7 @@ import Prelude
 
 import Components.Common.Action (onCheckedActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (className)
-import Components.ExpressionInput.Controller (FunctionExpressionInputController)
+import Components.ExpressionInput.Controller (ExpressionInputController)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Effect.Class (class MonadEffect)
@@ -45,7 +45,7 @@ data Action
   | Status Status
   | HandleAccuracyInput String
 
-functionExpressionInputComponent :: forall query m. MonadEffect m => FunctionExpressionInputController -> Int -> H.Component HH.HTML query Input FunctionExpressionInputMessage m
+functionExpressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> Int -> H.Component HH.HTML query Input FunctionExpressionInputMessage m
 functionExpressionInputComponent controller id =
   H.mkComponent
     { initialState: initialState id
@@ -151,7 +151,7 @@ errorMessage (Just message) =
       [ HH.text message ]
   ]
 
-handleAction :: forall m. MonadEffect m => FunctionExpressionInputController -> Action -> H.HalogenM State Action () FunctionExpressionInputMessage m Unit
+handleAction :: forall m. MonadEffect m => ExpressionInputController -> Action -> H.HalogenM State Action () FunctionExpressionInputMessage m Unit
 handleAction controller = case _ of
   UpdateExpression -> do
     { expressionInput, id, input } <- H.get
@@ -176,7 +176,7 @@ handleAction controller = case _ of
     { id } <- H.get
     H.raise (ChangedStatus id status)
 
-parseAndCheckExpression :: FunctionExpressionInputController -> String -> Expect Expression
+parseAndCheckExpression :: ExpressionInputController -> String -> Expect Expression
 parseAndCheckExpression controller expressionInput = case controller.parse expressionInput of
   Left parseError -> Left parseError
   Right expression -> case controller.checkExpression expression of
