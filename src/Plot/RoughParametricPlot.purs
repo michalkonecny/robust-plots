@@ -53,7 +53,7 @@ plotPoints canvasSize bounds domain f = points
 
   domainRange = rationalToNumber $ domain.upper - domain.lower
 
-  numberOfPoints = domainRange / 2.0
+  numberOfPoints = domainRange
 
   height = rationalToNumber canvasSize.height
 
