@@ -2,7 +2,6 @@ module Components.Main.Action where
 
 import Prelude
 
-import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..), canvasSizeToBounds)
 import Components.Canvas (CanvasMessage(..), calculateNewCanvasSize)
 import Components.ExpressionInput (ExpressionInputMessage(..), Status(..))
@@ -42,7 +41,6 @@ data Action
   | HandleExpressionManager ExpressionManagerMessage
   | HandleCanvas CanvasMessage
   | HandleBoundsInput BoundsInputMessage
-  | HandleBatchInput BatchInputMessage
   | DrawPlot
   | ProcessNextJob
   | ResizeAndRedraw
@@ -59,9 +57,6 @@ handleAction action = do
     Init -> initialiseAction
     DrawPlot -> H.modify_ (_ { input { operations = foldDrawCommands state } })
     ProcessNextJob -> processNextJobAction state
-    HandleBatchInput (UpdatedBatchInput batchCount) -> do
-      H.modify_ (_ { batchCount = batchCount })
-      redraw state { batchCount = batchCount }
     ResizeAndRedraw -> do
       resizeCanvas
       newState <- H.get
