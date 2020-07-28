@@ -1,7 +1,6 @@
 module Components.Main.Helper where
 
 import Prelude
-
 import Components.ExpressionInput (Status(..))
 import Components.ExpressionManager.Types (DrawingStatus(..), ExpressionPlot)
 import Components.Main.Types (State)
@@ -9,7 +8,7 @@ import Control.Parallel (parSequence)
 import Data.Array (cons, fold, foldl, mapMaybe, uncons)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
-import Data.String (splitAt)
+import Data.String (length, take)
 import Data.Tuple (Tuple(..))
 import Draw.Commands (DrawCommand)
 import Effect.Aff (Aff, Error)
@@ -59,7 +58,7 @@ queueHasJobs plot = hasJobs plot.queue
 toLabelledPositions :: ExpressionPlot -> LabelledDrawCommand
 toLabelledPositions p = Tuple text p.commands.rough
   where
-  { before: text } = splitAt 20 p.name
+  text = if length p.name <= 23 then p.name else take 20 p.name <> "..."
 
 labelCommands :: (Position -> Boolean) -> Array ExpressionPlot -> DrawCommand Unit
 labelCommands isOffCanvas = drawRoughLabels isOffCanvas <<< map toLabelledPositions
