@@ -48,7 +48,6 @@ type Input
 
 data ExpressionManagerMessage
   = AddPlot Int
-  | ClearPlots
   | DeletePlot Int
   | RenamePlot Int String
   | RaisedExpressionInputMessage ExpressionInputMessage
@@ -57,7 +56,6 @@ data ExpressionManagerMessage
 
 data Action
   = HandleMessage Input
-  | Clear
   | Add
   | Delete Int
   | Edit
@@ -146,7 +144,6 @@ handleAction = case _ of
         , allRobustDraw = allRobustDraw
         , inProgress = inProgress
         }
-  Clear -> H.raise ClearPlots
   Add -> do
     { nextPlotId } <- H.get
     H.modify_ (_ { nextPlotId = nextPlotId + 1 })

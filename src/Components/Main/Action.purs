@@ -229,8 +229,6 @@ handleExpressionPlotMessage state (RenamePlot plotId name) = do
   H.modify_ (_ { plots = alterPlot (_ { name = name }) plotId state.plots })
   handleAction DrawPlot
 
-handleExpressionPlotMessage state ClearPlots = clearAction state
-
 handleExpressionPlotMessage state CalulateRobustPlots = redrawRough state
 
 forkWithDelay :: forall output. Number -> HalogenMain output Unit
