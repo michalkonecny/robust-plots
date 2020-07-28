@@ -8,7 +8,7 @@ import Misc.ExpectAff (ExpectAff, bindTo, pureRight)
 import Plot.Commands (roughParametricPlot)
 import Plot.JobBatcher (JobQueue, cancelAll)
 import Plot.PlotController (computePlotAsync)
-import Types (Size, XYBounds)
+import Types (Size, XYBounds, Bounds)
 import ViewModels.Expression.Common (AccuracyCalculator, DrawingStatus(..), Status(..))
 import ViewModels.Expression.Parametric (ParametricExpression, ParametricViewModel, ParametricExpressionText)
 
@@ -77,6 +77,40 @@ overwriteParametricExpression vm { xExpression, yExpression } { xText, yText } a
       }
     where
     status = if autoRobust then RobustInProgress else DrawnRough
+
+overwriteParametricDomain :: ParametricViewModel -> Bounds -> Boolean -> AccuracyCalculator -> Int -> Size -> XYBounds -> ExpectAff ParametricViewModel
+overwriteParametricDomain vm newDomain autoRobust toDomainAccuracy batchSegmentCount size bounds = withExpression vm go
+  where
+  go :: ParametricExpression -> ExpectAff ParametricViewModel
+  go { xExpression, yExpression } =
+    bindTo computeRoughCommands
+      $ \newRoughCommands ->
+          bindTo addRobustToQueue
+            (pureRight <<< overwriteCommandsAndQueue newRoughCommands)
+    where
+    computeRoughCommands = computePlotAsync size $ roughParametricPlot bounds newDomain xExpression yExpression
+
+    clearedQueue = cancelAll vm.queue
+
+    addRobustToQueue =
+      if autoRobust then
+        pure $ Right clearedQueue -- TODO: Add parametric robust to Queue
+      else
+        pure $ Right clearedQueue
+
+    overwriteCommandsAndQueue :: DrawCommand Unit -> JobQueue -> ParametricViewModel
+    overwriteCommandsAndQueue newRoughCommands queue =
+      vm
+        { commands
+          { rough = newRoughCommands
+          , robust = pure unit
+          , status = status
+          }
+        , queue = queue
+        , domain = newDomain
+        }
+      where
+      status = if autoRobust then RobustInProgress else DrawnRough
 
 drawRoughAndRobustParametric :: AccuracyCalculator -> Boolean -> Int -> Size -> XYBounds -> ParametricViewModel -> ExpectAff ParametricViewModel
 drawRoughAndRobustParametric toDomainAccuracy autoRobust batchSegmentCount size bounds vm = withExpression vm go

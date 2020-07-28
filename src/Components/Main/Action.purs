@@ -31,7 +31,7 @@ import ViewModels.Expression.Common (fromPixelAccuracy)
 import ViewModels.Expression.Draw (appendRobustDrawCommands, drawRobustOnly, drawRoughAndRobust, drawRoughOnly, overwiteAccuracy)
 import ViewModels.Expression.Generic (alterExpression, alterExpressionAsync, expressionId, overwriteName, overwriteStatus)
 import ViewModels.Expression.Job (anyHasJobs, clearCancelledJobs, countBatches, isJobCancelled, runFirstJob, setFirstRunningJob)
-import ViewModels.Expression.Unsafe (overwriteFunctionExpression, overwriteParametricExpression)
+import ViewModels.Expression.Unsafe (overwriteFunctionExpression, overwriteParametricDomain, overwriteParametricExpression)
 import Web.Event.Event as E
 import Web.HTML (window) as Web
 import Web.HTML.Window (toEventTarget) as Web
@@ -201,6 +201,19 @@ handleParametricExpressionPlotMessage state (ParametricParsedExpression id expre
         handleAction ProcessNextJob
   where
   updatePlotWithExpression = overwriteParametricExpression expression text state.autoRobust state.batchCount state.input.size state.bounds
+
+handleParametricExpressionPlotMessage state (ParametricParsedDomain id domain) = do
+  clearGlobalError
+  plotsOrError <- H.liftAff $ alterExpressionAsync updatePlotWithExpression id state.plots
+  handleError (toFirstError plotsOrError)
+    $ \plots -> do
+        H.modify_ (_ { plots = plots })
+        resetProgress state { plots = plots }
+        handleAction DrawPlot
+        fork
+        handleAction ProcessNextJob
+  where
+  updatePlotWithExpression = overwriteParametricDomain domain state.autoRobust state.batchCount state.input.size state.bounds
 
 handleParametricExpressionPlotMessage state (ParametricChangedStatus id status) = do
   H.modify_ (_ { plots = alterExpression (overwriteStatus status) id state.plots })

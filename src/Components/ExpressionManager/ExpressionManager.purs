@@ -382,7 +382,7 @@ selectedExpressionPlot plots selectedPlotId = case findById selectedPlotId plots
       where
       component = parametricExpressionInputComponent expressionInputController vm.id
 
-      input = { expressionText: vm.text, status: vm.status, accuracy: vm.accuracy }
+      input = { expressionText: vm.text, status: vm.status, accuracy: vm.accuracy, domain: vm.domain }
 
       toAction = Just <<< HandleParametricExpressionInput
 

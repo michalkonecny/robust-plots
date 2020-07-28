@@ -1,17 +1,24 @@
 module Components.ExpressionInput.ParametricExpressionInput where
 
 import Prelude
+
 import Components.Common.Action (onCheckedActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (className)
 import Components.ExpressionInput.Controller (ExpressionInputController)
+import Control.Lazy (fix)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Effect.Class (class MonadEffect)
 import Expression.Error (Expect)
+import Expression.Parser (P, literal)
 import Expression.Syntax (Expression)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
+import IntervalArith.Misc (Rational, rationalToNumber)
+import Text.Parsing.Parser (runParser)
+import Text.Parsing.Parser.Expr (buildExprParser)
+import Types (Bounds, Id)
 import ViewModels.Expression.Common (Status(..))
 import ViewModels.Expression.Parametric (ParametricExpressionText, ParametricExpression)
 
@@ -24,9 +31,13 @@ type ParametricExpressionInputSlot p
 type State
   = { xExpressionInput :: String
     , yExpressionInput :: String
+    , domain ::
+        { upperInput :: String
+        , lowerInput :: String
+        }
     , accuracyInput :: String
     , error :: Maybe String
-    , id :: Int
+    , id :: Id
     , input :: Input
     }
 
@@ -34,12 +45,14 @@ type Input
   = { expressionText :: ParametricExpressionText
     , status :: Status
     , accuracy :: Number
+    , domain :: Bounds
     }
 
 data ParametricExpressionInputMessage
-  = ParametricParsedExpression Int ParametricExpression ParametricExpressionText
-  | ParametricChangedStatus Int Status
-  | ParametricParsedAccuracy Int Number
+  = ParametricParsedExpression Id ParametricExpression ParametricExpressionText
+  | ParametricChangedStatus Id Status
+  | ParametricParsedAccuracy Id Number
+  | ParametricParsedDomain Id Bounds
 
 data Action
   = HandleXExpressionInput String
@@ -47,10 +60,13 @@ data Action
   | HandleMessage Input
   | UpdateExpression
   | UpdateAccuracy
+  | UpdateDomain
+  | HandleUpperInput String
+  | HandleLowerInput String
   | Status Status
   | HandleAccuracyInput String
 
-parametricExpressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> Int -> H.Component HH.HTML query Input ParametricExpressionInputMessage m
+parametricExpressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> Id -> H.Component HH.HTML query Input ParametricExpressionInputMessage m
 parametricExpressionInputComponent controller id =
   H.mkComponent
     { initialState: initialState id
@@ -63,7 +79,7 @@ parametricExpressionInputComponent controller id =
               }
     }
 
-initialState :: Int -> Input -> State
+initialState :: Id -> Input -> State
 initialState id input =
   { input
   , error: Nothing
@@ -71,6 +87,10 @@ initialState id input =
   , xExpressionInput: input.expressionText.xText
   , yExpressionInput: input.expressionText.yText
   , accuracyInput: show input.accuracy
+  , domain:
+      { upperInput: show $ rationalToNumber input.domain.upper
+      , lowerInput: show $ rationalToNumber input.domain.lower
+      }
   }
 
 render :: forall slots m. State -> HH.ComponentHTML Action slots m
@@ -105,7 +125,7 @@ render state =
               , HH.input
                   [ HP.type_ HP.InputText
                   , onValueChangeActionEvent HandleYExpressionInput
-                  , HP.value state.xExpressionInput
+                  , HP.value state.yExpressionInput
                   , onFocusOutActionEvent UpdateExpression
                   , onEnterPressActionEvent UpdateExpression
                   , className "form-control"
@@ -161,6 +181,26 @@ render state =
                   [ className "form-check-label pl-2" ]
                   [ HH.text "px" ]
               ]
+          , HH.div
+              [ className "form-inline" ]
+              [ HH.input
+                  [ HP.type_ HP.InputText
+                  , onValueChangeActionEvent $ HandleLowerInput
+                  , HP.value state.domain.lowerInput
+                  , onFocusOutActionEvent UpdateDomain
+                  , onEnterPressActionEvent UpdateDomain
+                  , className "form-control small-input"
+                  ]
+              , HH.span [] [ HH.text " ≤ t ≤ " ]
+              , HH.input
+                  [ HP.type_ HP.InputText
+                  , onValueChangeActionEvent $ HandleUpperInput
+                  , onFocusOutActionEvent UpdateDomain
+                  , onEnterPressActionEvent UpdateDomain
+                  , HP.value state.domain.upperInput
+                  , className "form-control small-input"
+                  ]
+              ]
           ]
       ]
     <> (errorMessage state.error)
@@ -203,9 +243,19 @@ handleAction controller = case _ of
         H.modify_ _ { error = Nothing }
         when (accuracyInput /= show input.accuracy) do
           H.raise (ParametricParsedAccuracy id accuracy)
+  UpdateDomain -> do
+    { domain, id, input } <- H.get
+    case parse domain.lowerInput, parse domain.upperInput of
+      Just lower, Just upper -> do
+        H.modify_ _ { error = Nothing }
+        when (lower /= input.domain.lower || upper /= input.domain.upper) do
+          H.raise (ParametricParsedDomain id { lower, upper })
+      _, _ -> H.modify_ _ { error = Just "Invalid domain" }
   HandleXExpressionInput input -> H.modify_ _ { xExpressionInput = input }
   HandleYExpressionInput input -> H.modify_ _ { yExpressionInput = input }
   HandleAccuracyInput input -> H.modify_ _ { accuracyInput = input }
+  HandleUpperInput input -> H.modify_ _ { domain { upperInput = input } }
+  HandleLowerInput input -> H.modify_ _ { domain { lowerInput = input } }
   HandleMessage input ->
     H.modify_
       _
@@ -230,3 +280,11 @@ handleError :: forall m. Expect Expression -> (Expression -> HalogenParametricIn
 handleError (Left error) _ = H.modify_ _ { error = Just $ show error }
 
 handleError (Right expression) onSuccess = onSuccess expression
+
+parse :: String -> Maybe Rational
+parse input = case runParser input expressionParser of
+  Left error -> Nothing
+  Right number -> Just number
+
+expressionParser :: P Rational
+expressionParser = fix (\p -> buildExprParser [] literal)
