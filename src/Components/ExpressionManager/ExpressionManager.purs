@@ -1,6 +1,7 @@
 module Components.ExpressionManager where
 
 import Prelude
+
 import Components.Checkbox (CheckboxSlot, CheckboxMessage(..), checkboxComponent)
 import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onSelectedIndexChangeActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (appendClassNameIf, className, classNameIf)
@@ -20,7 +21,7 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA as HA
-import ViewModels.Expression (ExpressionViewModel(..))
+import ViewModels.Expression (ExpressionViewModel(..), newFunctionExpressionViewModel, newParametricExpressionViewModel)
 import ViewModels.Expression.Generic (expressionId, expressionName, findById)
 import ViewModels.Expression.Unsafe (functionExpressionText)
 
@@ -58,7 +59,7 @@ type Input
     }
 
 data ExpressionManagerMessage
-  = AddPlot Int
+  = AddPlot ExpressionViewModel
   | ClearPlots
   | DeletePlot Int
   | RenamePlot Int String
@@ -70,7 +71,8 @@ data ExpressionManagerMessage
 data Action
   = HandleMessage Input
   | Clear
-  | Add
+  | AddFunction
+  | AddParametric
   | Delete Int
   | Edit
   | Rename
@@ -118,7 +120,7 @@ render state =
             [ className "card-header" ]
             [ HH.ul
                 [ className "nav nav-tabs card-header-tabs" ]
-                ((map (toTab state) state.plots) <> [ addPlotTab ])
+                ((map (toTab state) state.plots) <> [ addFunctionTab, addParametricTab ])
             ]
         , HH.div
             [ className "card-body" ]
@@ -166,10 +168,14 @@ handleAction = case _ of
         , inProgress = inProgress
         }
   Clear -> H.raise ClearPlots
-  Add -> do
+  AddFunction -> do
     { nextPlotId } <- H.get
     H.modify_ (_ { nextPlotId = nextPlotId + 1 })
-    H.raise (AddPlot nextPlotId)
+    H.raise $ AddPlot $ newFunctionExpressionViewModel nextPlotId
+  AddParametric -> do
+    { nextPlotId } <- H.get
+    H.modify_ (_ { nextPlotId = nextPlotId + 1 })
+    H.raise $ AddPlot $ newParametricExpressionViewModel nextPlotId
   Delete plotId -> do H.raise $ DeletePlot plotId
   Edit -> H.modify_ (_ { editingSelected = true })
   Rename -> do
@@ -194,14 +200,14 @@ handleAddExample index = do
       Nothing, _ -> pure unit
       Just example, Nothing -> do
         { nextPlotId } <- H.get
-        handleAction Add
+        handleAction AddFunction
         overwriteWithExample nextPlotId (NonEmptyArray.head example)
       Just example, Just selected -> do
         if "" == functionExpressionText selected then do
           overwriteWithExample (expressionId selected) (NonEmptyArray.head example)
         else do
           { nextPlotId } <- H.get
-          handleAction Add
+          handleAction AddFunction
           overwriteWithExample nextPlotId (NonEmptyArray.head example)
 
 overwriteWithExample :: forall m. MonadEffect m => Int -> String -> H.HalogenM State Action ChildSlots ExpressionManagerMessage m Unit
@@ -222,7 +228,7 @@ examples =
   ]
 
 exampleFunctionOptions :: forall w. Array (HH.HTML w Action)
-exampleFunctionOptions = [ HH.option [ HP.disabled true, HP.selected true ] [ HH.text "Add example function from below" ] ] <> map toOption examples
+exampleFunctionOptions = [ HH.option [ HP.disabled true, HP.selected true ] [ HH.text "AddFunction example function from below" ] ] <> map toOption examples
   where
   toOption :: NonEmptyArray String -> HH.HTML w Action
   toOption text = HH.option_ [ HH.text (joinWith " " (NonEmptyArray.toArray text)) ]
@@ -264,8 +270,8 @@ toTab state plot =
   where
   tabContent = catMaybes [ Just (textOrEditInput state plot), maybeEditButton state (expressionId plot), maybeDeleteButton state (expressionId plot) ]
 
-addPlotTab :: forall w. HH.HTML w Action
-addPlotTab =
+addFunctionTab :: forall w. HH.HTML w Action
+addFunctionTab =
   HH.li
     [ className "nav-item" ]
     [ HH.button
@@ -275,9 +281,34 @@ addPlotTab =
             [ className "form-inline" ]
             [ HH.button
                 [ className "btn btn-success btn-sm"
-                , onClickActionEvent Add
+                , onClickActionEvent AddParametric
                 ]
-                [ HH.text "+" ]
+                [ HH.text "P" ]
+            , HH.select
+                [ className "form-control form-control-sm"
+                , style "max-width: 20px"
+                , HP.selectedIndex 0
+                , onSelectedIndexChangeActionEvent SelectedExample
+                ]
+                exampleFunctionOptions
+            ]
+        ]
+    ]
+
+addParametricTab :: forall w. HH.HTML w Action
+addParametricTab =
+  HH.li
+    [ className "nav-item" ]
+    [ HH.button
+        [ className "nav-link"
+        ]
+        [ HH.div
+            [ className "form-inline" ]
+            [ HH.button
+                [ className "btn btn-success btn-sm"
+                , onClickActionEvent AddFunction
+                ]
+                [ HH.text "F" ]
             , HH.select
                 [ className "form-control form-control-sm"
                 , style "max-width: 20px"

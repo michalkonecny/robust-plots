@@ -144,7 +144,7 @@ handleExpressionPlotMessage state (DeletePlot plotId) = do
 
 handleExpressionPlotMessage state (ToggleAuto autoRobust) = H.modify_ (_ { autoRobust = autoRobust })
 
-handleExpressionPlotMessage state (AddPlot nextId) = H.modify_ (_ { plots = state.plots <> [ newFunctionExpressionViewModel nextId ] })
+handleExpressionPlotMessage state (AddPlot newPlot) = H.modify_ (_ { plots = state.plots <> [ newPlot ] })
 
 handleExpressionPlotMessage state (RenamePlot plotId name) = do
   H.modify_ (_ { plots = alterExpression (overwriteName name) plotId state.plots })

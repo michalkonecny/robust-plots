@@ -179,6 +179,6 @@ handleAction controller = case _ of
 parseAndCheckExpression :: ExpressionInputController -> String -> Expect Expression
 parseAndCheckExpression controller expressionInput = case controller.parse expressionInput of
   Left parseError -> Left parseError
-  Right expression -> case controller.checkExpression expression of
+  Right expression -> case controller.checkExpression "x" expression of
     Left evaluationError -> Left evaluationError
     Right _ -> Right expression

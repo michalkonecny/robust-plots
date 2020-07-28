@@ -222,7 +222,7 @@ handleAction controller = case _ of
 parseAndCheckExpression :: ExpressionInputController -> String -> Expect Expression
 parseAndCheckExpression controller xExpressionInput = case controller.parse xExpressionInput of
   Left parseError -> Left parseError
-  Right expression -> case controller.checkExpression expression of
+  Right expression -> case controller.checkExpression "t" expression of
     Left evaluationError -> Left evaluationError
     Right _ -> Right expression
 
