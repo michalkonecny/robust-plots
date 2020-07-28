@@ -1,7 +1,6 @@
 module Components.ExpressionManager where
 
 import Prelude
-
 import Components.Checkbox (CheckboxSlot, CheckboxMessage(..), checkboxComponent)
 import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onSelectedIndexChangeActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (appendClassNameIf, className, classNameIf)
@@ -60,7 +59,6 @@ type Input
 
 data ExpressionManagerMessage
   = AddPlot ExpressionViewModel
-  | ClearPlots
   | DeletePlot Int
   | RenamePlot Int String
   | RaisedFunctionExpressionInputMessage FunctionExpressionInputMessage
@@ -70,7 +68,6 @@ data ExpressionManagerMessage
 
 data Action
   = HandleMessage Input
-  | Clear
   | AddFunction
   | AddParametric
   | Delete Int
@@ -132,13 +129,7 @@ render state =
                 [ className "form-inline" ]
                 [ HH.div
                     [ className "btn-group" ]
-                    [ HH.button
-                        [ className "btn btn-danger"
-                        , onClickActionEvent Clear
-                        ]
-                        [ HH.text "Clear plots" ]
-                    , renderButton state.allRobustDraw state.inProgress
-                    ]
+                    [ renderButton state.allRobustDraw state.inProgress ]
                 , HH.div
                     [ className "pl-2" ]
                     [ HH.slot _checkbox 1 (checkboxComponent "Auto") state.autoRobust (Just <<< HandleAutoToggle) ]
@@ -167,7 +158,6 @@ handleAction = case _ of
         , allRobustDraw = allRobustDraw
         , inProgress = inProgress
         }
-  Clear -> H.raise ClearPlots
   AddFunction -> do
     { nextPlotId } <- H.get
     H.modify_ (_ { nextPlotId = nextPlotId + 1 })

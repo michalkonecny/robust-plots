@@ -2,7 +2,6 @@ module Components.Main.Types where
 
 import Prelude
 
-import Components.BatchInput (BatchInputSlot)
 import Components.BoundsInput (BoundsInputSlot)
 import Components.Canvas (CanvasSlot, Input)
 import Components.ExpressionManager (ExpressionManagerSlot)
@@ -29,7 +28,6 @@ type ChildSlots
   = ( canvas :: CanvasSlot Int
     , expressionManager :: ExpressionManagerSlot Int
     , boundsInput :: BoundsInputSlot Int
-    , batchInput :: BatchInputSlot Int
     , progressBar :: ProgressBarSlot Int
     )
 
