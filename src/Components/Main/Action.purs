@@ -310,7 +310,7 @@ redrawWithoutRobustWithBounds state newBounds = do
               H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds })
               handleAction DrawPlot
 
-mapPlots :: forall output. (ExpressionViewModel -> ExpectAff ExpressionViewModel -> Array ExpressionViewModel -> HalogenMain output (Array (Either Error ExpressionViewModel))
+mapPlots :: forall output. (ExpressionViewModel -> ExpectAff ExpressionViewModel) -> Array ExpressionViewModel -> HalogenMain output (Array (Either Error ExpressionViewModel))
 mapPlots f = lift <<< lift <<< parSequence <<< (map f)
 
 resetProgress :: forall output. State -> HalogenMain output Unit
