@@ -38,7 +38,7 @@ data FunctionExpressionInputMessage
   | FunctionParsedAccuracy Int Number
 
 data Action
-  = HandleFunctionExpressionInput String
+  = HandleExpressionInput String
   | HandleMessage Input
   | UpdateExpression
   | UpdateAccuracy
@@ -81,7 +81,7 @@ render state =
                   ]
               , HH.input
                   [ HP.type_ HP.InputText
-                  , onValueChangeActionEvent HandleFunctionExpressionInput
+                  , onValueChangeActionEvent HandleExpressionInput
                   , HP.value state.expressionInput
                   , onFocusOutActionEvent UpdateExpression
                   , onEnterPressActionEvent UpdateExpression
@@ -169,7 +169,7 @@ handleAction controller = case _ of
         H.modify_ _ { error = Nothing }
         when (accuracyInput /= show input.accuracy) do
           H.raise (FunctionParsedAccuracy id accuracy)
-  HandleFunctionExpressionInput input -> H.modify_ _ { expressionInput = input }
+  HandleExpressionInput input -> H.modify_ _ { expressionInput = input }
   HandleAccuracyInput input -> H.modify_ _ { accuracyInput = input }
   HandleMessage input -> H.modify_ _ { input = input, expressionInput = input.expressionText, accuracyInput = show input.accuracy, error = Nothing }
   Status status -> do
