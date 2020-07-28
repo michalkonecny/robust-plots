@@ -5,8 +5,9 @@ import Components.Checkbox (CheckboxSlot, CheckboxMessage(..), checkboxComponent
 import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onSelectedIndexChangeActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (appendClassNameIf, className, classNameIf)
 import Components.Common.Styles (style)
-import Components.ExpressionInput.FunctionExpressionInput (FunctionExpressionInputSlot, FunctionExpressionInputMessage(..), functionExpressionInputComponent, parseAndCheckExpression)
 import Components.ExpressionInput.Controller (expressionInputController)
+import Components.ExpressionInput.FunctionExpressionInput (FunctionExpressionInputSlot, FunctionExpressionInputMessage(..), functionExpressionInputComponent, parseAndCheckExpression)
+import Components.ExpressionInput.ParametricExpressionInput (ParametricExpressionInputMessage, ParametricExpressionInputSlot, parametricExpressionInputComponent)
 import Data.Array (catMaybes, head, length, (!!))
 import Data.Array.NonEmpty (NonEmptyArray, cons')
 import Data.Array.NonEmpty as NonEmptyArray
@@ -19,11 +20,13 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA as HA
-import ViewModels.Expression (ExpressionViewModel)
-import ViewModels.Expression.Generic (expressionId, expressionName, findById, expressionStatus, expressionAccruacy)
+import ViewModels.Expression (ExpressionViewModel(..))
+import ViewModels.Expression.Generic (expressionId, expressionName, findById)
 import ViewModels.Expression.Unsafe (functionExpressionText)
 
-_expressionInput = SProxy :: SProxy "expressionInput"
+_functionExpressionInput = SProxy :: SProxy "functionExpressionInput"
+
+_parametricExpressionInput = SProxy :: SProxy "parametricExpressionInput"
 
 _checkbox = SProxy :: SProxy "checkbox"
 
@@ -31,8 +34,9 @@ type ExpressionManagerSlot p
   = forall q. H.Slot q ExpressionManagerMessage p
 
 type ChildSlots
-  = ( expressionInput :: FunctionExpressionInputSlot Int
+  = ( functionExpressionInput :: FunctionExpressionInputSlot Int
     , checkbox :: CheckboxSlot Int
+    , parametricExpressionInput :: ParametricExpressionInputSlot Int
     )
 
 type State
@@ -59,6 +63,7 @@ data ExpressionManagerMessage
   | DeletePlot Int
   | RenamePlot Int String
   | RaisedFunctionExpressionInputMessage FunctionExpressionInputMessage
+  | RaisedParametricExpressionInputMessage ParametricExpressionInputMessage
   | ToggleAuto Boolean
   | CalulateRobustPlots
 
@@ -72,6 +77,7 @@ data Action
   | HandleInput String
   | ChangeSelected Int
   | HandleFunctionExpressionInput FunctionExpressionInputMessage
+  | HandleParametricExpressionInput ParametricExpressionInputMessage
   | HandleAutoToggle CheckboxMessage
   | CalulateRobust
   | SelectedExample Int
@@ -175,6 +181,7 @@ handleAction = case _ of
     when ((plotExists plots plotId) && selectedPlotId /= plotId) do
       H.modify_ (_ { selectedPlotId = plotId, editingSelected = false, editedName = selectedPlotName plots plotId })
   HandleFunctionExpressionInput message -> H.raise $ RaisedFunctionExpressionInputMessage message
+  HandleParametricExpressionInput message -> H.raise $ RaisedParametricExpressionInputMessage message
   HandleAutoToggle (ToggleChanged isChecked) -> H.raise $ ToggleAuto isChecked
   CalulateRobust -> H.raise CalulateRobustPlots
   SelectedExample index -> handleAddExample index
@@ -329,13 +336,24 @@ selectedExpressionPlot [] _ = HH.text "Error: No plots"
 
 selectedExpressionPlot plots selectedPlotId = case findById selectedPlotId plots of
   Nothing -> HH.text $ "Error: Plot " <> (show selectedPlotId) <> " does not exist"
-  Just plot -> HH.slot _expressionInput (expressionId plot) component input toAction
+  Just plot -> go plot
     where
-    component = functionExpressionInputComponent expressionInputController (expressionId plot)
+    go :: ExpressionViewModel -> H.ComponentHTML Action ChildSlots m
+    go (Function vm) = HH.slot _functionExpressionInput vm.id component input toAction
+      where
+      component = functionExpressionInputComponent expressionInputController vm.id
 
-    input = { expressionText: functionExpressionText plot, status: expressionStatus plot, accuracy: expressionAccruacy plot }
+      input = { expressionText: vm.expressionText, status: vm.status, accuracy: vm.accuracy }
 
-    toAction = Just <<< HandleFunctionExpressionInput
+      toAction = Just <<< HandleFunctionExpressionInput
+
+    go (Parametric vm) = HH.slot _parametricExpressionInput vm.id component input toAction
+      where
+      component = parametricExpressionInputComponent expressionInputController vm.id
+
+      input = { expressionText: vm.text, status: vm.status, accuracy: vm.accuracy }
+
+      toAction = Just <<< HandleParametricExpressionInput
 
 plotExists :: Array ExpressionViewModel -> Int -> Boolean
 plotExists plots plotId = isJust (findById plotId plots)

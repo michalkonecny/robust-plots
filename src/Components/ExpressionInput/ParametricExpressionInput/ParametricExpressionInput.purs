@@ -50,8 +50,8 @@ data Action
   | Status Status
   | HandleAccuracyInput String
 
-functionExpressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> Int -> H.Component HH.HTML query Input ParametricExpressionInputMessage m
-functionExpressionInputComponent controller id =
+parametricExpressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> Int -> H.Component HH.HTML query Input ParametricExpressionInputMessage m
+parametricExpressionInputComponent controller id =
   H.mkComponent
     { initialState: initialState id
     , render
@@ -183,7 +183,7 @@ handleAction controller = case _ of
           handleError (parseAndCheckExpression controller yExpressionInput)
             $ \yExpression -> do
                 H.modify_ _ { error = Nothing }
-                when (xExpressionInput /= input.expressionText.xText && yExpressionInput /= input.expressionText.yText) do
+                when (xExpressionInput /= input.expressionText.xText || yExpressionInput /= input.expressionText.yText) do
                   let
                     exprerssion =
                       { xExpression: controller.clean xExpression
