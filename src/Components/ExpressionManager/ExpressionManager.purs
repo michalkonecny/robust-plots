@@ -22,7 +22,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA as HA
 import ViewModels.Expression (ExpressionViewModel(..), newFunctionExpressionViewModel, newParametricExpressionViewModel)
-import ViewModels.Expression.Generic (expressionId, expressionName, findById, isDefault)
+import ViewModels.Expression.Generic (expressionId, expressionName, findById, isDefault, isFunction)
 
 _functionExpressionInput = SProxy :: SProxy "functionExpressionInput"
 
@@ -193,7 +193,7 @@ handleAddExample index = do
         handleAction AddFunction
         overwriteWithExample nextPlotId (NonEmptyArray.head example)
       Just example, Just selected -> do
-        if isDefault selected then do
+        if isDefault selected && isFunction selected then do
           overwriteWithExample (expressionId selected) (NonEmptyArray.head example)
         else do
           { nextPlotId } <- H.get

@@ -36,6 +36,16 @@ expressionAccruacy (Function vm) = vm.accuracy
 
 expressionAccruacy (Parametric vm) = vm.accuracy
 
+isFunction :: ExpressionViewModel -> Boolean
+isFunction (Function _) = true
+
+isFunction _ = false
+
+isParametric :: ExpressionViewModel -> Boolean
+isParametric (Parametric _) = true
+
+isParametric _ = false
+
 isDefault :: ExpressionViewModel -> Boolean
 isDefault (Function vm) = vm.expressionText == ""
 
