@@ -1,7 +1,6 @@
 module Components.Main where
 
 import Prelude
-import Components.BatchInput (batchInputComponent)
 import Components.BoundsInput (boundsInputComponent, canvasSizeToBounds)
 import Components.Canvas (canvasComponent, defaultCanvasSize)
 import Components.Canvas.Controller (canvasController)
@@ -87,18 +86,6 @@ mainComponent =
                     [ className "col-xl-3 col-md-12 sidebar" ]
                     [ HH.slot _expressionManager 1 expressionManagerComponent (toExpressionManagerInput state) (Just <<< HandleExpressionManager)
                     , HH.br_
-                    , HH.div
-                        [ className "card" ]
-                        [ HH.div
-                            [ className "card-header" ]
-                            [ HH.text "Advanced settings"
-                            ]
-                        , HH.div
-                            [ className "card-body" ]
-                            [ HH.slot _batchInput 1 batchInputComponent state.batchCount (Just <<< HandleBatchInput)
-                            ]
-                        ]
-                    , HH.br_
                     ]
                 , HH.div
                     [ className "col-xl col-md-12 canvasCol" ]
@@ -177,7 +164,7 @@ mainComponent =
             [ className "page-footer font-small fixed-bottom" ]
             [ HH.footer
                 [ className "footer-copyright text-right py-3 pr-2" ]
-                [ HH.text "By Michal Konecny, Joshua Eddy; source on"
+                [ HH.text "version 0.1.0, ©2020 Michal Konecny, Joshua Eddy; source on"
                 , HH.a
                     [ HP.href "https://github.com/michalkonecny/robust-plots"
                     , className "pl-1"
