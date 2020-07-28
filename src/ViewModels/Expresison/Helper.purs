@@ -1,4 +1,4 @@
-module ViewModels.Expression.Generic where
+module ViewModels.Expression.Helper where
 
 import Prelude
 import Control.Parallel (parSequence)

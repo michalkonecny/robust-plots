@@ -14,7 +14,7 @@ import Types (Size, XYBounds, Position)
 import ViewModels.Expression (ExpressionViewModel(..))
 import ViewModels.Expression.Common (AccuracyCalculator, DrawingStatus(..), Status(..), DrawingCommands, fromPixelAccuracy)
 import ViewModels.Expression.Function.Draw (drawRobustOnlyFunction, drawRoughAndRobustFunction, drawRoughOnlyFunction, overwiteFunctionAccuracy)
-import ViewModels.Expression.Generic (drawingStatus)
+import ViewModels.Expression.Helper (drawingStatus)
 import ViewModels.Expression.Parametric.Draw (drawRobustOnlyParametric, drawRoughAndRobustParametric, drawRoughOnlyParametric, overwiteParametricAccuracy)
 
 overwiteAccuracy :: Number -> AccuracyCalculator -> Int -> XYBounds -> ExpressionViewModel -> ExpectAff ExpressionViewModel

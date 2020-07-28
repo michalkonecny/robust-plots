@@ -22,7 +22,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA as HA
 import ViewModels.Expression (ExpressionViewModel(..), newFunctionExpressionViewModel, newParametricExpressionViewModel)
-import ViewModels.Expression.Generic (expressionId, expressionName, findById, isDefault, isFunction)
+import ViewModels.Expression.Helper (expressionId, expressionName, findById, isDefault, isFunction)
 
 _functionExpressionInput = SProxy :: SProxy "functionExpressionInput"
 

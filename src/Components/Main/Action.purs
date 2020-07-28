@@ -28,7 +28,7 @@ import Types (Direction, XYBounds)
 import ViewModels.Expression (ExpressionViewModel, newFunctionExpressionViewModel)
 import ViewModels.Expression.Common (fromPixelAccuracy)
 import ViewModels.Expression.Draw (appendRobustDrawCommands, drawRobustOnly, drawRoughAndRobust, drawRoughOnly, overwiteAccuracy)
-import ViewModels.Expression.Generic (alterExpression, alterExpressionAsync, expressionId, overwriteName, overwriteStatus)
+import ViewModels.Expression.Helper (alterExpression, alterExpressionAsync, expressionId, overwriteName, overwriteStatus)
 import ViewModels.Expression.Job (anyHasJobs, clearCancelledJobs, countBatches, isJobCancelled, runFirstJob, setFirstRunningJob)
 import ViewModels.Expression.Unsafe (overwriteFunctionExpression, overwriteParametricDomain, overwriteParametricExpression)
 import Web.Event.Event as E
