@@ -38,7 +38,7 @@ evaluateWithT xExpression yExpression t = result
 
   evaluator = expectToMaybe <<< evaluateDerivative2 variableMap
 
-  result = case evaluator xExpression, evaluator xExpression of
+  result = case evaluator xExpression, evaluator yExpression of
     Just x, Just y -> Just { x, y }
     _, _ -> Nothing
 
