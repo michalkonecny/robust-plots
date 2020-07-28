@@ -117,7 +117,7 @@ render state =
             [ className "card-header" ]
             [ HH.ul
                 [ className "nav nav-tabs card-header-tabs" ]
-                ((map (toTab state) state.plots) <> [ addFunctionTab, addParametricTab ])
+                ((map (toTab state) state.plots) <> [ addTab ])
             ]
         , HH.div
             [ className "card-body" ]
@@ -260,8 +260,8 @@ toTab state plot =
   where
   tabContent = catMaybes [ Just (textOrEditInput state plot), maybeEditButton state (expressionId plot), maybeDeleteButton state (expressionId plot) ]
 
-addFunctionTab :: forall w. HH.HTML w Action
-addFunctionTab =
+addTab :: forall w. HH.HTML w Action
+addTab =
   HH.li
     [ className "nav-item" ]
     [ HH.button
@@ -273,7 +273,13 @@ addFunctionTab =
                 [ className "btn btn-success btn-sm"
                 , onClickActionEvent AddParametric
                 ]
-                [ HH.text "P" ]
+                [ HH.text "P" ],
+            HH.button
+                [ className "btn btn-success btn-sm"
+                , onClickActionEvent AddFunction
+                ]
+                [ HH.text "F" ]
+            
             , HH.select
                 [ className "form-control form-control-sm"
                 , style "max-width: 20px"
@@ -285,30 +291,6 @@ addFunctionTab =
         ]
     ]
 
-addParametricTab :: forall w. HH.HTML w Action
-addParametricTab =
-  HH.li
-    [ className "nav-item" ]
-    [ HH.button
-        [ className "nav-link"
-        ]
-        [ HH.div
-            [ className "form-inline" ]
-            [ HH.button
-                [ className "btn btn-success btn-sm"
-                , onClickActionEvent AddFunction
-                ]
-                [ HH.text "F" ]
-            , HH.select
-                [ className "form-control form-control-sm"
-                , style "max-width: 20px"
-                , HP.selectedIndex 0
-                , onSelectedIndexChangeActionEvent SelectedExample
-                ]
-                exampleFunctionOptions
-            ]
-        ]
-    ]
 
 textOrEditInput :: forall w. State -> ExpressionViewModel -> HH.HTML w Action
 textOrEditInput state plot =
