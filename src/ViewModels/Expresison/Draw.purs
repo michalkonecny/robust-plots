@@ -1,9 +1,10 @@
 module ViewModels.Expression.Draw where
 
 import Prelude
+
 import Data.Foldable (all, fold)
 import Data.Maybe (Maybe(..))
-import Data.String (splitAt)
+import Data.String (length, take)
 import Data.Tuple (Tuple(..))
 import Draw.Commands (DrawCommand)
 import Misc.ExpectAff (ExpectAff, mapExpectAff)
@@ -106,7 +107,7 @@ labelCommands isOffCanvas = drawRoughLabels isOffCanvas <<< map toLabelledPositi
   genericToLabelledPositions :: forall r. { commands :: DrawingCommands, queue :: JobQueue, name :: String | r } -> LabelledDrawCommand
   genericToLabelledPositions vm = Tuple text vm.commands.rough
     where
-    { before: text } = splitAt 20 vm.name
+    text = if length vm.name <= 23 then vm.name else take 20 vm.name <> "..."
 
 toMaybeDrawCommand :: ExpressionViewModel -> Maybe (DrawCommand Unit)
 toMaybeDrawCommand (Function plot) = genericToMaybeDrawCommand plot
