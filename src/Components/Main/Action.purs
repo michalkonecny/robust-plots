@@ -93,21 +93,17 @@ initialiseAction = do
   H.subscribe' \id -> ES.eventListenerEventSource (E.EventType "resize") window (const (Just ResizeAndRedraw))
   resizeCanvas
   state <- H.get
-  clearAction state
-
-handleBoundsInputMessage :: forall output. State -> BoundsInputMessage -> HalogenMain output Unit
-handleBoundsInputMessage state (UpdatedBoundsInput newBounds) = redrawWithBounds state newBounds
-
-handleBoundsInputMessage state ResetBounds = redrawWithBounds state $ canvasSizeToBounds state.input.size
-
-clearAction :: forall output. State -> HalogenMain output Unit
-clearAction state = do
   clearGlobalError
   clearBoundsOrError <- H.liftAff $ computePlotAsync state.input.size (clear state.bounds)
   handleError clearBoundsOrError
     $ \clearBounds -> do
         H.modify_ (_ { plots = [ newFunctionExpressionViewModel 0 ], clearPlot = clearBounds })
         handleAction DrawPlot
+
+handleBoundsInputMessage :: forall output. State -> BoundsInputMessage -> HalogenMain output Unit
+handleBoundsInputMessage state (UpdatedBoundsInput newBounds) = redrawWithBounds state newBounds
+
+handleBoundsInputMessage state ResetBounds = redrawWithBounds state $ canvasSizeToBounds state.input.size
 
 processNextJobAction :: forall output. State -> HalogenMain output Unit
 processNextJobAction state = do
