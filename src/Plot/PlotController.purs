@@ -1,12 +1,14 @@
 module Plot.PlotController where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Draw.Commands (DrawCommand)
 import Effect (Effect)
-import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
+import Effect.Aff (Canceler, Error, makeAff, nonCanceler)
 import Effect.Console (log)
 import Effect.Exception (try)
+import Misc.ExpectAff (ExpectAff)
 import Plot.Commands (PlotCommand(..))
 import Plot.GridLines (clearAndDrawGridLines)
 import Plot.RobustPlot (drawRobustPlot)
@@ -14,7 +16,7 @@ import Plot.RoughFunctionPlot (drawRoughPlot)
 import Plot.RoughParametricPlot (drawRoughParametricPlot)
 import Types (Size)
 
-computePlotAsync :: Size -> PlotCommand -> Aff (Either Error (DrawCommand Unit))
+computePlotAsync :: Size -> PlotCommand -> ExpectAff (DrawCommand Unit)
 computePlotAsync canvasSize plot = makeAff $ runComputation canvasSize plot
 
 runComputation :: Size -> PlotCommand -> (Either Error (Either Error (DrawCommand Unit)) -> Effect Unit) -> Effect Canceler

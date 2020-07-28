@@ -14,6 +14,7 @@ module Plot.JobBatcher
   ) where
 
 import Prelude
+
 import Data.Array (elem, foldl, foldr)
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable)
@@ -22,12 +23,13 @@ import Data.Set (Set, empty, insert) as S
 import Data.Tuple (Tuple)
 import Draw.Commands (DrawCommand)
 import Effect (Effect)
-import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
+import Effect.Aff (Canceler, Error, makeAff, nonCanceler)
 import Effect.Console (log)
 import Effect.Exception (try)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx)
 import Misc.Array (split)
+import Misc.ExpectAff (ExpectAff, MaybeExpectAff)
 import Misc.Queue (Queue, empty, null, peek, push, tail, toList, length) as Q
 import Plot.Commands (PlotCommand(..), Depth)
 import Plot.PlotController (computePlotAsync)
@@ -91,7 +93,7 @@ cancelAll jobQueue = cancelRunning $ jobQueue { cancelled = cancelled, queue = Q
 -- | Adds a plot with its associated `batchId` to the `Job` queue.
 -- |
 -- | Running time: `O(batchSegmentCount * (batchSegmentCount - 1))`
-addPlot :: Number -> Int -> JobQueue -> XYBounds -> Expression -> Id -> Aff (Either Error JobQueue)
+addPlot :: Number -> Int -> JobQueue -> XYBounds -> Expression -> Id -> ExpectAff JobQueue
 addPlot accuracyTarget batchSegmentCount jobQueue bounds expression batchId = do
   segmentedPlotsOrError <- makeAff $ runSegmentRobust accuracyTarget batchSegmentCount bounds expression
   case segmentedPlotsOrError of
@@ -107,7 +109,7 @@ setRunning jobQueue = case Q.peek jobQueue.queue of
   Just job -> jobQueue { running = pure job, queue = Q.tail jobQueue.queue }
 
 -- | Executes the `Job` at the front of the queue.
-runFirst :: Size -> JobQueue -> Aff (Maybe (Either Error JobResult))
+runFirst :: Size -> JobQueue -> MaybeExpectAff JobResult
 runFirst canvasSize jobQueue = runMaybeJob (runJob canvasSize) jobQueue.cancelled maybeJob
   where
   maybeJob = Q.peek jobQueue.queue
@@ -142,7 +144,7 @@ isRunning check jobQueue = case jobQueue.running of
   Nothing -> false
   Just job -> check job
 
-runMaybeJob :: (Job -> Aff (Either Error (DrawCommand Unit))) -> S.Set Id -> Maybe Job -> Aff (Maybe (Either Error JobResult))
+runMaybeJob :: (Job -> ExpectAff (DrawCommand Unit)) -> S.Set Id -> Maybe Job -> MaybeExpectAff JobResult
 runMaybeJob _ _ Nothing = pure Nothing
 
 runMaybeJob runner cancelled (Just job) =
@@ -154,7 +156,7 @@ runMaybeJob runner cancelled (Just job) =
       Left error -> pure $ Just $ Left error
       Right drawCommands -> pure $ Just $ Right { job, drawCommands }
 
-runJob :: Size -> Job -> Aff (Either Error (DrawCommand Unit))
+runJob :: Size -> Job -> ExpectAff (DrawCommand Unit)
 runJob canvasSize job = computePlotAsync canvasSize job.command
 
 addJob :: Id -> JobQueue -> PlotCommand -> JobQueue

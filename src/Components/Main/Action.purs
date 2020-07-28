@@ -1,6 +1,7 @@
 module Components.Main.Action where
 
 import Prelude
+
 import Components.BoundsInput (BoundsInputMessage(..), canvasSizeToBounds)
 import Components.Canvas (CanvasMessage(..), calculateNewCanvasSize)
 import Components.ExpressionInput.FunctionExpressionInput (FunctionExpressionInputMessage(..))
@@ -19,6 +20,7 @@ import Effect.Console (log)
 import Effect.Exception (Error)
 import Halogen as H
 import Halogen.Query.EventSource as ES
+import Misc.ExpectAff (ExpectAff)
 import Plot.Commands (clear)
 import Plot.JobBatcher (JobResult)
 import Plot.Pan (panBounds, panBoundsByVector)
@@ -308,7 +310,7 @@ redrawWithoutRobustWithBounds state newBounds = do
               H.modify_ (_ { plots = plots, clearPlot = clearBounds, bounds = newBounds })
               handleAction DrawPlot
 
-mapPlots :: forall output. (ExpressionViewModel -> Aff (Either Error ExpressionViewModel)) -> Array ExpressionViewModel -> HalogenMain output (Array (Either Error ExpressionViewModel))
+mapPlots :: forall output. (ExpressionViewModel -> ExpectAff ExpressionViewModel -> Array ExpressionViewModel -> HalogenMain output (Array (Either Error ExpressionViewModel))
 mapPlots f = lift <<< lift <<< parSequence <<< (map f)
 
 resetProgress :: forall output. State -> HalogenMain output Unit
