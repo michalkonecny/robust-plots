@@ -6,7 +6,7 @@ import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, on
 import Components.Common.ClassName (appendClassNameIf, className, classNameIf)
 import Components.Common.Styles (style)
 import Components.FunctionExpressionInput (FunctionExpressionInputSlot, FunctionExpressionInputMessage(..), functionExpressionInputComponent, parseAndCheckExpression)
-import Components.FunctionExpressionInput.Controller (expressionInputController)
+import Components.ExpressionInput.Controller (expressionInputController)
 import Data.Array (catMaybes, head, length, (!!))
 import Data.Array.NonEmpty (NonEmptyArray, cons')
 import Data.Array.NonEmpty as NonEmptyArray

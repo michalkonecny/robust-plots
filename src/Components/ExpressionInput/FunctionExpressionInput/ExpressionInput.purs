@@ -4,7 +4,7 @@ import Prelude
 
 import Components.Common.Action (onCheckedActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (className)
-import Components.FunctionExpressionInput.Controller (FunctionExpressionInputController)
+import Components.ExpressionInput.Controller (FunctionExpressionInputController)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Effect.Class (class MonadEffect)

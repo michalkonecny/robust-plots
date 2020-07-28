@@ -1,4 +1,4 @@
-module Components.FunctionExpressionInput.Controller where
+module Components.ExpressionInput.Controller where
 
 import Prelude
 import Data.Either (Either(..))
