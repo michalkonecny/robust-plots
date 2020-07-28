@@ -1,4 +1,4 @@
-module Components.FunctionExpressionInput where
+module Components.ExpressionInput.FunctionExpressionInput where
 
 import Prelude
 

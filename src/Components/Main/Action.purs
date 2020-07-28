@@ -4,7 +4,7 @@ import Prelude
 import Components.BatchInput (BatchInputMessage(..))
 import Components.BoundsInput (BoundsInputMessage(..), canvasSizeToBounds)
 import Components.Canvas (CanvasMessage(..), calculateNewCanvasSize)
-import Components.FunctionExpressionInput (FunctionExpressionInputMessage(..))
+import Components.ExpressionInput.FunctionExpressionInput (FunctionExpressionInputMessage(..))
 import Components.ExpressionManager (ExpressionManagerMessage(..))
 import Components.Main.Helper (foldDrawCommands)
 import Components.Main.Types (ChildSlots, Config, State)

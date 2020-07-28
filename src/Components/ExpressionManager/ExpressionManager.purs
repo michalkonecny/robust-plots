@@ -5,7 +5,7 @@ import Components.Checkbox (CheckboxSlot, CheckboxMessage(..), checkboxComponent
 import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onSelectedIndexChangeActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (appendClassNameIf, className, classNameIf)
 import Components.Common.Styles (style)
-import Components.FunctionExpressionInput (FunctionExpressionInputSlot, FunctionExpressionInputMessage(..), functionExpressionInputComponent, parseAndCheckExpression)
+import Components.ExpressionInput.FunctionExpressionInput (FunctionExpressionInputSlot, FunctionExpressionInputMessage(..), functionExpressionInputComponent, parseAndCheckExpression)
 import Components.ExpressionInput.Controller (expressionInputController)
 import Data.Array (catMaybes, head, length, (!!))
 import Data.Array.NonEmpty (NonEmptyArray, cons')
