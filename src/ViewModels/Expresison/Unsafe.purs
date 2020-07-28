@@ -11,11 +11,6 @@ import ViewModels.Expression.Function.Draw (overwriteFunctionExpression) as F
 import ViewModels.Expression.Parametric (ParametricExpression, ParametricExpressionText)
 import ViewModels.Expression.Parametric.Draw (overwriteParametricExpression, overwriteParametricDomain) as P
 
-functionExpressionText :: ExpressionViewModel -> String
-functionExpressionText (Function vm) = vm.expressionText
-
-functionExpressionText _ = unsafeThrow "Unsuported opperation: 'functionExpressionText'"
-
 overwriteFunctionExpression :: Expression -> String -> Boolean -> Int -> Size -> XYBounds -> ExpressionViewModel -> ExpectAff ExpressionViewModel
 overwriteFunctionExpression expression text autoRobust batchSegmentCount size bounds (Function vm) =
   mapExpectAff Function

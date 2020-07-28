@@ -1,6 +1,7 @@
 module Components.ExpressionManager where
 
 import Prelude
+
 import Components.Checkbox (CheckboxSlot, CheckboxMessage(..), checkboxComponent)
 import Components.Common.Action (onClickActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onSelectedIndexChangeActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (appendClassNameIf, className, classNameIf)
@@ -21,8 +22,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA as HA
 import ViewModels.Expression (ExpressionViewModel(..), newFunctionExpressionViewModel, newParametricExpressionViewModel)
-import ViewModels.Expression.Generic (expressionId, expressionName, findById)
-import ViewModels.Expression.Unsafe (functionExpressionText)
+import ViewModels.Expression.Generic (expressionId, expressionName, findById, isDefault)
 
 _functionExpressionInput = SProxy :: SProxy "functionExpressionInput"
 
@@ -193,7 +193,7 @@ handleAddExample index = do
         handleAction AddFunction
         overwriteWithExample nextPlotId (NonEmptyArray.head example)
       Just example, Just selected -> do
-        if "" == functionExpressionText selected then do
+        if isDefault selected then do
           overwriteWithExample (expressionId selected) (NonEmptyArray.head example)
         else do
           { nextPlotId } <- H.get

@@ -36,6 +36,11 @@ expressionAccruacy (Function vm) = vm.accuracy
 
 expressionAccruacy (Parametric vm) = vm.accuracy
 
+isDefault :: ExpressionViewModel -> Boolean
+isDefault (Function vm) = vm.expressionText == ""
+
+isDefault (Parametric vm) = vm.text.xText == "" && vm.text.yText == ""
+
 overwriteStatus :: Status -> ExpressionViewModel -> ExpressionViewModel
 overwriteStatus status (Function vm) = Function $ vm { status = status }
 
