@@ -1,7 +1,6 @@
 module Plot.ParametricSegments where
 
 import Prelude
-
 import Data.Array (fromFoldable)
 import Data.Int as Int
 import Data.List (List, singleton)
@@ -137,9 +136,7 @@ segmentParametricDomain { accuracyTarget, evaluator, l, u } = result
               singleton (Tuple depth t)
 
   shouldBisect :: SegmentStateWithMidpoint -> Approx -> MaybeEvaluated -> Boolean
-  shouldBisect state _ { ftL: Just _, ftU: Just _, f'tL: Just b1, f'tU: Just b2, f''tL: Just a1, f''tU: Just a2 }
-    | shouldBisectWithDerivative state { b1, b2, a1, a2 } = true
-    | otherwise = false
+  shouldBisect state _ { ftL: Just _, ftU: Just _, f'tL: Just b1, f'tU: Just b2, f''tL: Just a1, f''tU: Just a2 } = shouldBisectWithDerivative state { b1, b2, a1, a2 }
 
   -- function not defined on either end, assume not defined on the whole segment:
   shouldBisect _ _ { ftL: Nothing, ftU: Nothing } = false
