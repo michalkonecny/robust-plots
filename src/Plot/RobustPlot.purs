@@ -18,7 +18,7 @@ import IntervalArith.Misc (rationalToNumber, two)
 import Misc.Debug (unsafeLog)
 import Partial.Unsafe (unsafePartial)
 import Plot.Commands (Depth)
-import Plot.Segments (maxDepth)
+import Plot.FunctionSegments (maxDepth)
 import Types (Polygon, Size, XYBounds)
 
 shouldLogSubsegments :: Boolean

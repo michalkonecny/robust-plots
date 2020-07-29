@@ -6,7 +6,7 @@ import Prelude
 import Test.Plot.GridLines (gridLinesTests)
 import Test.Plot.JobBatcher (jobBatcherTests)
 import Test.Plot.Label (labelTests)
-import Test.Plot.Segments (segmentsTests)
+import Test.Plot.FunctionSegments (segmentsTests)
 import Test.Unit (TestSuite)
 
 plotTests :: TestSuite

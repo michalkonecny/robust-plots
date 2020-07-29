@@ -1,4 +1,4 @@
-module Plot.Segments where
+module Plot.FunctionSegments where
 
 import Prelude
 import Data.Array (fromFoldable, length)

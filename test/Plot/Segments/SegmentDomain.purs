@@ -1,4 +1,4 @@
-module Test.Plot.Segments.SegmentDomain
+module Test.Plot.FunctionSegments.SegmentDomain
   ( segmentDomainTests
   ) where
 
@@ -15,13 +15,13 @@ import IntervalArith.Approx (Approx, boundsNumber)
 import Plot.Commands (Depth)
 import Plot.JobBatcher (initialJobQueue)
 import Plot.RoughFunctionPlot (evaluateWithX)
-import Plot.Segments (segmentDomain)
+import Plot.FunctionSegments (segmentDomain)
 import Test.Unit (TestSuite, suite, test)
 import Test.Unit.Assert (equal)
 
 segmentDomainTests :: TestSuite
 segmentDomainTests =
-  suite "Plot.Segments - segmentDomain" do
+  suite "Plot.FunctionSegments - segmentDomain" do
     test "SHOULD segment domain into 8 segments WHEN f''(x) = 0 AND accuracyTarget = 0.1 AND onePixel = 1 AND domain = [-1, 1]" do
       let
         -- given

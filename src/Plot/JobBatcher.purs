@@ -34,7 +34,7 @@ import Misc.Queue (Queue, empty, null, peek, push, tail, toList, length) as Q
 import Plot.Commands (PlotCommand(..), Depth)
 import Plot.PlotController (computePlotAsync)
 import Plot.RoughFunctionPlot (evaluateWithX)
-import Plot.Segments (segmentDomain)
+import Plot.FunctionSegments (segmentDomain)
 import Types (Id, Size, XYBounds)
 
 type JobQueue
