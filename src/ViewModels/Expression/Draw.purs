@@ -104,7 +104,7 @@ allComplete = all isRobustComplete
 
     validRobust = DrawnRobust == dStatus && Robust == eStatus
 
-    validRough = DrawnRough == dStatus && Rough == eStatus
+    validRough = (DrawnRough == dStatus || RobustInProgress == dStatus || DrawnRobust == dStatus) && Rough == eStatus
 
     validOff = Off == eStatus
 
