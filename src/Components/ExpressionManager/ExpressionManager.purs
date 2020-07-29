@@ -273,12 +273,12 @@ addTab =
                 [ className "btn btn-success btn-sm"
                 , onClickActionEvent AddParametric
                 ]
-                [ HH.text "P" ],
+                [ HH.text "+Param" ],
             HH.button
                 [ className "btn btn-success btn-sm"
                 , onClickActionEvent AddFunction
                 ]
-                [ HH.text "F" ]
+                [ HH.text "+Fun" ]
             
             , HH.select
                 [ className "form-control form-control-sm"
