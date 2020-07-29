@@ -1,30 +1,17 @@
 module Plot.RoughParametricPlot where
 
 import Prelude
-<<<<<<< HEAD
-import Data.Array (tail, zipWith, (..))
-import Data.Int (floor, toNumber)
-import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Traversable (for_)
-import Data.Tuple (Tuple(..))
-=======
 import Data.Array (concat, mapMaybe, tail, zipWith, (..))
 import Data.Int (floor, toNumber)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Traversable (for_)
 import Data.Tuple (Tuple(..), fst, snd)
->>>>>>> parametric-robust
 import Draw.Actions (drawPlotLine)
 import Draw.Commands (DrawCommand)
 import Expression.Error (expectToMaybe)
 import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative2, evaluateDerivative2)
 import Expression.Syntax (Expression)
 import IntervalArith.Misc (rationalToNumber)
-<<<<<<< HEAD
-import Math (e, pi)
-import Types (Position, Size, XYBounds, Bounds)
-
-=======
 import Math (e, pi, sqrt)
 import Types (Position, Size, XYBounds, Bounds)
 
@@ -34,17 +21,12 @@ maxDistanceBetweenPoints = 10.0
 numberOfDomainPoints :: Number
 numberOfDomainPoints = 2.0
 
->>>>>>> parametric-robust
 drawRoughParametricPlot :: Size -> XYBounds -> Bounds -> Expression -> Expression -> DrawCommand Unit
 drawRoughParametricPlot canvasSize bounds domain xExpression yExpression = drawCommands
   where
   f = evaluateWithT xExpression yExpression
 
-<<<<<<< HEAD
-  points = plotPoints canvasSize bounds domain f
-=======
   points = plotPoints canvasSize bounds (toNumberBounds domain) f
->>>>>>> parametric-robust
 
   drawCommands = drawPlot points
 
@@ -66,9 +48,6 @@ evaluateWithT xExpression yExpression t = result
     Just x, Just y -> Just { x, y }
     _, _ -> Nothing
 
-<<<<<<< HEAD
-plotPoints :: Size -> XYBounds -> Bounds -> (Number -> Maybe (ValueAndDerivativePair2 Number)) -> Array (Maybe Position)
-=======
 type NumberBounds
   = { upper :: Number, lower :: Number }
 
@@ -76,7 +55,6 @@ toNumberBounds :: Bounds -> NumberBounds
 toNumberBounds b = { upper: rationalToNumber b.upper, lower: rationalToNumber b.lower }
 
 plotPoints :: Size -> XYBounds -> NumberBounds -> (Number -> Maybe (ValueAndDerivativePair2 Number)) -> Array Position
->>>>>>> parametric-robust
 plotPoints canvasSize bounds domain f = points
   where
   rangeX = rationalToNumber $ bounds.xBounds.upper - bounds.xBounds.lower
@@ -85,37 +63,21 @@ plotPoints canvasSize bounds domain f = points
 
   width = rationalToNumber canvasSize.width
 
-<<<<<<< HEAD
-  domainRange = rationalToNumber $ domain.upper - domain.lower
-
-  numberOfPoints = domainRange
-
-  height = rationalToNumber canvasSize.height
-
-  domainLower = rationalToNumber domain.lower
-=======
   domainRange = domain.upper - domain.lower
 
   height = rationalToNumber canvasSize.height
 
   domainLower = domain.lower
->>>>>>> parametric-robust
 
   xLower = rationalToNumber bounds.xBounds.lower
 
   yLower = rationalToNumber bounds.yBounds.lower
 
-<<<<<<< HEAD
-  defaultRange = map (toNumber >>> toDomainX) $ 0 .. (floor numberOfPoints)
-
-  points = map toCanvasPoint defaultRange
-=======
   defaultRange = map (toNumber >>> toDomainX) $ 0 .. (floor numberOfDomainPoints)
 
   evaluatedRange = mapMaybe (\v -> f v <#> (Tuple v)) defaultRange
 
   points = concat $ zipWith toCanvasPoints evaluatedRange (fromMaybe [] (tail evaluatedRange))
->>>>>>> parametric-robust
 
   toCanvasX :: Number -> Number
   toCanvasX x = ((x - xLower) * width) / rangeX
@@ -124,14 +86,6 @@ plotPoints canvasSize bounds domain f = points
   toCanvasY y = height - (((y - yLower) * height) / rangeY)
 
   toDomainX :: Number -> Number
-<<<<<<< HEAD
-  toDomainX canvasX = ((canvasX * domainRange) / numberOfPoints) + domainLower
-
-  toCanvasPoint :: Number -> Maybe Position
-  toCanvasPoint t = f t <#> (\{ x, y } -> { x: toCanvasX x.value, y: toCanvasY y.value })
-
-drawPlot :: Array (Maybe Position) -> DrawCommand Unit
-=======
   toDomainX canvasX = ((canvasX * domainRange) / numberOfDomainPoints) + domainLower
 
   toCanvasPoints :: Tuple Number (ValueAndDerivativePair2 Number) -> Tuple Number (ValueAndDerivativePair2 Number) -> Array Position
@@ -147,21 +101,10 @@ drawPlot :: Array (Maybe Position) -> DrawCommand Unit
   toCanvasPoint { x, y } = { x: toCanvasX x.value, y: toCanvasY y.value }
 
 drawPlot :: Array Position -> DrawCommand Unit
->>>>>>> parametric-robust
 drawPlot points = for_ lines drawLine
   where
   lines = zipWith Tuple points (fromMaybe [] (tail points))
 
-<<<<<<< HEAD
-drawLine :: Tuple (Maybe Position) (Maybe Position) -> DrawCommand Unit
-drawLine (Tuple (Just a) (Just b)) = drawPlotLine a b
-
-drawLine (Tuple Nothing Nothing) = pure unit
-
-drawLine (Tuple (Just a) Nothing) = drawPlotLine a a
-
-drawLine (Tuple Nothing (Just b)) = drawPlotLine b b
-=======
 drawLine :: Tuple Position Position -> DrawCommand Unit
 drawLine (Tuple a b) = drawPlotLine a b
 
@@ -171,4 +114,3 @@ distance a b = sqrt $ (y' * y') + (x' * x')
   x' = b.x - a.x
 
   y' = b.y - a.y
->>>>>>> parametric-robust
