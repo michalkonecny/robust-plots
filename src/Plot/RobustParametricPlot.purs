@@ -1,7 +1,7 @@
 module Plot.RobustParametricPlot where
 
 import Prelude
-import Data.Array (catMaybes, concat, head, length, reverse, take)
+import Data.Array (catMaybes, concat, head, last, length, reverse, sort, take)
 import Data.Bifunctor (bimap)
 import Data.Foldable (sum)
 import Data.Maybe (Maybe(..), fromJust)
@@ -19,7 +19,7 @@ import Misc.Debug (unsafeLog)
 import Partial.Unsafe (unsafePartial)
 import Plot.Commands (Depth)
 import Plot.FunctionSegments (maxDepth)
-import Plot.Parametric (ValueAndDerivativePair, ValueAndDerivativePair2, evaluateParametric, evaluateParametric2, toX)
+import Plot.Parametric (ValueAndDerivativePair, ValueAndDerivativePair2, evaluateParametric, evaluateParametric2, toX, toY)
 import Types (Polygon, Size, XYBounds, Bounds)
 
 shouldLogSubsegments :: Boolean
@@ -99,45 +99,47 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
   segmentEnclosures = map (toCanvasEnclosures <<< addExtraPrecision) domainSegments
 
   toCanvasEnclosures :: (Tuple Depth Approx) -> Array (Maybe Polygon)
-  toCanvasEnclosures (Tuple depth t) = case toCanvasEnclosure toX t of
-    Just (Tuple polygon accuracy)
-      | debugLog accuracy $ accuracy <= accuracyTarget || depth >= maxDepth -> [ Just polygon ]
-    _
+  toCanvasEnclosures (Tuple depth t) = case toCanvasEnclosure toX t, toCanvasEnclosure toY t of
+    Just (Tuple polygonX accuracyX), Just (Tuple polygonY accuracyY)
+      | (accuracyX <= accuracyTarget && accuracyY <= accuracyTarget) || depth >= maxDepth -> [ combine polygonX polygonY ]
+    _, _
       | depth >= maxDepth -> [ Nothing ]
-    _ -> bisect
-      where
-      setHigherPrecision = setMB (2 + (mBound t))
-
-      bisect = enclosuresLeft <> enclosuresRight
+      | otherwise -> bisect
         where
-        (Tuple tL tU) = boundsA t
+        setHigherPrecision = setMB (2 + (mBound t))
 
-        left = setHigherPrecision $ tL `unionA` tM
+        bisect = enclosuresLeft <> enclosuresRight
+          where
+          (Tuple tL tU) = boundsA t
 
-        right = setHigherPrecision $ tM `unionA` tU
+          left = setHigherPrecision $ tL `unionA` tM
 
-        tM = (tL + tU) / two
+          right = setHigherPrecision $ tM `unionA` tU
 
-        enclosuresLeft = toCanvasEnclosures (Tuple (depth + 1) left)
+          tM = (tL + tU) / two
 
-        enclosuresRight = toCanvasEnclosures (Tuple (depth + 1) right)
+          enclosuresLeft = toCanvasEnclosures (Tuple (depth + 1) left)
+
+          enclosuresRight = toCanvasEnclosures (Tuple (depth + 1) right)
+
+  combine :: Polygon -> Polygon -> Maybe Polygon
+  combine ploygonX ploygonY = polygon
     where
-    debugLog accuracy =
-      logSubsegments
-        $ "t = "
-        <> show (boundsNumber t)
-        <> ", depth = "
-        <> show depth
-        <> ", mb = "
-        <> show (mBound t)
-        <> ", accuracy = "
-        <> show accuracy
-        <> ", accuracyTarget = "
-        <> show accuracyTarget
-        <> if accuracy <= accuracyTarget then
-            ""
-          else
-            ", INSUFFICIENT ACCURACY "
+    xValues = sort $ map (_.x) ploygonX
+
+    yValues = sort $ map (_.y) ploygonY
+
+    polygon = case head xValues, last xValues, head yValues, last yValues of
+      Just leftX, Just rightX, Just topY, Just bottomY -> Just [ a, b, c, d, a ]
+        where
+        a = { x: leftX, y: topY }
+
+        b = { x: leftX, y: bottomY }
+
+        c = { x: rightX, y: bottomY }
+
+        d = { x: rightX, y: topY }
+      _, _, _, _ -> Nothing
 
   toCanvasEnclosure :: (forall a v r. { x :: v a, y :: v a | r } -> v a) -> Approx -> Maybe (Tuple Polygon Number)
   {- overview:

@@ -20,8 +20,10 @@ evaluateParametric2 evaluator xExpression yExpression = case evaluator xExpressi
   Just x, Just y -> Just { x, y }
   _, _ -> Nothing
 
+-- | A generic function that can be used on `ValueAndDerivativePair` or `ValueAndDerivativePair2` to yeild the `x` attribute.
 toX :: forall a v r. { x :: v a, y :: v a | r } -> v a
 toX = _.x
 
+-- | A generic function that can be used on `ValueAndDerivativePair` or `ValueAndDerivativePair2` to yeild the `y` attribute.
 toY :: forall a v r. { x :: v a, y :: v a | r } -> v a
 toY = _.y

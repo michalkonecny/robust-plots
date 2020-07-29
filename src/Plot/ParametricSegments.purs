@@ -1,6 +1,7 @@
 module Plot.ParametricSegments where
 
 import Prelude
+
 import Data.Array (fromFoldable)
 import Data.Int as Int
 import Data.List (List, singleton)
@@ -13,7 +14,7 @@ import IntervalArith.Approx (Approx, Precision, fromRationalBoundsPrec, setMB)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
 import Math (log)
 import Plot.Commands (Depth)
-import Plot.Parametric (ValueAndDerivativePair2)
+import Plot.Parametric (ValueAndDerivativePair2, toX, toY)
 
 minDepth :: Depth
 minDepth = 3
@@ -126,9 +127,9 @@ segmentDomain { accuracyTarget, evaluator, l, u } = result
           singleton (Tuple depth t)
         else
           let
-            shouldBisectX = shouldBisect state t (evaluate (_.x) evaluatorTL evaluatorTU)
+            shouldBisectX = shouldBisect state t (evaluate toX evaluatorTL evaluatorTU)
 
-            shouldBisectY = shouldBisect state t (evaluate (_.y) evaluatorTL evaluatorTU)
+            shouldBisectY = shouldBisect state t (evaluate toY evaluatorTL evaluatorTU)
           in
             if shouldBisectX || shouldBisectY then
               bisect state
