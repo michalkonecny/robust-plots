@@ -12,6 +12,7 @@ import Misc.ExpectAff (ExpectAff)
 import Plot.Commands (PlotCommand(..))
 import Plot.GridLines (clearAndDrawGridLines)
 import Plot.RobustFunctionPlot (drawRobustFunctionPlot)
+import Plot.RobustParametricPlot (drawRobustParametricPlot)
 import Plot.RoughFunctionPlot (drawRoughPlot)
 import Plot.RoughParametricPlot (drawRoughParametricPlot)
 import Types (Size)
@@ -37,3 +38,5 @@ runCommand canvasSize (RoughFunctionPlot bounds expression) = drawRoughPlot canv
 runCommand canvasSize (RobustFunctionPlot bounds expression domainSegments accuracyTarget) = drawRobustFunctionPlot canvasSize bounds expression domainSegments accuracyTarget
 
 runCommand canvasSize (RoughParametricPlot bounds domain xExpression yExpression) = drawRoughParametricPlot canvasSize bounds domain xExpression yExpression
+
+runCommand canvasSize (RobustParametricPlot bounds domain xExpression yExpression domainSegments accuracyTarget) = drawRobustParametricPlot canvasSize bounds domain xExpression yExpression  domainSegments accuracyTarget

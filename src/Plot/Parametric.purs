@@ -19,3 +19,9 @@ evaluateParametric2 :: forall a. (Expression -> Maybe (ValueAndDerivative2 a)) -
 evaluateParametric2 evaluator xExpression yExpression = case evaluator xExpression, evaluator yExpression of
   Just x, Just y -> Just { x, y }
   _, _ -> Nothing
+
+toX :: forall a v r. { x :: v a, y :: v a | r } -> v a
+toX = _.x
+
+toY :: forall a v r. { x :: v a, y :: v a | r } -> v a
+toY = _.y
