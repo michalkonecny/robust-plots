@@ -62,18 +62,18 @@ type Derivatives
     , a2 :: Number
     }
 
-segmentDomain ::
+segmentParametricDomain ::
   { accuracyTarget :: Number
   , evaluator :: Number -> Maybe (ValueAndDerivativePair2 Number)
   , l :: Rational
   , u :: Rational
   } ->
   Array (Tuple Int Approx)
-segmentDomain { accuracyTarget, evaluator, l, u } = result
+segmentParametricDomain { accuracyTarget, evaluator, l, u } = result
   where
   result =
     fromFoldable
-      $ segmentDomainF
+      $ segmentParametricDomainF
           { depth: 0
           , tL: l
           , evaluatorTL: evaluator (rationalToNumber l)
@@ -88,7 +88,7 @@ segmentDomain { accuracyTarget, evaluator, l, u } = result
           (40 - (Int.round $ 2.0 * (log accuracyTarget) / (log 2.0)))
 
   bisect :: SegmentStateWithMidpoint -> List (Tuple Int Approx)
-  bisect { depth, tL, evaluatorTL, tM, evaluatorTM, tU, evaluatorTU } = segmentDomainF lowerSegmentParams <> segmentDomainF upperSegmentParams
+  bisect { depth, tL, evaluatorTL, tM, evaluatorTM, tU, evaluatorTU } = segmentParametricDomainF lowerSegmentParams <> segmentParametricDomainF upperSegmentParams
     where
     lowerSegmentParams =
       { depth: depth + one
@@ -106,8 +106,8 @@ segmentDomain { accuracyTarget, evaluator, l, u } = result
       , evaluatorTU
       }
 
-  segmentDomainF :: SegmentState -> List (Tuple Int Approx)
-  segmentDomainF { depth, tL, evaluatorTL, tU, evaluatorTU } = segments
+  segmentParametricDomainF :: SegmentState -> List (Tuple Int Approx)
+  segmentParametricDomainF { depth, tL, evaluatorTL, tU, evaluatorTU } = segments
     where
     xPrecisionDepth = xPrecisionBase + 2 * depth
 

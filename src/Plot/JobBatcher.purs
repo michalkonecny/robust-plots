@@ -31,10 +31,12 @@ import Misc.Array (split)
 import Misc.ExpectAff (ExpectAff, MaybeExpectAff)
 import Misc.Queue (Queue, empty, null, peek, push, tail, toList, length) as Q
 import Plot.Commands (PlotCommand(..), Depth)
+import Plot.FunctionSegments (segmentDomain)
+import Plot.ParametricSegments (segmentParametricDomain)
 import Plot.PlotController (computePlotAsync)
 import Plot.RoughFunctionPlot (evaluateWithX)
-import Plot.FunctionSegments (segmentDomain)
-import Types (Id, Size, XYBounds)
+import Plot.RoughParametricPlot (evaluateWithT)
+import Types (Id, Size, XYBounds, Bounds)
 
 type JobQueue
   = { cancelled :: S.Set Id
@@ -99,6 +101,16 @@ addPlot accuracyTarget batchSegmentCount jobQueue bounds expression batchId = do
     Left error -> pure $ Left error
     Right segmentedPlots -> pure $ Right $ foldl (addJob batchId) jobQueue segmentedPlots
 
+-- | Adds a paremetric plot with its associated `batchId` to the `Job` queue.
+-- |
+-- | Running time: `O(batchSegmentCount * (batchSegmentCount - 1))`
+addParametricPlot :: Number -> Int -> JobQueue -> XYBounds -> Bounds -> Expression -> Expression -> Id -> ExpectAff JobQueue
+addParametricPlot accuracyTarget batchSegmentCount jobQueue bounds domain xExpression yExpression batchId = do
+  segmentedPlotsOrError <- makeAff $ runSegmentParametricRobust accuracyTarget batchSegmentCount bounds domain xExpression yExpression
+  case segmentedPlotsOrError of
+    Left error -> pure $ Left error
+    Right segmentedPlots -> pure $ Right $ foldl (addJob batchId) jobQueue segmentedPlots
+
 -- | Sets the `Job` at the front of the queue as running.
 -- |
 -- | Running time: `O(1)`
@@ -130,6 +142,16 @@ runSegmentFunctionRobust accuracyTarget batchSegmentCount bounds expression call
       $ do
           log "Segmenting..."
           pure $ segmentFunctionRobust accuracyTarget batchSegmentCount bounds expression
+  callback $ Right $ result
+  pure nonCanceler
+
+runSegmentParametricRobust :: Number -> Int -> XYBounds -> Bounds -> Expression -> Expression -> (Either Error (Either Error (Array PlotCommand)) -> Effect Unit) -> Effect Canceler
+runSegmentParametricRobust accuracyTarget batchSegmentCount bounds domain xExpression yExpression callback = do
+  result <-
+    try
+      $ do
+          log "Segmenting..."
+          pure $ segmentParametricRobust accuracyTarget batchSegmentCount bounds domain xExpression yExpression
   callback $ Right $ result
   pure nonCanceler
 
@@ -178,3 +200,17 @@ segmentFunctionRobust accuracyTarget batchSegmentCount bounds expression = comma
 
   toPlotCommand :: Array (Tuple Depth Approx) -> PlotCommand
   toPlotCommand segments = RobustFunctionPlot bounds expression segments accuracyTarget
+
+segmentParametricRobust :: Number -> Int -> XYBounds -> Bounds -> Expression -> Expression -> Array PlotCommand
+segmentParametricRobust accuracyTarget batchSegmentCount bounds domain xExpression yExpression = commands
+  where
+  evaluator = evaluateWithT xExpression yExpression
+
+  domainSegments = segmentParametricDomain { accuracyTarget, evaluator, l: domain.lower, u: domain.upper }
+
+  splitDomainSegments = split batchSegmentCount domainSegments
+
+  commands = map toPlotCommand splitDomainSegments
+
+  toPlotCommand :: Array (Tuple Depth Approx) -> PlotCommand
+  toPlotCommand segments = RobustParametricPlot bounds domain xExpression yExpression segments accuracyTarget
