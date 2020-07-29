@@ -3,16 +3,17 @@ module Plot.RoughParametricPlot where
 import Prelude
 import Data.Array (concat, mapMaybe, tail, zipWith, (..))
 import Data.Int (floor, toNumber)
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe, fromMaybe)
 import Data.Traversable (for_)
 import Data.Tuple (Tuple(..), fst, snd)
 import Draw.Actions (drawPlotLine)
 import Draw.Commands (DrawCommand)
 import Expression.Error (expectToMaybe)
-import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative2, evaluateDerivative2)
+import Expression.Evaluate.AutomaticDifferentiator (evaluateDerivative2)
 import Expression.Syntax (Expression)
 import IntervalArith.Misc (rationalToNumber)
 import Math (e, pi, sqrt)
+import Plot.Parametric (ValueAndDerivativePair2, evaluateParametric2)
 import Types (Position, Size, XYBounds, Bounds)
 
 maxDistanceBetweenPoints :: Number
@@ -30,9 +31,6 @@ drawRoughParametricPlot canvasSize bounds domain xExpression yExpression = drawC
 
   drawCommands = drawPlot points
 
-type ValueAndDerivativePair2 a
-  = { x :: ValueAndDerivative2 a, y :: ValueAndDerivative2 a }
-
 evaluateWithT :: Expression -> Expression -> Number -> Maybe (ValueAndDerivativePair2 Number)
 evaluateWithT xExpression yExpression t = result
   where
@@ -44,9 +42,7 @@ evaluateWithT xExpression yExpression t = result
 
   evaluator = expectToMaybe <<< evaluateDerivative2 variableMap
 
-  result = case evaluator xExpression, evaluator yExpression of
-    Just x, Just y -> Just { x, y }
-    _, _ -> Nothing
+  result = evaluateParametric2 evaluator xExpression yExpression
 
 type NumberBounds
   = { upper :: Number, lower :: Number }
