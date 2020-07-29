@@ -1,6 +1,7 @@
-module Components.ExpressionInput where
+module Components.ExpressionInput.FunctionExpressionInput where
 
 import Prelude
+
 import Components.Common.Action (onCheckedActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (className)
 import Components.ExpressionInput.Controller (ExpressionInputController)
@@ -12,9 +13,10 @@ import Expression.Syntax (Expression)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
+import ViewModels.Expression.Common (Status(..))
 
-type ExpressionInputSlot p
-  = forall q. H.Slot q ExpressionInputMessage p
+type FunctionExpressionInputSlot p
+  = forall q. H.Slot q FunctionExpressionInputMessage p
 
 type State
   = { expressionInput :: String
@@ -30,10 +32,10 @@ type Input
     , accuracy :: Number
     }
 
-data ExpressionInputMessage
-  = ParsedExpression Int Expression String
-  | ChangedStatus Int Status
-  | ParsedAccuracy Int Number
+data FunctionExpressionInputMessage
+  = FunctionParsedExpression Int Expression String
+  | FunctionChangedStatus Int Status
+  | FunctionParsedAccuracy Int Number
 
 data Action
   = HandleExpressionInput String
@@ -43,15 +45,8 @@ data Action
   | Status Status
   | HandleAccuracyInput String
 
-data Status
-  = Off
-  | Rough
-  | Robust
-
-derive instance statusEq :: Eq Status
-
-expressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> Int -> H.Component HH.HTML query Input ExpressionInputMessage m
-expressionInputComponent controller id =
+functionExpressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> Int -> H.Component HH.HTML query Input FunctionExpressionInputMessage m
+functionExpressionInputComponent controller id =
   H.mkComponent
     { initialState: initialState id
     , render
@@ -156,7 +151,7 @@ errorMessage (Just message) =
       [ HH.text message ]
   ]
 
-handleAction :: forall m. MonadEffect m => ExpressionInputController -> Action -> H.HalogenM State Action () ExpressionInputMessage m Unit
+handleAction :: forall m. MonadEffect m => ExpressionInputController -> Action -> H.HalogenM State Action () FunctionExpressionInputMessage m Unit
 handleAction controller = case _ of
   UpdateExpression -> do
     { expressionInput, id, input } <- H.get
@@ -165,7 +160,7 @@ handleAction controller = case _ of
       Right expression -> do
         H.modify_ _ { error = Nothing }
         when (expressionInput /= input.expressionText) do
-          H.raise (ParsedExpression id (controller.clean expression) expressionInput)
+          H.raise (FunctionParsedExpression id (controller.clean expression) expressionInput)
   UpdateAccuracy -> do
     { accuracyInput, id, input } <- H.get
     case controller.checkAccuracy accuracyInput of
@@ -173,17 +168,17 @@ handleAction controller = case _ of
       Left accuracy -> do
         H.modify_ _ { error = Nothing }
         when (accuracyInput /= show input.accuracy) do
-          H.raise (ParsedAccuracy id accuracy)
+          H.raise (FunctionParsedAccuracy id accuracy)
   HandleExpressionInput input -> H.modify_ _ { expressionInput = input }
   HandleAccuracyInput input -> H.modify_ _ { accuracyInput = input }
   HandleMessage input -> H.modify_ _ { input = input, expressionInput = input.expressionText, accuracyInput = show input.accuracy, error = Nothing }
   Status status -> do
     { id } <- H.get
-    H.raise (ChangedStatus id status)
+    H.raise (FunctionChangedStatus id status)
 
 parseAndCheckExpression :: ExpressionInputController -> String -> Expect Expression
 parseAndCheckExpression controller expressionInput = case controller.parse expressionInput of
   Left parseError -> Left parseError
-  Right expression -> case controller.checkExpression expression of
+  Right expression -> case controller.checkExpression "x" expression of
     Left evaluationError -> Left evaluationError
     Right _ -> Right expression
