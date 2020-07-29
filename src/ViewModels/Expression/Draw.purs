@@ -13,23 +13,23 @@ import Plot.Label (LabelledDrawCommand, drawRoughLabels)
 import Types (Size, XYBounds, Position)
 import ViewModels.Expression (ExpressionViewModel(..))
 import ViewModels.Expression.Common (AccuracyCalculator, DrawingStatus(..), Status(..), DrawingCommands, fromPixelAccuracy)
-import ViewModels.Expression.Function.Draw (drawRobustOnlyFunction, drawRoughAndRobustFunction, drawRoughOnlyFunction, overwiteFunctionAccuracy)
+import ViewModels.Expression.Function.Draw (drawRobustOnlyFunction, drawRoughAndRobustFunction, drawRoughOnlyFunction, overwriteFunctionAccuracy)
 import ViewModels.Expression.Helper (drawingStatus)
-import ViewModels.Expression.Parametric.Draw (drawRobustOnlyParametric, drawRoughAndRobustParametric, drawRoughOnlyParametric, overwiteParametricAccuracy)
+import ViewModels.Expression.Parametric.Draw (drawRobustOnlyParametric, drawRoughAndRobustParametric, drawRoughOnlyParametric, overwriteParametricAccuracy)
 
-overwiteAccuracy :: Number -> AccuracyCalculator -> Int -> XYBounds -> ExpressionViewModel -> ExpectAff ExpressionViewModel
-overwiteAccuracy accuracyTarget toDomainAccuracy batchSegmentCount bounds (Function vm) =
+overwriteAccuracy :: Number -> AccuracyCalculator -> Int -> XYBounds -> ExpressionViewModel -> ExpectAff ExpressionViewModel
+overwriteAccuracy accuracyTarget toDomainAccuracy batchSegmentCount bounds (Function vm) =
   mapExpectAff Function
-    $ overwiteFunctionAccuracy
+    $ overwriteFunctionAccuracy
         vm
         accuracyTarget
         toDomainAccuracy
         batchSegmentCount
         bounds
 
-overwiteAccuracy accuracyTarget toDomainAccuracy batchSegmentCount bounds (Parametric vm) =
+overwriteAccuracy accuracyTarget toDomainAccuracy batchSegmentCount bounds (Parametric vm) =
   mapExpectAff Parametric
-    $ overwiteParametricAccuracy
+    $ overwriteParametricAccuracy
         vm
         accuracyTarget
         toDomainAccuracy

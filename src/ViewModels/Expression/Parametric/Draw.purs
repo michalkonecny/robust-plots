@@ -22,8 +22,8 @@ withExpression vm op = case vm.expression of
   Nothing -> pure $ Right vm
   Just expression -> op expression
 
-overwiteParametricAccuracy :: ParametricViewModel -> Number -> AccuracyCalculator -> Int -> XYBounds -> ExpectAff ParametricViewModel
-overwiteParametricAccuracy vm accuracyTarget toDomainAccuracy batchSegmentCount bounds = bindTo addRobustToQueue (pureRight <<< overwiteQueue)
+overwriteParametricAccuracy :: ParametricViewModel -> Number -> AccuracyCalculator -> Int -> XYBounds -> ExpectAff ParametricViewModel
+overwriteParametricAccuracy vm accuracyTarget toDomainAccuracy batchSegmentCount bounds = bindTo addRobustToQueue (pureRight <<< overwriteQueue)
   where
   addRobustToQueue =
     if startRobust then
@@ -35,8 +35,8 @@ overwiteParametricAccuracy vm accuracyTarget toDomainAccuracy batchSegmentCount 
 
   status = if startRobust && isJust vm.expression then RobustInProgress else DrawnRough
 
-  overwiteQueue :: JobQueue -> ParametricViewModel
-  overwiteQueue queue =
+  overwriteQueue :: JobQueue -> ParametricViewModel
+  overwriteQueue queue =
     vm
       { commands
         { robust = pure unit

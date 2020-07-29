@@ -29,7 +29,7 @@ import Plot.Zoom (zoomBounds)
 import Types (Direction, XYBounds)
 import ViewModels.Expression (ExpressionViewModel, newFunctionExpressionViewModel)
 import ViewModels.Expression.Common (fromPixelAccuracy)
-import ViewModels.Expression.Draw (appendRobustDrawCommands, drawRobustOnly, drawRoughAndRobust, drawRoughOnly, overwiteAccuracy)
+import ViewModels.Expression.Draw (appendRobustDrawCommands, drawRobustOnly, drawRoughAndRobust, drawRoughOnly, overwriteAccuracy)
 import ViewModels.Expression.Helper (alterExpression, alterExpressionAsync, expressionId, overwriteName, overwriteStatus)
 import ViewModels.Expression.Job (anyHasJobs, clearCancelledJobs, countBatches, isJobCancelled, runFirstJob, setFirstRunningJob)
 import ViewModels.Expression.Unsafe (overwriteFunctionExpression, overwriteParametricDomain, overwriteParametricExpression)
@@ -167,7 +167,7 @@ handleFunctionExpressionPlotMessage state (FunctionParsedAccuracy id accuracy) =
   clearGlobalError
   H.modify_ (_ { inProgress = true })
   fork
-  plotsOrError <- H.liftAff $ alterExpressionAsync (overwiteAccuracy accuracy toDomainAccuracy state.batchCount state.bounds) id state.plots
+  plotsOrError <- H.liftAff $ alterExpressionAsync (overwriteAccuracy accuracy toDomainAccuracy state.batchCount state.bounds) id state.plots
   handleError (toFirstError plotsOrError)
     $ \plots -> do
         H.modify_ (_ { plots = plots })
@@ -214,7 +214,7 @@ handleParametricExpressionPlotMessage state (ParametricParsedAccuracy id accurac
   clearGlobalError
   H.modify_ (_ { inProgress = true })
   fork
-  plotsOrError <- H.liftAff $ alterExpressionAsync (overwiteAccuracy accuracy toDomainAccuracy state.batchCount state.bounds) id state.plots
+  plotsOrError <- H.liftAff $ alterExpressionAsync (overwriteAccuracy accuracy toDomainAccuracy state.batchCount state.bounds) id state.plots
   handleError (toFirstError plotsOrError)
     $ \plots -> do
         H.modify_ (_ { plots = plots })
