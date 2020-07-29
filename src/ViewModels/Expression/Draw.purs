@@ -1,7 +1,6 @@
 module ViewModels.Expression.Draw where
 
 import Prelude
-
 import Data.Foldable (all, fold)
 import Data.Maybe (Maybe(..))
 import Data.String (length, take)
@@ -12,9 +11,9 @@ import Plot.JobBatcher (JobQueue, hasJobs)
 import Plot.Label (LabelledDrawCommand, drawRoughLabels)
 import Types (Size, XYBounds, Position)
 import ViewModels.Expression (ExpressionViewModel(..))
-import ViewModels.Expression.Common (AccuracyCalculator, DrawingStatus(..), Status(..), DrawingCommands, fromPixelAccuracy)
+import ViewModels.Expression.Common (AccuracyCalculator, DrawingCommands, DrawingStatus(..), Status(..), fromPixelAccuracy)
 import ViewModels.Expression.Function.Draw (drawRobustOnlyFunction, drawRoughAndRobustFunction, drawRoughOnlyFunction, overwriteFunctionAccuracy)
-import ViewModels.Expression.Helper (drawingStatus)
+import ViewModels.Expression.Helper (drawingStatus, expressionStatus)
 import ViewModels.Expression.Parametric.Draw (drawRobustOnlyParametric, drawRoughAndRobustParametric, drawRoughOnlyParametric, overwriteParametricAccuracy)
 
 overwriteAccuracy :: Number -> AccuracyCalculator -> Int -> XYBounds -> ExpressionViewModel -> ExpectAff ExpressionViewModel
@@ -93,8 +92,21 @@ drawRoughOnly size bounds (Parametric vm) =
         bounds
         vm
 
-allRobustComplete :: Array ExpressionViewModel -> Boolean
-allRobustComplete = all $ \vm -> DrawnRobust == drawingStatus vm
+allComplete :: Array ExpressionViewModel -> Boolean
+allComplete = all isRobustComplete
+  where
+  isRobustComplete :: ExpressionViewModel -> Boolean
+  isRobustComplete vm = validRobust || validRough || validOff
+    where
+    dStatus = drawingStatus vm
+
+    eStatus = expressionStatus vm
+
+    validRobust = DrawnRobust == dStatus && Robust == eStatus
+
+    validRough = DrawnRough == dStatus && Rough == eStatus
+
+    validOff = Off == eStatus
 
 labelCommands :: (Position -> Boolean) -> Array ExpressionViewModel -> DrawCommand Unit
 labelCommands isOffCanvas = drawRoughLabels isOffCanvas <<< map toLabelledPositions

@@ -24,7 +24,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Types (Direction(..))
 import ViewModels.Expression (newFunctionExpressionViewModel)
-import ViewModels.Expression.Draw (allRobustComplete)
+import ViewModels.Expression.Draw (allComplete)
 
 _canvas = SProxy :: SProxy "canvas"
 
@@ -186,7 +186,7 @@ toExpressionManagerInput :: State -> Input
 toExpressionManagerInput state =
   { plots: state.plots
   , autoRobust: state.autoRobust
-  , allRobustDraw: allRobustComplete state.plots
+  , allRobustDraw: allComplete state.plots
   , inProgress: state.inProgress
   }
 
@@ -195,7 +195,7 @@ statusBadge state
   | isJust state.error = "badge badge-danger"
   | state.progress.index == state.progress.total && state.inProgress = "badge badge-warning"
   | state.inProgress = "badge badge-warning"
-  | (not $ allRobustComplete state.plots) && 1 < length state.plots = "badge badge-success"
+  | (not $ allComplete state.plots) && 1 < length state.plots = "badge badge-success"
   | otherwise = "badge badge-success"
 
 status :: State -> String
@@ -203,5 +203,5 @@ status state
   | isJust state.error = "Internal error!"
   | state.progress.index == state.progress.total && state.inProgress = "Segmenting"
   | state.inProgress = "Computing robust enclosure"
-  | (not $ allRobustComplete state.plots) && 1 < length state.plots = "Some enclosures not computed"
+  | (not $ allComplete state.plots) && 1 < length state.plots = "Some enclosures not computed"
   | otherwise = "Ready"
