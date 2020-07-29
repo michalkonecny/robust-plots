@@ -143,7 +143,7 @@ handleExpressionPlotMessage state (RenamePlot plotId name) = do
   H.modify_ (_ { plots = alterExpression (overwriteName name) plotId state.plots })
   handleAction DrawPlot
 
-handleExpressionPlotMessage state CalulateRobustPlots = redrawRobustOnly state
+handleExpressionPlotMessage state CalulateRobustFunctionPlots = redrawRobustOnly state
 
 handleFunctionExpressionPlotMessage :: forall output. State -> FunctionExpressionInputMessage -> HalogenMain output Unit
 handleFunctionExpressionPlotMessage state (FunctionParsedExpression id expression text) = do

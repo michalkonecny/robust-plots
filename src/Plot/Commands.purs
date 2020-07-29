@@ -8,7 +8,7 @@ import Types (XYBounds, Bounds)
 data PlotCommand
   = Empty XYBounds
   | RoughFunctionPlot XYBounds Expression
-  | RobustPlot XYBounds Expression (Array (Tuple Depth Approx)) Number
+  | RobustFunctionPlot XYBounds Expression (Array (Tuple Depth Approx)) Number
   | RoughParametricPlot XYBounds Bounds Expression Expression
 
 type Depth
@@ -28,6 +28,6 @@ isPlotExpression (RoughFunctionPlot _ _) = true
 
 isPlotExpression (Empty _) = false
 
-isPlotExpression (RobustPlot _ _ _ _) = true
+isPlotExpression (RobustFunctionPlot _ _ _ _) = true
 
 isPlotExpression (RoughParametricPlot _ _ _ _) = true

@@ -1,4 +1,4 @@
-module Plot.RobustPlot where
+module Plot.RobustFunctionPlot where
 
 import Prelude
 import Data.Array (catMaybes, concat, head, length, reverse, take)
@@ -27,8 +27,8 @@ shouldLogSubsegments = false
 shouldLogEnclosures :: Boolean
 shouldLogEnclosures = false
 
-drawRobustPlot :: Size -> XYBounds -> Expression -> Array (Tuple Depth Approx) -> Number -> DrawCommand Unit
-drawRobustPlot canvasSize bounds expression domainSegments accuracyTarget = drawCommands
+drawRobustFunctionPlot :: Size -> XYBounds -> Expression -> Array (Tuple Depth Approx) -> Number -> DrawCommand Unit
+drawRobustFunctionPlot canvasSize bounds expression domainSegments accuracyTarget = drawCommands
   where
   segmentEnclosures = plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator: evaluateWithX, evaluator2: evaluateWithX2 }
 
