@@ -1,7 +1,6 @@
 module Plot.RobustParametricPlot where
 
 import Prelude
-
 import Data.Array (catMaybes, concat, head, length, reverse, take)
 import Data.Bifunctor (bimap)
 import Data.Foldable (sum)
@@ -32,34 +31,34 @@ shouldLogEnclosures = false
 drawRobustParametricPlot :: Size -> XYBounds -> Bounds -> Expression -> Expression -> Array (Tuple Depth Approx) -> Number -> DrawCommand Unit
 drawRobustParametricPlot canvasSize bounds domain xExpression yExpression domainSegments accuracyTarget = drawCommands
   where
-  segmentEnclosures = plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator : evaluateWithT, evaluator2: evaluateWithT2 }
+  segmentEnclosures = plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator: evaluateWithT, evaluator2: evaluateWithT2 }
 
   drawCommands = drawPlot $ concat segmentEnclosures
 
   evaluateWithT :: Approx -> Maybe (ValueAndDerivativePair Approx)
-  evaluateWithT x = evaluateParametric evaluator  xExpression yExpression
+  evaluateWithT t = evaluateParametric evaluator xExpression yExpression
     where
-    evaluator  = expectToMaybe <<< evaluateDerivative variableMap
+    evaluator = expectToMaybe <<< evaluateDerivative variableMap
 
-    variableMap = [ Tuple "x" { value: x, derivative: one } ]
+    variableMap = [ Tuple "t" { value: t, derivative: one } ]
 
   evaluateWithT2 :: Approx -> Maybe (ValueAndDerivativePair2 Approx)
-  evaluateWithT2 x = evaluateParametric2 evaluator2 xExpression yExpression
+  evaluateWithT2 t = evaluateParametric2 evaluator2 xExpression yExpression
     where
     evaluator2 = expectToMaybe <<< evaluateDerivative2 variableMap2
 
-    variableMap2 = [ Tuple "x" { value: x, derivative: one, derivative2: zero } ]
+    variableMap2 = [ Tuple "t" { value: t, derivative: one, derivative2: zero } ]
 
 plotEnclosures ::
   { bounds :: XYBounds
   , canvasSize :: Size
   , domainSegments :: Array (Tuple Int Approx)
   , accuracyTarget :: Number
-  , evaluator  :: Approx -> Maybe (ValueAndDerivativePair Approx)
+  , evaluator :: Approx -> Maybe (ValueAndDerivativePair Approx)
   , evaluator2 :: Approx -> Maybe (ValueAndDerivativePair2 Approx)
   } ->
   Array (Array (Maybe Polygon))
-plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator , evaluator2 } =
+plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, evaluator2 } =
   unsafeLog
     ("plotEnclosures: sum (map length segmentEnclosures) = " <> show (sum (map length segmentEnclosures)))
     segmentEnclosures
@@ -76,15 +75,16 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator ,
 
   canvasWidth = rationalToNumber canvasSize.width
 
+  extraPrecision :: Int
   extraPrecision = raiseUntilGoodOrNotImproving 5 Nothing 0 0
     where
-    x = snd $ unsafePartial $ fromJust $ head domainSegments
+    t = snd $ unsafePartial $ fromJust $ head domainSegments
 
-    xPrecision = mBound x
+    tPrecision = mBound t
 
     raiseUntilGoodOrNotImproving attemptsLeft maybePreviousAccuracy p pToTry
       | attemptsLeft <= 0 = p
-      | otherwise = case toCanvasEnclosure toX (setMB (xPrecision + pToTry) x), maybePreviousAccuracy of
+      | otherwise = case toCanvasEnclosure toX (setMB (tPrecision + pToTry) t), maybePreviousAccuracy of
         Just (Tuple _ a), _
           | a <= accuracyTarget -> pToTry -- pToTry met target accuracy
         Just (Tuple _ a), Just previousAccuracy
@@ -94,42 +94,42 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator ,
         Just (Tuple _ a), _ -> raiseUntilGoodOrNotImproving (attemptsLeft - 1) (Just a) pToTry (pToTry + 10)
         _, _ -> raiseUntilGoodOrNotImproving (attemptsLeft - 1) maybePreviousAccuracy p (pToTry + 10)
 
-  addExtraPrecision (Tuple depth x) = Tuple depth (setMB (mBound x + extraPrecision) x)
+  addExtraPrecision (Tuple depth t) = Tuple depth (setMB (mBound t + extraPrecision) t)
 
   segmentEnclosures = map (toCanvasEnclosures <<< addExtraPrecision) domainSegments
 
   toCanvasEnclosures :: (Tuple Depth Approx) -> Array (Maybe Polygon)
-  toCanvasEnclosures (Tuple depth x) = case toCanvasEnclosure toX x of
+  toCanvasEnclosures (Tuple depth t) = case toCanvasEnclosure toX t of
     Just (Tuple polygon accuracy)
       | debugLog accuracy $ accuracy <= accuracyTarget || depth >= maxDepth -> [ Just polygon ]
     _
       | depth >= maxDepth -> [ Nothing ]
     _ -> bisect
       where
-      setHigherPrecision = setMB (2 + (mBound x))
+      setHigherPrecision = setMB (2 + (mBound t))
 
       bisect = enclosuresLeft <> enclosuresRight
         where
-        (Tuple xL xU) = boundsA x
+        (Tuple tL tU) = boundsA t
 
-        xLeft = setHigherPrecision $ xL `unionA` xM
+        left = setHigherPrecision $ tL `unionA` tM
 
-        xRight = setHigherPrecision $ xM `unionA` xU
+        right = setHigherPrecision $ tM `unionA` tU
 
-        xM = (xL + xU) / two
+        tM = (tL + tU) / two
 
-        enclosuresLeft = toCanvasEnclosures (Tuple (depth + 1) xLeft)
+        enclosuresLeft = toCanvasEnclosures (Tuple (depth + 1) left)
 
-        enclosuresRight = toCanvasEnclosures (Tuple (depth + 1) xRight)
+        enclosuresRight = toCanvasEnclosures (Tuple (depth + 1) right)
     where
     debugLog accuracy =
       logSubsegments
-        $ "x = "
-        <> show (boundsNumber x)
+        $ "t = "
+        <> show (boundsNumber t)
         <> ", depth = "
         <> show depth
         <> ", mb = "
-        <> show (mBound x)
+        <> show (mBound t)
         <> ", accuracy = "
         <> show accuracy
         <> ", accuracyTarget = "
@@ -141,85 +141,85 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator ,
 
   toCanvasEnclosure :: (forall a v r. { x :: v a, y :: v a | r } -> v a) -> Approx -> Maybe (Tuple Polygon Number)
   {- overview:
-      - try to compute f'(x)
-        - if f''(x) is positive or negative, get f'(x) by endpoints
-        - otherwise get f'(x) by midpoint and f''(x), or directly if f''(x) fails to compute
-      - if f'(x) cannot be computed, use a box with f(x)
-      - if f'(x) is available, use it to compute parallelogram and intersect it with the f(x) box
+      - try to compute f'(t)
+        - if f''(t) is positive or negative, get f'(t) by endpoints
+        - otherwise get f'(t) by midpoint and f''(t), or directly if f''(t) fails to compute
+      - if f'(t) cannot be computed, use a box with f(t)
+      - if f'(t) is available, use it to compute parallelogram and intersect it with the f(t) box
     -}
-  toCanvasEnclosure parametricToFunction x =
+  toCanvasEnclosure parametricToFunction t =
     let
-      (Tuple canvasXLower canvasXUpper) = bimap toCanvasX toCanvasX $ boundsNumber x
+      (Tuple canvasXLower canvasXUpper) = bimap toCanvasX toCanvasX $ boundsNumber t
 
-      (Tuple xLA xUA) = boundsA x
+      (Tuple tLA tUA) = boundsA t
 
-      xMidPoint = centreA x
+      midPoint = centreA t
 
-      enclosureWidth = xUA - xLA
+      enclosureWidth = tUA - tLA
 
       enclosureWidthHalf = enclosureWidth / two
 
-      evaluatorX = evaluator2 x
+      evaluatorT = evaluator2 t
 
-      xMidPointValue = boundsA <$> (_.value) <$> parametricToFunction <$> evaluator  xMidPoint
+      midPointValue = boundsA <$> (_.value) <$> parametricToFunction <$> evaluator midPoint
 
-      xGradGrad = boundsA <$> (_.derivative2) <$> parametricToFunction <$> evaluatorX 
+      gradGrad = boundsA <$> (_.derivative2) <$> parametricToFunction <$> evaluatorT
 
-      xGradient = case xGradGrad of
-        Just (Tuple xGradGradLower xGradGradUpper)
-          | xGradGradLower !>=! zero -> do
-            xGradLeft <- (_.derivative) <$> parametricToFunction <$> evaluator  xLA
-            xGradRight <- (_.derivative) <$> parametricToFunction <$> evaluator  xUA
-            Just (Tuple (lowerA xGradLeft) (upperA xGradRight))
-          | xGradGradUpper !<=! zero -> do
-            xGradLeft <- (_.derivative) <$> parametricToFunction <$> evaluator  xLA
-            xGradRight <- (_.derivative) <$> parametricToFunction <$> evaluator  xUA
-            Just (Tuple (lowerA xGradRight) (upperA xGradLeft))
-          | isFinite xGradGradLower && isFinite xGradGradUpper -> case boundsA <$> (_.derivative) <$> parametricToFunction <$> evaluator  xMidPoint of
-            Just (Tuple xGradientMidPointLower xGradientMidPointUpper)
-              | isFinite xGradientMidPointLower && isFinite xGradientMidPointUpper ->
+      gradient = case gradGrad of
+        Just (Tuple gradGradLower gradGradUpper)
+          | gradGradLower !>=! zero -> do
+            gradLeft <- (_.derivative) <$> parametricToFunction <$> evaluator tLA
+            gradRight <- (_.derivative) <$> parametricToFunction <$> evaluator tUA
+            Just (Tuple (lowerA gradLeft) (upperA gradRight))
+          | gradGradUpper !<=! zero -> do
+            gradLeft <- (_.derivative) <$> parametricToFunction <$> evaluator tLA
+            gradRight <- (_.derivative) <$> parametricToFunction <$> evaluator tUA
+            Just (Tuple (lowerA gradRight) (upperA gradLeft))
+          | isFinite gradGradLower && isFinite gradGradUpper -> case boundsA <$> (_.derivative) <$> parametricToFunction <$> evaluator midPoint of
+            Just (Tuple gradientMidPointLower gradientMidPointUpper)
+              | isFinite gradientMidPointLower && isFinite gradientMidPointUpper ->
                 let
-                  xGradientVariation = upperA $ ((absA xGradGradLower) `maxA` (absA xGradGradUpper)) * enclosureWidthHalf
+                  gradientVariation = upperA $ ((absA gradGradLower) `maxA` (absA gradGradUpper)) * enclosureWidthHalf
 
-                  xGradientUpper = xGradientMidPointUpper + xGradientVariation
+                  gradientUpper = gradientMidPointUpper + gradientVariation
 
-                  xGradientLower = xGradientMidPointLower - xGradientVariation
+                  gradientLower = gradientMidPointLower - gradientVariation
                 in
-                  Just (Tuple xGradientLower xGradientUpper)
-            _ -> map boundsA $ (_.derivative) <$> parametricToFunction <$> evaluatorX 
-        _ -> map boundsA $ (_.derivative) <$> parametricToFunction <$> evaluatorX 
+                  Just (Tuple gradientLower gradientUpper)
+            _ -> map boundsA $ (_.derivative) <$> parametricToFunction <$> evaluatorT
+        _ -> map boundsA $ (_.derivative) <$> parametricToFunction <$> evaluatorT
 
-      xValueDirect = map boundsA $ (_.value) <$> parametricToFunction <$> evaluatorX 
+      valueDirect = map boundsA $ (_.value) <$> parametricToFunction <$> evaluatorT
 
-      xValue = case xGradient of
-        Just (Tuple xGradLower xGradUpper)
-          | xGradLower !>=! zero -> do
-            xLeft <- (_.value) <$> parametricToFunction <$> evaluator  xLA
-            xRight <- (_.value) <$> parametricToFunction <$> evaluator  xUA
-            Just (Tuple (lowerA xLeft) (upperA xRight))
-          | xGradUpper !<=! zero -> do
-            xLeft <- (_.value) <$> parametricToFunction <$> evaluator  xLA
-            xRight <- (_.value) <$> parametricToFunction <$> evaluator  xUA
-            Just (Tuple (lowerA xRight) (upperA xLeft))
-          | otherwise -> xValueDirect
-        _ -> xValueDirect
+      value = case gradient of
+        Just (Tuple gradLower gradUpper)
+          | gradLower !>=! zero -> do
+            left <- (_.value) <$> parametricToFunction <$> evaluator tLA
+            right <- (_.value) <$> parametricToFunction <$> evaluator tUA
+            Just (Tuple (lowerA left) (upperA right))
+          | gradUpper !<=! zero -> do
+            left <- (_.value) <$> parametricToFunction <$> evaluator tLA
+            right <- (_.value) <$> parametricToFunction <$> evaluator tUA
+            Just (Tuple (lowerA right) (upperA left))
+          | otherwise -> valueDirect
+        _ -> valueDirect
 
-      showEATuple t = show (bimap toNumber toNumber <$> t)
+      showEATuple a = show (bimap toNumber toNumber <$> a)
 
       logEnclosureInputValues =
         logEnclosures
-          $ "x = "
-          <> show (boundsNumber x)
-          <> ", xValueDirect = "
-          <> showEATuple xValueDirect
-          <> ", xValue = "
-          <> showEATuple xValue
-          <> ", xGradient = "
-          <> showEATuple xGradient
-          <> ", xGradGrad = "
-          <> showEATuple xGradGrad
+          $ "t = "
+          <> show (boundsNumber t)
+          <> ", valueDirect = "
+          <> showEATuple valueDirect
+          <> ", value = "
+          <> showEATuple value
+          <> ", gradient = "
+          <> showEATuple gradient
+          <> ", gradGrad = "
+          <> showEATuple gradGrad
     in
-      case logEnclosureInputValues xValue, xMidPointValue, xGradient of
+      case logEnclosureInputValues value, midPointValue, gradient of
         Just (Tuple yLower yUpper), Just (Tuple yMidLower yMidUpper), Just (Tuple lowerGradient upperGradient)
           | isFinite lowerGradient && isFinite upperGradient -> Just (Tuple polygon accuracy)
             where
