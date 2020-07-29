@@ -9,7 +9,6 @@ import Components.Common.ClassName (className)
 import Components.Common.Styles (style)
 import Components.ExpressionManager (Input, expressionManagerComponent)
 import Components.Main.Action (Action(..), handleAction)
-import Components.Main.Helper (isAllRobustPlotsComplete, newPlot)
 import Components.Main.Types (ChildSlots, Config, State)
 import Components.ProgressBar (progressBarComponent)
 import Constants (canvasId)
@@ -24,6 +23,8 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Types (Direction(..))
+import ViewModels.Expression (newFunctionExpressionViewModel)
+import ViewModels.Expression.Draw (allComplete)
 
 _canvas = SProxy :: SProxy "canvas"
 
@@ -56,7 +57,7 @@ mainComponent =
         , size: defaultCanvasSize
         }
     , bounds: canvasSizeToBounds defaultCanvasSize
-    , plots: [ newPlot 0 ]
+    , plots: [ newFunctionExpressionViewModel 0 ]
     , clearPlot: pure unit
     , batchCount: 5
     , autoRobust: false
@@ -164,7 +165,7 @@ mainComponent =
             [ className "page-footer font-small fixed-bottom" ]
             [ HH.footer
                 [ className "footer-copyright text-right py-3 pr-2" ]
-                [ HH.text "version 0.1.0, ©2020 Michal Konecny, Joshua Eddy; source on"
+                [ HH.text "Version 0.1.0, ©2020 Michal Konecny, Joshua Eddy; source on"
                 , HH.a
                     [ HP.href "https://github.com/michalkonecny/robust-plots"
                     , className "pl-1"
@@ -185,7 +186,7 @@ toExpressionManagerInput :: State -> Input
 toExpressionManagerInput state =
   { plots: state.plots
   , autoRobust: state.autoRobust
-  , allRobustDraw: isAllRobustPlotsComplete state.plots
+  , allRobustDraw: allComplete state.plots
   , inProgress: state.inProgress
   }
 
@@ -194,7 +195,7 @@ statusBadge state
   | isJust state.error = "badge badge-danger"
   | state.progress.index == state.progress.total && state.inProgress = "badge badge-warning"
   | state.inProgress = "badge badge-warning"
-  | (not $ isAllRobustPlotsComplete state.plots) && 1 < length state.plots = "badge badge-success"
+  | (not $ allComplete state.plots) && 1 < length state.plots = "badge badge-success"
   | otherwise = "badge badge-success"
 
 status :: State -> String
@@ -202,5 +203,5 @@ status state
   | isJust state.error = "Internal error!"
   | state.progress.index == state.progress.total && state.inProgress = "Segmenting"
   | state.inProgress = "Computing robust enclosure"
-  | (not $ isAllRobustPlotsComplete state.plots) && 1 < length state.plots = "Some enclosures not computed"
+  | (not $ allComplete state.plots) && 1 < length state.plots = "Some enclosures not computed"
   | otherwise = "Ready"

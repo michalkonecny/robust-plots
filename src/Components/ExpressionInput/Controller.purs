@@ -10,20 +10,20 @@ import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative, evaluate
 import Expression.Parser (parse)
 import Expression.Simplifier (simplify)
 import Expression.SubExpression (joinCommonSubExpressions)
-import Expression.Syntax (Expression)
+import Expression.Syntax (Expression, VariableName)
 
 type ExpressionInputController
   = { parse :: String -> Expect Expression
     , clean :: Expression -> Expression
-    , checkExpression :: Expression -> Expect (ValueAndDerivative Number)
+    , checkExpression :: VariableName -> Expression -> Expect (ValueAndDerivative Number)
     , checkAccuracy :: String -> Either Number String
     }
 
 expressionInputController :: ExpressionInputController
 expressionInputController = { parse, clean: simplify >>> joinCommonSubExpressions, checkExpression, checkAccuracy }
 
-checkExpression :: Expression -> Expect (ValueAndDerivative Number)
-checkExpression expression = evaluateDerivative [ Tuple "x" { value: 0.0, derivative: 1.0 } ] expression
+checkExpression :: VariableName -> Expression -> Expect (ValueAndDerivative Number)
+checkExpression var expression = evaluateDerivative [ Tuple var { value: 0.0, derivative: 1.0 } ] expression
 
 checkAccuracy :: String -> Either Number String
 checkAccuracy accuracyString = case fromString accuracyString of
