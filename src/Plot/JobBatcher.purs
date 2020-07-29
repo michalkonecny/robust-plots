@@ -4,6 +4,7 @@ module Plot.JobBatcher
   , JobResult
   , cancelAll
   , addPlot
+  , addParametricPlot
   , initialJobQueue
   , hasJobs
   , runFirst

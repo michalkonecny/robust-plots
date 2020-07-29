@@ -6,7 +6,7 @@ import Data.Maybe (Maybe(..), isJust)
 import Draw.Commands (DrawCommand)
 import Misc.ExpectAff (ExpectAff, bindTo, pureRight)
 import Plot.Commands (roughParametricPlot)
-import Plot.JobBatcher (JobQueue, cancelAll)
+import Plot.JobBatcher (JobQueue, addParametricPlot, cancelAll)
 import Plot.PlotController (computePlotAsync)
 import Types (Size, XYBounds, Bounds)
 import ViewModels.Expression.Common (AccuracyCalculator, DrawingStatus(..), Status(..))
@@ -15,7 +15,7 @@ import ViewModels.Expression.Parametric (ParametricExpression, ParametricViewMod
 enqueueParametricExpression :: ParametricViewModel -> Number -> Int -> XYBounds -> ExpectAff JobQueue
 enqueueParametricExpression vm accuracyTarget batchSegmentCount bounds = case vm.expression of
   Nothing -> pure $ Right $ cancelAll vm.queue
-  Just expression -> pure $ Right $ cancelAll vm.queue -- TODO: Add parametric robust to Queue
+  Just { xExpression, yExpression } -> addParametricPlot accuracyTarget batchSegmentCount (cancelAll vm.queue) bounds (vm.domain) xExpression yExpression vm.id
 
 withExpression :: ParametricViewModel -> (ParametricExpression -> ExpectAff ParametricViewModel) -> ExpectAff ParametricViewModel
 withExpression vm op = case vm.expression of
@@ -59,7 +59,7 @@ overwriteParametricExpression vm { xExpression, yExpression } { xText, yText } a
 
   addRobustToQueue =
     if autoRobust then
-      pure $ Right clearedQueue -- TODO: Add parametric robust to Queue
+      addParametricPlot (toDomainAccuracy vm.accuracy) batchSegmentCount clearedQueue bounds (vm.domain) xExpression yExpression vm.id
     else
       pure $ Right clearedQueue
 
@@ -94,7 +94,7 @@ overwriteParametricDomain vm newDomain autoRobust toDomainAccuracy batchSegmentC
 
     addRobustToQueue =
       if autoRobust then
-        pure $ Right clearedQueue -- TODO: Add parametric robust to Queue
+        addParametricPlot (toDomainAccuracy vm.accuracy) batchSegmentCount clearedQueue bounds newDomain xExpression yExpression vm.id
       else
         pure $ Right clearedQueue
 
@@ -128,7 +128,7 @@ drawRoughAndRobustParametric toDomainAccuracy autoRobust batchSegmentCount size 
 
     addRobustToQueue =
       if autoRobust && vm.status == Robust then
-        pure $ Right clearedQueue -- TODO: Add parametric robust to Queue
+        addParametricPlot (toDomainAccuracy vm.accuracy) batchSegmentCount clearedQueue bounds (vm.domain) xExpression yExpression vm.id
       else
         pure $ Right clearedQueue
 
@@ -161,7 +161,7 @@ drawRobustOnlyParametric toDomainAccuracy batchSegmentCount size bounds vm
             bindTo addRobustToQueue
               (pureRight <<< overwriteCommandsAndQueue newRoughCommands)
       where
-      addRobustToQueue = pure $ Right (cancelAll vm.queue) -- TODO: Add parametric robust to Queue
+      addRobustToQueue = addParametricPlot (toDomainAccuracy vm.accuracy) batchSegmentCount (cancelAll vm.queue) bounds (vm.domain) xExpression yExpression vm.id
 
       computeRoughCommands = computePlotAsync size $ roughParametricPlot bounds vm.domain xExpression yExpression
 
