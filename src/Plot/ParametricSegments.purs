@@ -54,7 +54,7 @@ type MaybeEvaluated
     , f''tU :: Maybe Number
     }
 
-type ParametricDerivatives
+type Derivatives
   = { b1 :: Number
     , b2 :: Number
     , a1 :: Number
@@ -145,7 +145,7 @@ segmentDomain { accuracyTarget, evaluator, l, u } = result
 
   shouldBisect _ _ _ = true
 
-  shouldBisectWithDerivative :: SegmentStateWithMidpoint -> ParametricDerivatives -> Boolean
+  shouldBisectWithDerivative :: SegmentStateWithMidpoint -> Derivatives -> Boolean
   shouldBisectWithDerivative { tL, tM } { b1, b2, a1, a2 } =
     let
       w = rationalToNumber $ tM - tL
