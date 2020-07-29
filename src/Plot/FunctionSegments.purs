@@ -27,14 +27,14 @@ minPrecision = 10
 maxPrecision :: Precision
 maxPrecision = 300
 
-segmentDomain ::
+segmentFunctionDomain ::
   { accuracyTarget :: Number
   , evaluator :: Number -> Maybe (ValueAndDerivative2 Number)
   , l :: Rational
   , u :: Rational
   } ->
   Array (Tuple Int Approx)
-segmentDomain { accuracyTarget, evaluator, l, u } = unsafeLog ("segmentDomain: length result = " <> show (length result)) result
+segmentFunctionDomain { accuracyTarget, evaluator, l, u } = unsafeLog ("segmentFunctionDomain: length result = " <> show (length result)) result
   where
   result =
     fromFoldable

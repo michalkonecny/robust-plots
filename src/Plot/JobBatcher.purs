@@ -32,7 +32,7 @@ import Misc.Array (split)
 import Misc.ExpectAff (ExpectAff, MaybeExpectAff)
 import Misc.Queue (Queue, empty, null, peek, push, tail, toList, length) as Q
 import Plot.Commands (PlotCommand(..), Depth)
-import Plot.FunctionSegments (segmentDomain)
+import Plot.FunctionSegments (segmentFunctionDomain)
 import Plot.ParametricSegments (segmentParametricDomain)
 import Plot.PlotController (computePlotAsync)
 import Plot.RoughFunctionPlot (evaluateWithX)
@@ -193,7 +193,7 @@ segmentFunctionRobust accuracyTarget batchSegmentCount bounds expression = comma
   where
   evaluator = evaluateWithX expression
 
-  domainSegments = segmentDomain { accuracyTarget, evaluator, l: bounds.xBounds.lower, u: bounds.xBounds.upper }
+  domainSegments = segmentFunctionDomain { accuracyTarget, evaluator, l: bounds.xBounds.lower, u: bounds.xBounds.upper }
 
   splitDomainSegments = split batchSegmentCount domainSegments
 
