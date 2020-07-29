@@ -27,7 +27,7 @@ minPrecision = 10
 maxPrecision :: Precision
 maxPrecision = 300
 
-type A
+type SegmentState
   = { depth :: Int
     , tL :: Rational
     , tU :: Rational
@@ -35,7 +35,7 @@ type A
     , evaluatorTU :: Maybe (ValueAndDerivativePair2 Number)
     }
 
-type B
+type SegmentStateWithMidpoint
   = { depth :: Int
     , tL :: Rational
     , tU :: Rational
@@ -45,7 +45,7 @@ type B
     , evaluatorTM :: Maybe (ValueAndDerivativePair2 Number)
     }
 
-type C
+type MaybeEvaluated
   = { ftL :: Maybe Number
     , ftU :: Maybe Number
     , f'tL :: Maybe Number
@@ -54,7 +54,7 @@ type C
     , f''tU :: Maybe Number
     }
 
-type D
+type ParametricDerivatives
   = { b1 :: Number
     , b2 :: Number
     , a1 :: Number
@@ -86,7 +86,7 @@ segmentDomain { accuracyTarget, evaluator, l, u } = result
       $ max minPrecision
           (40 - (Int.round $ 2.0 * (log accuracyTarget) / (log 2.0)))
 
-  bisect :: B -> List (Tuple Int Approx)
+  bisect :: SegmentStateWithMidpoint -> List (Tuple Int Approx)
   bisect { depth, tL, evaluatorTL, tM, evaluatorTM, tU, evaluatorTU } = segmentDomainF lowerSegmentParams <> segmentDomainF upperSegmentParams
     where
     lowerSegmentParams =
@@ -105,7 +105,7 @@ segmentDomain { accuracyTarget, evaluator, l, u } = result
       , evaluatorTU
       }
 
-  segmentDomainF :: A -> List (Tuple Int Approx)
+  segmentDomainF :: SegmentState -> List (Tuple Int Approx)
   segmentDomainF { depth, tL, evaluatorTL, tU, evaluatorTU } = segments
     where
     xPrecisionDepth = xPrecisionBase + 2 * depth
@@ -135,8 +135,8 @@ segmentDomain { accuracyTarget, evaluator, l, u } = result
             else
               singleton (Tuple depth t)
 
-  shouldBisect :: B -> Approx -> C -> Boolean
-  shouldBisect state _ { ftL: Just c1, ftU: Just c2, f'tL: Just b1, f'tU: Just b2, f''tL: Just a1, f''tU: Just a2 }
+  shouldBisect :: SegmentStateWithMidpoint -> Approx -> MaybeEvaluated -> Boolean
+  shouldBisect state _ { ftL: Just _, ftU: Just _, f'tL: Just b1, f'tU: Just b2, f''tL: Just a1, f''tU: Just a2 }
     | shouldBisectWithDerivative state { b1, b2, a1, a2 } = true
     | otherwise = false
 
@@ -145,7 +145,7 @@ segmentDomain { accuracyTarget, evaluator, l, u } = result
 
   shouldBisect _ _ _ = true
 
-  shouldBisectWithDerivative :: B -> D -> Boolean
+  shouldBisectWithDerivative :: SegmentStateWithMidpoint -> ParametricDerivatives -> Boolean
   shouldBisectWithDerivative { tL, tM } { b1, b2, a1, a2 } =
     let
       w = rationalToNumber $ tM - tL
@@ -183,7 +183,7 @@ checkFinite ma@(Just a) = if Number.isFinite a then ma else Nothing
 
 checkFinite ma = ma
 
-evaluate :: ((ValueAndDerivativePair2 Number) -> (ValueAndDerivative2 Number)) -> Maybe (ValueAndDerivativePair2 Number) -> Maybe (ValueAndDerivativePair2 Number) -> C
+evaluate :: ((ValueAndDerivativePair2 Number) -> (ValueAndDerivative2 Number)) -> Maybe (ValueAndDerivativePair2 Number) -> Maybe (ValueAndDerivativePair2 Number) -> MaybeEvaluated
 evaluate parametricToFunction evaluatorTL evaluatorTU =
   { ftL: checkFinite $ evaluatorTL <#> parametricToFunction <#> (_.value)
   , ftU: checkFinite $ evaluatorTU <#> parametricToFunction <#> (_.value)
