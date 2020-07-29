@@ -10,7 +10,7 @@ data PlotCommand
   | RoughFunctionPlot XYBounds Expression
   | RobustFunctionPlot XYBounds Expression (Array (Tuple Depth Approx)) Number
   | RoughParametricPlot XYBounds Bounds Expression Expression
-  | RobustParametricPlot XYBounds Bounds Expression Expression (Array (Tuple Depth Approx)) Number
+  | RobustParametricPlot XYBounds Expression Expression (Array (Tuple Depth Approx)) Number
 
 type Depth
   = Int
@@ -33,4 +33,4 @@ isPlotExpression (RobustFunctionPlot _ _ _ _) = true
 
 isPlotExpression (RoughParametricPlot _ _ _ _) = true
 
-isPlotExpression (RobustParametricPlot _ _ _ _ _ _) = true
+isPlotExpression (RobustParametricPlot _ _ _ _ _) = true

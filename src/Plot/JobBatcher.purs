@@ -214,4 +214,4 @@ segmentParametricRobust accuracyTarget batchSegmentCount bounds domain xExpressi
   commands = map toPlotCommand splitDomainSegments
 
   toPlotCommand :: Array (Tuple Depth Approx) -> PlotCommand
-  toPlotCommand segments = RobustParametricPlot bounds domain xExpression yExpression segments accuracyTarget
+  toPlotCommand segments = RobustParametricPlot bounds xExpression yExpression segments accuracyTarget

@@ -39,4 +39,4 @@ runCommand canvasSize (RobustFunctionPlot bounds expression domainSegments accur
 
 runCommand canvasSize (RoughParametricPlot bounds domain xExpression yExpression) = drawRoughParametricPlot canvasSize bounds domain xExpression yExpression
 
-runCommand canvasSize (RobustParametricPlot bounds domain xExpression yExpression domainSegments accuracyTarget) = drawRobustParametricPlot canvasSize bounds domain xExpression yExpression  domainSegments accuracyTarget
+runCommand canvasSize (RobustParametricPlot bounds xExpression yExpression domainSegments accuracyTarget) = drawRobustParametricPlot canvasSize bounds xExpression yExpression  domainSegments accuracyTarget
