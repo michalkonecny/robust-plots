@@ -64,7 +64,7 @@ data ExpressionManagerMessage
   | RaisedFunctionExpressionInputMessage FunctionExpressionInputMessage
   | RaisedParametricExpressionInputMessage ParametricExpressionInputMessage
   | ToggleAuto Boolean
-  | CalulateRobustFunctionPlots
+  | CalulateRobustPlots
 
 data Action
   = HandleMessage Input
@@ -179,7 +179,7 @@ handleAction = case _ of
   HandleFunctionExpressionInput message -> H.raise $ RaisedFunctionExpressionInputMessage message
   HandleParametricExpressionInput message -> H.raise $ RaisedParametricExpressionInputMessage message
   HandleAutoToggle (ToggleChanged isChecked) -> H.raise $ ToggleAuto isChecked
-  CalulateRobust -> H.raise CalulateRobustFunctionPlots
+  CalulateRobust -> H.raise CalulateRobustPlots
   SelectedExample index -> handleAddExample index
 
 handleAddExample :: forall m. MonadEffect m => Int -> H.HalogenM State Action ChildSlots ExpressionManagerMessage m Unit
