@@ -14,7 +14,6 @@ module Plot.JobBatcher
   ) where
 
 import Prelude
-
 import Data.Array (elem, foldl, foldr)
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable)
@@ -95,7 +94,7 @@ cancelAll jobQueue = cancelRunning $ jobQueue { cancelled = cancelled, queue = Q
 -- | Running time: `O(batchSegmentCount * (batchSegmentCount - 1))`
 addPlot :: Number -> Int -> JobQueue -> XYBounds -> Expression -> Id -> ExpectAff JobQueue
 addPlot accuracyTarget batchSegmentCount jobQueue bounds expression batchId = do
-  segmentedPlotsOrError <- makeAff $ runSegmentRobust accuracyTarget batchSegmentCount bounds expression
+  segmentedPlotsOrError <- makeAff $ runSegmentFunctionRobust accuracyTarget batchSegmentCount bounds expression
   case segmentedPlotsOrError of
     Left error -> pure $ Left error
     Right segmentedPlots -> pure $ Right $ foldl (addJob batchId) jobQueue segmentedPlots
@@ -124,13 +123,13 @@ isCancelled jobQueue id = elem id jobQueue.cancelled
 insertAll :: forall a f b. Foldable f => Ord b => (a -> b) -> f a -> S.Set b -> S.Set b
 insertAll mapper toInsert set = foldr (S.insert <<< mapper) set toInsert
 
-runSegmentRobust :: Number -> Int -> XYBounds -> Expression -> (Either Error (Either Error (Array PlotCommand)) -> Effect Unit) -> Effect Canceler
-runSegmentRobust accuracyTarget batchSegmentCount bounds expression callback = do
+runSegmentFunctionRobust :: Number -> Int -> XYBounds -> Expression -> (Either Error (Either Error (Array PlotCommand)) -> Effect Unit) -> Effect Canceler
+runSegmentFunctionRobust accuracyTarget batchSegmentCount bounds expression callback = do
   result <-
     try
       $ do
           log "Segmenting..."
-          pure $ segmentRobust accuracyTarget batchSegmentCount bounds expression
+          pure $ segmentFunctionRobust accuracyTarget batchSegmentCount bounds expression
   callback $ Right $ result
   pure nonCanceler
 
@@ -166,8 +165,8 @@ addJob batchId jobQueue command = jobQueue { queue = newQueue, currentId = newCu
 
   newQueue = Q.push jobQueue.queue { id: newCurrentId, command, batchId }
 
-segmentRobust :: Number -> Int -> XYBounds -> Expression -> Array PlotCommand
-segmentRobust accuracyTarget batchSegmentCount bounds expression = commands
+segmentFunctionRobust :: Number -> Int -> XYBounds -> Expression -> Array PlotCommand
+segmentFunctionRobust accuracyTarget batchSegmentCount bounds expression = commands
   where
   evaluator = evaluateWithX expression
 
