@@ -14,6 +14,7 @@ module Plot.JobBatcher
   ) where
 
 import Prelude
+
 import Data.Array (elem, foldl, foldr)
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable)
@@ -22,16 +23,19 @@ import Data.Set (Set, empty, insert) as S
 import Data.Tuple (Tuple)
 import Draw.Commands (DrawCommand)
 import Effect (Effect)
-import Effect.Aff (Aff, Canceler, Error, makeAff, nonCanceler)
+import Effect.Aff (Canceler, Error, makeAff, nonCanceler)
+import Effect.Console (log)
+import Effect.Exception (try)
 import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx)
 import Misc.Array (split)
+import Misc.ExpectAff (ExpectAff, MaybeExpectAff)
 import Misc.Queue (Queue, empty, null, peek, push, tail, toList, length) as Q
 import Plot.Commands (PlotCommand(..), Depth)
 import Plot.PlotController (computePlotAsync)
-import Plot.RoughPlot (evaluateWithX)
+import Plot.RoughFunctionPlot (evaluateWithX)
 import Plot.Segments (segmentDomain)
-import Types (Id, Size, XYBounds, Bounds)
+import Types (Id, Size, XYBounds)
 
 type JobQueue
   = { cancelled :: S.Set Id
@@ -89,10 +93,12 @@ cancelAll jobQueue = cancelRunning $ jobQueue { cancelled = cancelled, queue = Q
 -- | Adds a plot with its associated `batchId` to the `Job` queue.
 -- |
 -- | Running time: `O(batchSegmentCount * (batchSegmentCount - 1))`
-addPlot :: Number -> Int -> JobQueue -> XYBounds -> Expression -> String -> Id -> Aff JobQueue
-addPlot accuracyTarget batchSegmentCount jobQueue bounds expression label batchId = do
-  segmentedPlots <- makeAff $ runSegmentRobust accuracyTarget batchSegmentCount bounds expression label
-  pure $ foldl (addJob batchId) jobQueue segmentedPlots
+addPlot :: Number -> Int -> JobQueue -> XYBounds -> Expression -> Id -> ExpectAff JobQueue
+addPlot accuracyTarget batchSegmentCount jobQueue bounds expression batchId = do
+  segmentedPlotsOrError <- makeAff $ runSegmentRobust accuracyTarget batchSegmentCount bounds expression
+  case segmentedPlotsOrError of
+    Left error -> pure $ Left error
+    Right segmentedPlots -> pure $ Right $ foldl (addJob batchId) jobQueue segmentedPlots
 
 -- | Sets the `Job` at the front of the queue as running.
 -- |
@@ -103,8 +109,8 @@ setRunning jobQueue = case Q.peek jobQueue.queue of
   Just job -> jobQueue { running = pure job, queue = Q.tail jobQueue.queue }
 
 -- | Executes the `Job` at the front of the queue.
-runFirst :: Size -> Bounds -> JobQueue -> Aff (Maybe JobResult)
-runFirst canvasSize bounds jobQueue = runMaybeJob (runJob canvasSize) jobQueue.cancelled maybeJob
+runFirst :: Size -> JobQueue -> MaybeExpectAff JobResult
+runFirst canvasSize jobQueue = runMaybeJob (runJob canvasSize) jobQueue.cancelled maybeJob
   where
   maybeJob = Q.peek jobQueue.queue
 
@@ -118,9 +124,14 @@ isCancelled jobQueue id = elem id jobQueue.cancelled
 insertAll :: forall a f b. Foldable f => Ord b => (a -> b) -> f a -> S.Set b -> S.Set b
 insertAll mapper toInsert set = foldr (S.insert <<< mapper) set toInsert
 
-runSegmentRobust :: Number -> Int -> XYBounds -> Expression -> String -> (Either Error (Array PlotCommand) -> Effect Unit) -> Effect Canceler
-runSegmentRobust accuracyTarget batchSegmentCount bounds expression label callback = do
-  callback $ Right $ segmentRobust accuracyTarget batchSegmentCount bounds expression label
+runSegmentRobust :: Number -> Int -> XYBounds -> Expression -> (Either Error (Either Error (Array PlotCommand)) -> Effect Unit) -> Effect Canceler
+runSegmentRobust accuracyTarget batchSegmentCount bounds expression callback = do
+  result <-
+    try
+      $ do
+          log "Segmenting..."
+          pure $ segmentRobust accuracyTarget batchSegmentCount bounds expression
+  callback $ Right $ result
   pure nonCanceler
 
 cancelRunning :: JobQueue -> JobQueue
@@ -133,17 +144,19 @@ isRunning check jobQueue = case jobQueue.running of
   Nothing -> false
   Just job -> check job
 
-runMaybeJob :: (Job -> Aff (DrawCommand Unit)) -> S.Set Id -> Maybe Job -> Aff (Maybe JobResult)
+runMaybeJob :: (Job -> ExpectAff (DrawCommand Unit)) -> S.Set Id -> Maybe Job -> MaybeExpectAff JobResult
 runMaybeJob _ _ Nothing = pure Nothing
 
 runMaybeJob runner cancelled (Just job) =
   if elem job.id cancelled then
     pure Nothing
   else do
-    drawCommands <- runner job
-    pure $ Just { job, drawCommands }
+    drawCommandsOrError <- runner job
+    case drawCommandsOrError of
+      Left error -> pure $ Just $ Left error
+      Right drawCommands -> pure $ Just $ Right { job, drawCommands }
 
-runJob :: Size -> Job -> Aff (DrawCommand Unit)
+runJob :: Size -> Job -> ExpectAff (DrawCommand Unit)
 runJob canvasSize job = computePlotAsync canvasSize job.command
 
 addJob :: Id -> JobQueue -> PlotCommand -> JobQueue
@@ -153,8 +166,8 @@ addJob batchId jobQueue command = jobQueue { queue = newQueue, currentId = newCu
 
   newQueue = Q.push jobQueue.queue { id: newCurrentId, command, batchId }
 
-segmentRobust :: Number -> Int -> XYBounds -> Expression -> String -> Array PlotCommand
-segmentRobust accuracyTarget batchSegmentCount bounds expression label = commands
+segmentRobust :: Number -> Int -> XYBounds -> Expression -> Array PlotCommand
+segmentRobust accuracyTarget batchSegmentCount bounds expression = commands
   where
   evaluator = evaluateWithX expression
 
@@ -165,4 +178,4 @@ segmentRobust accuracyTarget batchSegmentCount bounds expression label = command
   commands = map toPlotCommand splitDomainSegments
 
   toPlotCommand :: Array (Tuple Depth Approx) -> PlotCommand
-  toPlotCommand segments = RobustPlot bounds expression segments accuracyTarget label
+  toPlotCommand segments = RobustPlot bounds expression segments accuracyTarget

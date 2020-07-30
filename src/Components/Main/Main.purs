@@ -1,20 +1,20 @@
 module Components.Main where
 
 import Prelude
-import Components.BatchInput (batchInputComponent)
 import Components.BoundsInput (boundsInputComponent, canvasSizeToBounds)
 import Components.Canvas (canvasComponent, defaultCanvasSize)
 import Components.Canvas.Controller (canvasController)
 import Components.Common.Action (onClickActionEvent)
 import Components.Common.ClassName (className)
+import Components.Common.Styles (style)
 import Components.ExpressionManager (Input, expressionManagerComponent)
 import Components.Main.Action (Action(..), handleAction)
-import Components.Main.Helper (isAllRobustPlotsComplete, newPlot)
 import Components.Main.Types (ChildSlots, Config, State)
 import Components.ProgressBar (progressBarComponent)
 import Constants (canvasId)
 import Control.Monad.Reader (ReaderT)
-import Data.Maybe (Maybe(..))
+import Data.Array (length)
+import Data.Maybe (Maybe(..), isJust)
 import Data.Symbol (SProxy(..))
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff)
@@ -23,6 +23,8 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Types (Direction(..))
+import ViewModels.Expression (newFunctionExpressionViewModel)
+import ViewModels.Expression.Draw (allComplete)
 
 _canvas = SProxy :: SProxy "canvas"
 
@@ -55,7 +57,7 @@ mainComponent =
         , size: defaultCanvasSize
         }
     , bounds: canvasSizeToBounds defaultCanvasSize
-    , plots: [ newPlot 0 ]
+    , plots: [ newFunctionExpressionViewModel 0 ]
     , clearPlot: pure unit
     , batchCount: 5
     , autoRobust: false
@@ -64,6 +66,7 @@ mainComponent =
         , total: 0
         }
     , inProgress: false
+    , error: Nothing
     }
 
   render :: forall m. MonadAff m => MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
@@ -72,7 +75,7 @@ mainComponent =
       $ [ HH.nav
             [ className "navbar navbar-expand navbar-dark bg-dark" ]
             [ HH.div
-                [ className "navbar-brand" ]
+                [ className "navbar-brand mr-auto" ]
                 [ HH.text "Robust plots" ]
             ]
         , HH.br_
@@ -84,18 +87,6 @@ mainComponent =
                     [ className "col-xl-3 col-md-12 sidebar" ]
                     [ HH.slot _expressionManager 1 expressionManagerComponent (toExpressionManagerInput state) (Just <<< HandleExpressionManager)
                     , HH.br_
-                    , HH.div
-                        [ className "card" ]
-                        [ HH.div
-                            [ className "card-header" ]
-                            [ HH.text "Advanced settings"
-                            ]
-                        , HH.div
-                            [ className "card-body" ]
-                            [ HH.slot _batchInput 1 batchInputComponent state.batchCount (Just <<< HandleBatchInput)
-                            ]
-                        ]
-                    , HH.br_
                     ]
                 , HH.div
                     [ className "col-xl col-md-12 canvasCol" ]
@@ -104,50 +95,59 @@ mainComponent =
                         [ HH.div
                             [ className "card-header" ]
                             [ HH.div
-                                [ className "form-inline" ]
+                                [ className "row" ]
                                 [ HH.div
-                                    [ className "pr-2" ]
+                                    [ className "form-inline" ]
                                     [ HH.div
-                                        [ className "btn-group pr-1" ]
-                                        [ HH.button
-                                            [ className "btn btn-primary"
-                                            , onClickActionEvent $ Pan Left
+                                        [ className "pr-2" ]
+                                        [ HH.div
+                                            [ className "btn-group pr-1" ]
+                                            [ HH.button
+                                                [ className "btn btn-primary"
+                                                , onClickActionEvent $ Pan Left
+                                                ]
+                                                [ HH.text "◄" ]
+                                            , HH.button
+                                                [ className "btn btn-primary"
+                                                , onClickActionEvent $ Pan Right
+                                                ]
+                                                [ HH.text "►" ]
                                             ]
-                                            [ HH.text "◄" ]
-                                        , HH.button
-                                            [ className "btn btn-primary"
-                                            , onClickActionEvent $ Pan Right
+                                        , HH.div
+                                            [ className "btn-group pr-1" ]
+                                            [ HH.button
+                                                [ className "btn btn-primary"
+                                                , onClickActionEvent $ Pan Down
+                                                ]
+                                                [ HH.text "▼" ]
+                                            , HH.button
+                                                [ className "btn btn-primary"
+                                                , onClickActionEvent $ Pan Up
+                                                ]
+                                                [ HH.text "▲" ]
                                             ]
-                                            [ HH.text "►" ]
+                                        , HH.div
+                                            [ className "btn-group" ]
+                                            [ HH.button
+                                                [ className "btn btn-primary"
+                                                , onClickActionEvent $ Zoom true
+                                                ]
+                                                [ HH.text "+" ]
+                                            , HH.button
+                                                [ className "btn btn-primary"
+                                                , onClickActionEvent $ Zoom false
+                                                ]
+                                                [ HH.text "-" ]
+                                            ]
                                         ]
-                                    , HH.div
-                                        [ className "btn-group pr-1" ]
-                                        [ HH.button
-                                            [ className "btn btn-primary"
-                                            , onClickActionEvent $ Pan Down
-                                            ]
-                                            [ HH.text "▼" ]
-                                        , HH.button
-                                            [ className "btn btn-primary"
-                                            , onClickActionEvent $ Pan Up
-                                            ]
-                                            [ HH.text "▲" ]
-                                        ]
-                                    , HH.div
-                                        [ className "btn-group" ]
-                                        [ HH.button
-                                            [ className "btn btn-primary"
-                                            , onClickActionEvent $ Zoom true
-                                            ]
-                                            [ HH.text "+" ]
-                                        , HH.button
-                                            [ className "btn btn-primary"
-                                            , onClickActionEvent $ Zoom false
-                                            ]
-                                            [ HH.text "-" ]
-                                        ]
+                                    , HH.slot _boundsInput 1 boundsInputComponent state.bounds (Just <<< HandleBoundsInput)
                                     ]
-                                , HH.slot _boundsInput 1 boundsInputComponent state.bounds (Just <<< HandleBoundsInput)
+                                , HH.div
+                                    [ className "col align-self-end" ]
+                                    [ HH.span
+                                        [ className $ statusBadge state, style "float:right" ]
+                                        [ HH.text $ status state ]
+                                    ]
                                 ]
                             ]
                         , HH.div
@@ -165,7 +165,7 @@ mainComponent =
             [ className "page-footer font-small fixed-bottom" ]
             [ HH.footer
                 [ className "footer-copyright text-right py-3 pr-2" ]
-                [ HH.text "By Michal Konecny, Joshua Eddy; source on"
+                [ HH.text "Version 0.1.0, ©2020 Michal Konecny, Joshua Eddy; source on"
                 , HH.a
                     [ HP.href "https://github.com/michalkonecny/robust-plots"
                     , className "pl-1"
@@ -186,6 +186,22 @@ toExpressionManagerInput :: State -> Input
 toExpressionManagerInput state =
   { plots: state.plots
   , autoRobust: state.autoRobust
-  , allRobustDraw: isAllRobustPlotsComplete state.plots
+  , allRobustDraw: allComplete state.plots
   , inProgress: state.inProgress
   }
+
+statusBadge :: State -> String
+statusBadge state
+  | isJust state.error = "badge badge-danger"
+  | state.progress.index == state.progress.total && state.inProgress = "badge badge-warning"
+  | state.inProgress = "badge badge-warning"
+  | (not $ allComplete state.plots) && 1 < length state.plots = "badge badge-success"
+  | otherwise = "badge badge-success"
+
+status :: State -> String
+status state
+  | isJust state.error = "Internal error!"
+  | state.progress.index == state.progress.total && state.inProgress = "Segmenting"
+  | state.inProgress = "Computing robust enclosure"
+  | (not $ allComplete state.plots) && 1 < length state.plots = "Some enclosures not computed"
+  | otherwise = "Ready"

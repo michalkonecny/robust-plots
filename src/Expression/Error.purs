@@ -1,7 +1,9 @@
 module Expression.Error where
 
 import Prelude
+
 import Data.Either (Either(..))
+import Data.Maybe (Maybe(..))
 import Data.String (joinWith)
 import Expression.Syntax (VariableName)
 
@@ -41,3 +43,7 @@ evaluationError = throw <<< EvaluationError
 
 multipleErrors :: forall a. Array Error -> Expect a
 multipleErrors = throw <<< MultipleErrors
+
+expectToMaybe :: forall a. Expect a -> Maybe a
+expectToMaybe (Left _) = Nothing
+expectToMaybe (Right v) = Just v
