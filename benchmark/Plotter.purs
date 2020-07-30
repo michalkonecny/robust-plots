@@ -7,15 +7,16 @@ import Data.Array ((..))
 import Data.Array.NonEmpty (singleton, toNonEmpty)
 import Data.Either (Either(..))
 import Data.Int (toNumber)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe)
 import Data.Tuple (Tuple(..))
+import Expression.Error (expectToMaybe)
 import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative, ValueAndDerivative2, evaluateDerivative, evaluateDerivative2)
 import Expression.Parser (parse)
 import IntervalArith.Approx (Approx)
 import IntervalArith.Misc (toRational)
+import Plot.FunctionSegments (segmentFunctionDomain)
 import Plot.RobustFunctionPlot (plotEnclosures)
 import Plot.RoughFunctionPlot (evaluateWithX)
-import Plot.FunctionSegments (segmentFunctionDomain)
 import Test.QuickCheck.Gen (elements)
 import Types (Polygon, Size, XYBounds)
 
@@ -23,7 +24,7 @@ benchPlot :: Benchmark
 benchPlot =
   mkBenchmark
     { slug: "plot"
-    , title: "Plotting the '" <> defaultExpression <> "' expression"
+    , title: "Plotting the function 'f(x)=" <> defaultExpression <> "'"
     , sizes: (1 .. 50)
     , sizeInterpretation: "Accuracy target x100"
     , inputsPerSize: 10
@@ -53,21 +54,13 @@ plotBenchmark canvasSize exprString bounds accuracyTarget = do
     Right expression -> plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator: evaluateWithXApprox, evaluator2: evaluateWithX2 }
       where
       evaluateWithXApprox :: Approx -> Maybe (ValueAndDerivative Approx)
-      evaluateWithXApprox x = value
+      evaluateWithXApprox x = expectToMaybe $ evaluateDerivative variableMap expression
         where
         variableMap = [ Tuple "x" { value: x, derivative: one } ]
 
-        value = case evaluateDerivative variableMap expression of
-          Left _ -> Nothing
-          Right v -> Just v
-
       evaluateWithX2 :: Approx -> Maybe (ValueAndDerivative2 Approx)
-      evaluateWithX2 x = value
+      evaluateWithX2 x = expectToMaybe $ evaluateDerivative2 variableMap expression
         where
         variableMap = [ Tuple "x" { value: x, derivative: one, derivative2: zero } ]
-
-        value = case evaluateDerivative2 variableMap expression of
-          Left _ -> Nothing
-          Right v -> Just v
 
       domainSegments = segmentFunctionDomain { accuracyTarget, evaluator: evaluateWithX expression, l: bounds.xBounds.lower, u: bounds.xBounds.upper }
