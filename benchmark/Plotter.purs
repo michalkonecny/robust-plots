@@ -14,7 +14,7 @@ import Expression.Parser (parse)
 import IntervalArith.Approx (Approx)
 import IntervalArith.Misc (toRational)
 import Plot.RobustPlot (plotEnclosures)
-import Plot.RoughPlot (evaluateWithX)
+import Plot.RoughFunctionPlot (evaluateWithX)
 import Plot.Segments (segmentDomain)
 import Test.QuickCheck.Gen (elements)
 import Types (Polygon, Size, XYBounds)
@@ -24,18 +24,18 @@ benchPlot =
   mkBenchmark
     { slug: "plot"
     , title: "Plotting the '" <> defaultExpression <> "' expression"
-    , sizes: (1 .. 5)
-    , sizeInterpretation: "Upper bound of accuracy range with 0.1 interval"
-    , inputsPerSize: 1
-    , gen: \n -> elements $ toNonEmpty $ singleton n
+    , sizes: (1 .. 50)
+    , sizeInterpretation: "Accuracy target x100"
+    , inputsPerSize: 10
+    , gen: elements <<< toNonEmpty <<< singleton
     , functions:
-        [ benchFn "plotEnclosures" plotFunc
+        [ benchFn "plotEnclosures and segmentDomain" plotFunc
         ]
     }
 
--- | Divide the given `Int` by 10 and use it as the accuracy of the plot
+-- | Divide the given `Int` by 100 and use it as the accuracy of the plot
 plotFunc :: Int -> Array (Array (Maybe Polygon))
-plotFunc = toNumber >>> (_ / 10.0) >>> plotBenchmark defaultSize defaultExpression defaultBounds
+plotFunc = toNumber >>> (_ / 100.0) >>> plotBenchmark defaultSize defaultExpression defaultBounds
 
 defaultExpression :: String
 defaultExpression = "x"
