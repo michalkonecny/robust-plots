@@ -25,8 +25,8 @@ benchPlot =
   mkBenchmark
     { slug: "plot"
     , title: "Plotting the function 'f(x)=" <> defaultExpression <> "'"
-    , sizes: (1 .. 50)
-    , sizeInterpretation: "Accuracy target x100"
+    , sizes: (5 .. 25)
+    , sizeInterpretation: "Accuracy target x10"
     , inputsPerSize: 10
     , gen: elements <<< toNonEmpty <<< singleton
     , functions:
@@ -36,10 +36,10 @@ benchPlot =
 
 -- | Divide the given `Int` by 100 and use it as the accuracy of the plot
 plotFunc :: Int -> Array (Array (Maybe Polygon))
-plotFunc = toNumber >>> (_ / 100.0) >>> plotBenchmark defaultSize defaultExpression defaultBounds
+plotFunc = toNumber >>> (_ / 10.0) >>> plotBenchmark defaultSize defaultExpression defaultBounds
 
 defaultExpression :: String
-defaultExpression = "x"
+defaultExpression = "sin(10*x)"
 
 defaultSize :: Size
 defaultSize = { width: toRational 800, height: toRational 500 }
