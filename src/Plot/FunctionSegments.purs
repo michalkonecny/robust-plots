@@ -1,7 +1,7 @@
 module Plot.FunctionSegments where
 
 import Prelude
-import Data.Array (fromFoldable, length)
+import Data.Array (fromFoldable)
 import Data.Int as Int
 import Data.List (singleton)
 import Data.Maybe (Maybe(..))
@@ -12,7 +12,6 @@ import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative2)
 import IntervalArith.Approx (Approx, Precision, fromRationalBoundsPrec, setMB)
 import IntervalArith.Misc (Rational, rationalToNumber, two)
 import Math (log)
-import Misc.Debug (unsafeLog, unsafeSpy)
 import Plot.Commands (Depth)
 
 minDepth :: Depth
@@ -34,7 +33,7 @@ segmentFunctionDomain ::
   , u :: Rational
   } ->
   Array (Tuple Int Approx)
-segmentFunctionDomain { accuracyTarget, evaluator, l, u } = unsafeLog ("segmentFunctionDomain: length result = " <> show (length result)) result
+segmentFunctionDomain { accuracyTarget, evaluator, l, u } = result
   where
   result =
     fromFoldable
@@ -47,8 +46,7 @@ segmentFunctionDomain { accuracyTarget, evaluator, l, u } = unsafeLog ("segmentF
           }
 
   xPrecisionBase =
-    unsafeSpy "xPrecisionBase"
-      $ min maxPrecision
+    min maxPrecision
       $ max minPrecision
           (40 - (Int.round $ 2.0 * (log accuracyTarget) / (log 2.0)))
 
@@ -107,13 +105,13 @@ segmentFunctionDomain { accuracyTarget, evaluator, l, u } = unsafeLog ("segmentF
   } =
     let
       w = rationalToNumber $ xM - xL
+
       w2 = w * 2.0
     in
       if w2 <= accuracyTarget then
         singleton (Tuple depth x)
       else
         let
-
           bUnstable = abs (b1 - b2) * w > accuracyTarget
 
           aUnstable = abs (a1 - a2) * w > accuracyTarget

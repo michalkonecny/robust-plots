@@ -1,9 +1,8 @@
 module Plot.RobustFunctionPlot where
 
 import Prelude
-import Data.Array (catMaybes, concat, head, length, reverse, take)
+import Data.Array (catMaybes, concat, head, reverse, take)
 import Data.Bifunctor (bimap)
-import Data.Foldable (sum)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Number as Number
 import Data.Tuple (Tuple(..), snd)
@@ -15,7 +14,6 @@ import Expression.Syntax (Expression)
 import IntervalArith.Approx (Approx, boundsA, boundsNumber, centreA, isFinite, lowerA, mBound, setMB, toNumber, unionA, upperA)
 import IntervalArith.Approx.NumOrder (absA, maxA, minA, (!<=!), (!>=!))
 import IntervalArith.Misc (rationalToNumber, two)
-import Misc.Debug (unsafeLog)
 import Partial.Unsafe (unsafePartial)
 import Plot.Commands (Depth)
 import Plot.FunctionSegments (maxDepth)
@@ -51,10 +49,7 @@ plotEnclosures ::
   , evaluator2 :: Approx -> Maybe (ValueAndDerivative2 Approx)
   } ->
   Array (Array (Maybe Polygon))
-plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, evaluator2 } =
-  unsafeLog
-    ("plotEnclosures: sum (map length segmentEnclosures) = " <> show (sum (map length segmentEnclosures)))
-    segmentEnclosures
+plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, evaluator2 } = segmentEnclosures
   where
   rangeY = rationalToNumber $ bounds.yBounds.upper - bounds.yBounds.lower
 
@@ -93,7 +88,7 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
   toCanvasEnclosures :: (Tuple Depth Approx) -> Array (Maybe Polygon)
   toCanvasEnclosures (Tuple depth x) = case toCanvasEnclosure x of
     Just (Tuple polygon accuracy)
-      | debugLog accuracy $ accuracy <= accuracyTarget || depth >= maxDepth -> [ Just polygon ]
+      | accuracy <= accuracyTarget || depth >= maxDepth -> [ Just polygon ]
     _
       | depth >= maxDepth -> [ Nothing ]
     _ -> bisect
@@ -113,23 +108,6 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
         enclosuresLeft = toCanvasEnclosures (Tuple (depth + 1) xLeft)
 
         enclosuresRight = toCanvasEnclosures (Tuple (depth + 1) xRight)
-    where
-    debugLog accuracy =
-      logSubsegments
-        $ "x = "
-        <> show (boundsNumber x)
-        <> ", depth = "
-        <> show depth
-        <> ", mb = "
-        <> show (mBound x)
-        <> ", accuracy = "
-        <> show accuracy
-        <> ", accuracyTarget = "
-        <> show accuracyTarget
-        <> if accuracy <= accuracyTarget then
-            ""
-          else
-            ", INSUFFICIENT ACCURACY "
 
   toCanvasEnclosure :: Approx -> Maybe (Tuple Polygon Number)
   {- overview:
@@ -195,23 +173,8 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
             Just (Tuple (lowerA xRight) (upperA xLeft))
           | otherwise -> xValueDirect
         _ -> xValueDirect
-
-      showEATuple t = show (bimap toNumber toNumber <$> t)
-
-      logEnclosureInputValues =
-        logEnclosures
-          $ "x = "
-          <> show (boundsNumber x)
-          <> ", xValueDirect = "
-          <> showEATuple xValueDirect
-          <> ", xValue = "
-          <> showEATuple xValue
-          <> ", xGradient = "
-          <> showEATuple xGradient
-          <> ", xGradGrad = "
-          <> showEATuple xGradGrad
     in
-      case logEnclosureInputValues xValue, xMidPointValue, xGradient of
+      case xValue, xMidPointValue, xGradient of
         Just (Tuple yLower yUpper), Just (Tuple yMidLower yMidUpper), Just (Tuple lowerGradient upperGradient)
           | isFinite lowerGradient && isFinite upperGradient -> Just (Tuple polygon accuracy)
             where
@@ -298,14 +261,3 @@ plotEnclosures { canvasSize, bounds, domainSegments, accuracyTarget, evaluator, 
 
 drawPlot :: Array (Maybe Polygon) -> DrawCommand Unit
 drawPlot = (drawEnclosure true) <<< catMaybes
-
-logSubsegments :: forall a. String -> a -> a
-logSubsegments = logSomething shouldLogSubsegments
-
-logEnclosures :: forall a. String -> a -> a
-logEnclosures = logSomething shouldLogEnclosures
-
-logSomething :: forall a. Boolean -> String -> a -> a
-logSomething shouldLogSomething
-  | shouldLogSomething = unsafeLog
-  | otherwise = \_ a -> a

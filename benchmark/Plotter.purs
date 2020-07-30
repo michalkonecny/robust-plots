@@ -13,9 +13,9 @@ import Expression.Evaluate.AutomaticDifferentiator (ValueAndDerivative, ValueAnd
 import Expression.Parser (parse)
 import IntervalArith.Approx (Approx)
 import IntervalArith.Misc (toRational)
-import Plot.RobustPlot (plotEnclosures)
+import Plot.RobustFunctionPlot (plotEnclosures)
 import Plot.RoughFunctionPlot (evaluateWithX)
-import Plot.Segments (segmentDomain)
+import Plot.FunctionSegments (segmentFunctionDomain)
 import Test.QuickCheck.Gen (elements)
 import Types (Polygon, Size, XYBounds)
 
@@ -70,4 +70,4 @@ plotBenchmark canvasSize exprString bounds accuracyTarget = do
           Left _ -> Nothing
           Right v -> Just v
 
-      domainSegments = segmentDomain { accuracyTarget, evaluator: evaluateWithX expression, l: bounds.xBounds.lower, u: bounds.xBounds.upper }
+      domainSegments = segmentFunctionDomain { accuracyTarget, evaluator: evaluateWithX expression, l: bounds.xBounds.lower, u: bounds.xBounds.upper }
