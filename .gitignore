@@ -13,4 +13,4 @@ output
 # bundle file
 dist
 package-lock.json
-benchmark-results
+tmp
