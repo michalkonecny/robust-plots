@@ -13,3 +13,4 @@ output
 # bundle file
 dist
 package-lock.json
+tmp
