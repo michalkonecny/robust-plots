@@ -1,0 +1,1 @@
+require('../output/Benchmark.Main/index').main();
