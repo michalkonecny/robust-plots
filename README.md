@@ -13,3 +13,8 @@ The above images are that of the graph `y=(1+x^2)^(sin(10*x))-1`. The left image
 In the images below the same objects are plotted with a low accuracy so that the shapes are easy to see. In this case accurate to 40 pixels.
 
 <img src="./docs/screenshots/robustPlot2.png" height="400" width="600">
+
+## Further documentation
+- [Expression syntax](/docs/syntax)
+- [Developer instructions](/docs/dev)
+- [Benchmarking](/docs/benchmark)
