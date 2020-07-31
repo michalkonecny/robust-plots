@@ -1,34 +1,15 @@
 # Robust plots
-Web app to plot robust enclosures of function graphs and fractals
+Web app to plot robust enclosures of regular and parametric graphs. The friendly and easy to user interface allows you to draw graphs with any simple expression you can think of.
 
-## Adding external JS dependencies
-Adding external JS libraries as dependencies requires a different pipeline than PS dependencies. For library `x` a `x = require(x);` must be must be added to `app.js` and the version of the JS library must be added via the `package.json` file. The JS library `decimal.js` is an example of this.
+[Try it now!](https://github.com/michalkonecny/robust-plots)
 
-## Install project
-```sh
-npm run install
-```
-This will install the project and all its dependencies.
+## Examples
+<div>
+<img src="./docs/screenshots/roughPlot1.png" height="200" width="300">
+<img src="./docs/screenshots/robustPlot1.png" height="200" width="300">
+</div>
 
-## Build project
-```sh
-npm run build
-```
-This will create a web server version of the website with URL relative paths. This means that in the `dist/index.html` the path to the `app.js` file starts with a `/`. Remove this to run the website as a simple HTML file. An alternate route is to open the `dist` directory as a local webserver.
+The above images are that of the graph `y=(1+x^2)^(sin(10*x))-1`. The left images shows the rough version and the right shows the robust. The robust version was obtained by drawing shapes that reliably enclose the exact objects. In particular, rounding errors are correctly accounted for. These graphical enclosures can be computed to an arbitrarily high accuracy. In the case of above it was to a 10th of a pixel.
+In the images below the same objects are plotted with a low accuracy so that the shapes are easy to see. In this case accurate to 40 pixels.
 
-It should also be mentioned that the PS can be build alone using
-```sh
-npm run build-purescript
-```
-
-## Run project
-```sh
-npm start
-```
-This will start the web page as a server that can be accessed via `http://localhost:1234/`
-
-## Run tests
-```sh
-npm run test
-```
-This will run all of the unit tests for the project. Note that any functionality that is dependent on external JS libraries will not work in a unit test environment as these libraries are not resolved in the PS test environment.
+<img src="./docs/screenshots/robustPlot2.png" height="400" width="600">
