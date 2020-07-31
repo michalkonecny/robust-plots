@@ -12,6 +12,7 @@ import Expression.Syntax (Expression)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
+import Types (Id)
 import ViewModels.Expression.Common (Status(..))
 
 type FunctionExpressionInputSlot p
@@ -21,7 +22,7 @@ type State
   = { expressionInput :: String
     , accuracyInput :: String
     , error :: Maybe String
-    , id :: Int
+    , id :: Id
     , input :: Input
     }
 
@@ -32,9 +33,9 @@ type Input
     }
 
 data FunctionExpressionInputMessage
-  = FunctionParsedExpression Int Expression String
-  | FunctionChangedStatus Int Status
-  | FunctionParsedAccuracy Int Number
+  = FunctionParsedExpression Id Expression String
+  | FunctionChangedStatus Id Status
+  | FunctionParsedAccuracy Id Number
 
 data Action
   = HandleExpressionInput String
@@ -44,7 +45,7 @@ data Action
   | Status Status
   | HandleAccuracyInput String
 
-functionExpressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> Int -> H.Component HH.HTML query Input FunctionExpressionInputMessage m
+functionExpressionInputComponent :: forall query m. MonadEffect m => ExpressionInputController -> Id -> H.Component HH.HTML query Input FunctionExpressionInputMessage m
 functionExpressionInputComponent controller id =
   H.mkComponent
     { initialState: initialState id
