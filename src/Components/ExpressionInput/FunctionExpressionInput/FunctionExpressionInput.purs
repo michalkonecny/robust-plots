@@ -1,7 +1,6 @@
 module Components.ExpressionInput.FunctionExpressionInput where
 
 import Prelude
-
 import Components.Common.Action (onCheckedActionEvent, onEnterPressActionEvent, onFocusOutActionEvent, onValueChangeActionEvent)
 import Components.Common.ClassName (className)
 import Components.ExpressionInput.Controller (ExpressionInputController)
@@ -87,6 +86,11 @@ render state =
                   , onEnterPressActionEvent UpdateExpression
                   , className "form-control"
                   ]
+              , HH.a
+                  [ className "btn btn-info"
+                  , HP.href "https://github.com/michalkonecny/robust-plots/blob/master/docs/syntax.md"
+                  ]
+                  [ HH.text "🛈" ]
               ]
           , HH.div
               [ className "form-check form-check-inline" ]
