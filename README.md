@@ -18,3 +18,7 @@ In the images below the same objects are plotted with a low accuracy so that the
 - [Expression syntax](/docs/syntax)
 - [Developer instructions](/docs/dev)
 - [Benchmarking](/docs/benchmark)
+- Design overview diagrams: 
+  - [Internal state and component messages](https://drive.google.com/file/d/13J6XdY_bSFnk4_agCbaF5heJJpYJb5nI/view?usp=sharing)
+  - [Data flow](https://drive.google.com/file/d/1jMKaTzwTjlZVNtuYDbEFOlKuLuhaBCNn/view?usp=sharing)
+  - [UI states](https://drive.google.com/file/d/1TQAOJ9z4zPL4hxErC9RD7v0HPtfWOAvG/view?usp=sharing)
