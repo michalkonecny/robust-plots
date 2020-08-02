@@ -15,7 +15,7 @@ Unary operators are prefix notation and depending on the function expect there o
 - `-` : Negation [`-(20) = -20`]
 - `abs` : Absolute [`abs(-25) = 25`]
 - `sqrt` : Square root [`sqrt(25) = 5`]
-- `e^` : Exponent
+- `e^` : Natural exponential
 - `log` : Natural logarithm
 - `sin` : Sine 
 - `cos` : Cosine
