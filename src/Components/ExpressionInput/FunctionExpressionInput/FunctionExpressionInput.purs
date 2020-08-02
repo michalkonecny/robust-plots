@@ -90,6 +90,7 @@ render state =
               , HH.a
                   [ className "btn btn-info"
                   , HP.href "https://github.com/michalkonecny/robust-plots/blob/master/docs/syntax.md"
+                  , HP.target "_blank"
                   ]
                   [ HH.text "🛈" ]
               ]
