@@ -21,6 +21,7 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties.ARIA as HA
+import Types (Id)
 import ViewModels.Expression (ExpressionViewModel(..), newFunctionExpressionViewModel, newParametricExpressionViewModel)
 import ViewModels.Expression.Helper (expressionId, expressionName, findById, isDefault, isFunction)
 
@@ -41,8 +42,8 @@ type ChildSlots
 
 type State
   = { plots :: Array ExpressionViewModel
-    , selectedPlotId :: Int
-    , nextPlotId :: Int
+    , selectedPlotId :: Id
+    , nextPlotId :: Id
     , editingSelected :: Boolean
     , editedName :: String
     , autoRobust :: Boolean
@@ -59,8 +60,8 @@ type Input
 
 data ExpressionManagerMessage
   = AddPlot ExpressionViewModel
-  | DeletePlot Int
-  | RenamePlot Int String
+  | DeletePlot Id
+  | RenamePlot Id String
   | RaisedFunctionExpressionInputMessage FunctionExpressionInputMessage
   | RaisedParametricExpressionInputMessage ParametricExpressionInputMessage
   | ToggleAuto Boolean
@@ -70,11 +71,11 @@ data Action
   = HandleMessage Input
   | AddFunction
   | AddParametric
-  | Delete Int
+  | Delete Id
   | Edit
   | Rename
   | HandleInput String
-  | ChangeSelected Int
+  | ChangeSelected Id
   | HandleFunctionExpressionInput FunctionExpressionInputMessage
   | HandleParametricExpressionInput ParametricExpressionInputMessage
   | HandleAutoToggle CheckboxMessage
