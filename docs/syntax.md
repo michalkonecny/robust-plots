@@ -1,6 +1,6 @@
 # Expression Syntax
 
-In robust plots the expression input only certain input text is accepted. Each expression input is dependent on a single variable. For function plots it is `x` and for the parametric plots it is `x` or `y`. This doc explains the syntax of expressions.
+In robust plots the expression input only certain input text is accepted. Each expression input is dependent on a single variable. For function plots it is `x` and for the parametric plots it is `t`. This doc explains the syntax of expressions.
 
 ## Literal values
 In the expressions literal values like `2` can be added in. The parser will evaluate decimal values like `3.4`. Note that negatives will be parsed as negatives if there is no value to the left of the operator. To circumvent this wrap the negative value with parentheses like this `(-3)`.
