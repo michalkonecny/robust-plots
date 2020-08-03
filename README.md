@@ -2,7 +2,7 @@
 
 Web app to plot robust enclosures of function graphs and parametric curves.
 
-[Try it now!](https://github.com/michalkonecny/robust-plots)
+[Try it now!](https://michalkonecny.github.io/robust-plots/live)
 
 ## Examples
 
