@@ -1,9 +1,11 @@
 # Robust plots
+
 Web app to plot robust enclosures of regular and parametric graphs. The friendly and easy to user interface allows you to draw graphs with any simple expression you can think of.
 
 [Try it now!](https://github.com/michalkonecny/robust-plots)
 
 ## Examples
+
 <div>
 <img src="./docs/screenshots/roughPlot1.png" height="200" width="300">
 <img src="./docs/screenshots/robustPlot1.png" height="200" width="300">
@@ -15,9 +17,10 @@ In the images below the same objects are plotted with a low accuracy so that the
 <img src="./docs/screenshots/robustPlot2.png" height="400" width="600">
 
 ## Further documentation
-- [Expression syntax](/docs/syntax)
-- [Developer instructions](/docs/dev)
-- [Benchmarking](/docs/benchmark)
+
+- [Expression syntax](docs/syntax.md)
+- [Developer instructions](docs/dev.md)
+- [Benchmarking](docs/benchmark.md)
 - Design overview diagrams: 
   - [Internal state and component messages](https://drive.google.com/file/d/13J6XdY_bSFnk4_agCbaF5heJJpYJb5nI/view?usp=sharing)
   - [Data flow](https://drive.google.com/file/d/1jMKaTzwTjlZVNtuYDbEFOlKuLuhaBCNn/view?usp=sharing)
