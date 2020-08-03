@@ -1,6 +1,6 @@
 # Robust plots
 
-Web app to plot robust enclosures of regular and parametric graphs. The friendly and easy to user interface allows you to draw graphs with any simple expression you can think of.
+Web app to plot robust enclosures of function graphs and parametric curves.
 
 [Try it now!](https://github.com/michalkonecny/robust-plots)
 
