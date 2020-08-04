@@ -12,13 +12,13 @@ Web app to plot robust enclosures of function graphs and parametric curves.
 </div>
 
 The above images are that of the graph `y=max(0,x*sin(4/(x^2)))+1/20`. The left
-images shows the rough version and the right shows the robust. The robust
+images shows the rough version and the right shows the robust one. The robust
 version was obtained by drawing shapes that reliably enclose the exact objects.
 In particular, rounding errors are correctly accounted for. These graphical
 enclosures can be computed to an arbitrarily high accuracy. In the case of above
 it was to a 10th of a pixel. In the images below the same objects are plotted
 with a low accuracy so that the shapes are easy to see. In this case accurate to
-40 pixels.
+10 pixels.
 
 <img src="./docs/screenshots/maxsininv-robustPlot-10.png" height="400" width="600">
 
